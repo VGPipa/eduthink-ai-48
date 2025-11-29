@@ -144,17 +144,19 @@ Selecciona automáticamente la metodología más adecuada según el tema y el ni
 El producto final SIEMPRE debe ser un JSON válido con esta estructura:
 
 {
-  "objetivos": ["objetivo 1", "objetivo 2", "objetivo 3"],
+  "objetivos": ["objetivo SMART 1", "objetivo SMART 2", "objetivo SMART 3"],
   "estructura": [
-    {"tiempo": "X min", "actividad": "Nombre", "descripcion": "Descripción detallada"},
-    ...
+    {"tiempo": "X min", "actividad": "Inicio - Motivación", "descripcion": "Descripción detallada"},
+    {"tiempo": "X min", "actividad": "Desarrollo - Exploración", "descripcion": "Descripción detallada"},
+    {"tiempo": "X min", "actividad": "Desarrollo - Práctica", "descripcion": "Descripción detallada"},
+    {"tiempo": "X min", "actividad": "Cierre - Metacognición", "descripcion": "Descripción detallada"}
   ],
   "preguntasSocraticas": ["pregunta 1", "pregunta 2", "pregunta 3", "pregunta 4"],
   "situacionSignificativa": "Descripción del reto o problema contextualizado",
   "competencia": "Competencia del CNEB seleccionada",
   "desempeno": "Desempeño específico del grado",
-  "enfoqueTransversal": "Enfoque transversal seleccionado",
-  "habilidadesSigloXXI": ["habilidad 1", "habilidad 2"],
+  "enfoqueTransversal": "Enfoque transversal seleccionado con justificación",
+  "habilidadesSigloXXI": ["Pensamiento creativo", "Pensamiento analítico", ...],
   "evaluacion": {
     "evidencias": ["evidencia 1", "evidencia 2"],
     "criterios": ["criterio 1", "criterio 2"],
@@ -177,15 +179,12 @@ El producto final SIEMPRE debe ser un JSON válido con esta estructura:
 10. ENTREGA FINAL
 ======================================================================
 
-Genera SIEMPRE la guía de clase en formato JSON válido, completamente desarrollada y lista para usar en aula. NO incluyas explicaciones fuera del JSON.`;
+Genera SIEMPRE la guía de clase en formato JSON válido, completamente desarrollada y lista para usar en aula. NO incluyas explicaciones fuera del JSON. Responde ÚNICAMENTE con el JSON válido.`;
 
 interface GenerateGuiaRequest {
   tema: string;
   contexto: string;
-  metodologias: string[];
-  objetivo: string;
   recursos: string[];
-  adaptaciones: string[];
   grado?: string;
   seccion?: string;
   numeroEstudiantes?: number;
@@ -203,16 +202,20 @@ serve(async (req) => {
     const { 
       tema, 
       contexto, 
-      metodologias, 
-      objetivo, 
-      recursos, 
-      adaptaciones,
+      recursos,
       grado,
       seccion,
       numeroEstudiantes,
       duracion,
       area
     }: GenerateGuiaRequest = await req.json();
+
+    console.log("=== Generate Guía Request ===");
+    console.log("Tema:", tema);
+    console.log("Área:", area);
+    console.log("Grado:", grado);
+    console.log("Duración:", duracion);
+    console.log("Recursos:", recursos);
 
     // Build the user prompt with all available data
     const userPrompt = `
@@ -223,53 +226,79 @@ DATOS DEL FORMULARIO:
 - Sección: ${seccion || '[INFORMACIÓN NO PROPORCIONADA]'}
 - Número de estudiantes: ${numeroEstudiantes || '[INFORMACIÓN NO PROPORCIONADA]'}
 - Duración de la clase: ${duracion || 55} minutos
-- Objetivo específico: ${objetivo || '[ASUMIDO: Comprender los conceptos fundamentales del tema]'}
-- Metodologías preferidas: ${metodologias?.length > 0 ? metodologias.join(', ') : '[ASUMIDO: Aprendizaje activo]'}
 - Recursos disponibles: ${recursos?.length > 0 ? recursos.join(', ') : '[INFORMACIÓN NO PROPORCIONADA]'}
-- Adaptaciones/Necesidades especiales: ${adaptaciones?.length > 0 ? adaptaciones.join(', ') : 'Ninguna reportada'}
 
 CONTEXTO DEL GRUPO:
 ${contexto || '[INFORMACIÓN NO PROPORCIONADA - usar contexto general]'}
 
 Por favor genera la guía de clase completa en formato JSON según la estructura especificada.`;
 
-    console.log("Generating guia for tema:", tema);
+    console.log("User prompt built, calling Lovable AI...");
 
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    if (!LOVABLE_API_KEY) {
+      console.error("LOVABLE_API_KEY not configured");
+      throw new Error("LOVABLE_API_KEY no está configurada");
+    }
+
+    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${Deno.env.get("OPENAI_API_KEY")}`,
+        "Authorization": `Bearer ${LOVABLE_API_KEY}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "gpt-4o-mini",
+        model: "google/gemini-2.5-flash",
         messages: [
           { role: "system", content: SYSTEM_PROMPT },
           { role: "user", content: userPrompt }
         ],
-        temperature: 0.7,
-        max_tokens: 2000,
-        response_format: { type: "json_object" }
       }),
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("OpenAI API error:", errorText);
-      throw new Error(`OpenAI API error: ${response.status}`);
+      console.error("Lovable AI API error:", response.status, errorText);
+      
+      if (response.status === 429) {
+        throw new Error("Límite de solicitudes excedido. Por favor, intenta de nuevo en unos minutos.");
+      }
+      if (response.status === 402) {
+        throw new Error("Se requiere agregar créditos. Contacta al administrador.");
+      }
+      
+      throw new Error(`Error del servicio de IA: ${response.status}`);
     }
 
     const data = await response.json();
-    const content = data.choices[0].message.content;
+    const content = data.choices?.[0]?.message?.content;
     
-    console.log("Generated content:", content);
+    console.log("AI Response received, parsing...");
 
-    // Parse the JSON response
+    if (!content) {
+      throw new Error("La IA no generó contenido");
+    }
+
+    // Parse the JSON response - handle markdown code blocks
     let guiaData;
     try {
-      guiaData = JSON.parse(content);
+      // Remove markdown code blocks if present
+      let jsonContent = content.trim();
+      if (jsonContent.startsWith("```json")) {
+        jsonContent = jsonContent.slice(7);
+      } else if (jsonContent.startsWith("```")) {
+        jsonContent = jsonContent.slice(3);
+      }
+      if (jsonContent.endsWith("```")) {
+        jsonContent = jsonContent.slice(0, -3);
+      }
+      jsonContent = jsonContent.trim();
+      
+      guiaData = JSON.parse(jsonContent);
+      console.log("JSON parsed successfully");
     } catch (parseError) {
       console.error("Failed to parse AI response as JSON:", parseError);
+      console.error("Raw content:", content);
       throw new Error("La respuesta de la IA no es un JSON válido");
     }
 
@@ -287,8 +316,7 @@ Por favor genera la guía de clase completa en formato JSON según la estructura
         `¿Qué preguntas te surgen?`
       ],
       recursos: guiaData.recursos || recursos || [],
-      adaptaciones: guiaData.adaptaciones || adaptaciones || [],
-      // Additional CNEB data
+      adaptaciones: guiaData.adaptaciones || [],
       situacionSignificativa: guiaData.situacionSignificativa,
       competencia: guiaData.competencia,
       desempeno: guiaData.desempeno,
@@ -297,14 +325,17 @@ Por favor genera la guía de clase completa en formato JSON según la estructura
       evaluacion: guiaData.evaluacion
     };
 
+    console.log("=== Guía generated successfully ===");
+
     return new Response(JSON.stringify(guiaClase), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
 
   } catch (error) {
     console.error("Error in generate-guia-clase:", error);
+    const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: errorMessage }),
       { 
         status: 500, 
         headers: { ...corsHeaders, "Content-Type": "application/json" } 
@@ -312,4 +343,3 @@ Por favor genera la guía de clase completa en formato JSON según la estructura
     );
   }
 });
-

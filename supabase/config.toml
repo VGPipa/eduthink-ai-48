@@ -1,1 +1,4 @@
 project_id = "eslzhypwwmoumgxoeowd"
+
+[functions.generate-guia-clase]
+verify_jwt = false
