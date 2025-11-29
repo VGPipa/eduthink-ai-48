@@ -57,7 +57,7 @@ export default function PostClase() {
           .from('respuestas_detalle')
           .select(`
             *,
-            pregunta:preguntas(id, texto_pregunta, texto_contexto)
+            pregunta:preguntas(id, texto_pregunta, concepto)
           `)
           .in('id_respuesta_alumno', respuestaIds);
 

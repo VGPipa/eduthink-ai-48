@@ -64,7 +64,7 @@ export interface GenerateGuiaClaseInput {
 export interface QuizQuestion {
   tipo: 'conocimiento' | 'aplicacion' | 'analisis' | 'razonamiento' | 'evaluacion';
   texto: string;
-  texto_contexto?: string;
+  concepto?: string;
   opciones?: string[];
   respuesta_correcta: string;
   justificacion: string;
@@ -103,7 +103,7 @@ export interface ProcessQuizResponseData {
   preguntas: Array<{
     id: string;
     texto_pregunta: string;
-    texto_contexto?: string;
+    concepto?: string;
   }>;
 }
 
@@ -195,7 +195,7 @@ export async function generateQuiz(
       {
         tipo: 'conocimiento',
         texto: `¿Cuál es la definición básica de ${tema}?`,
-        texto_contexto: `Concepto: ${tema}`,
+        concepto: tema,
         opciones: ['Opción A', 'Opción B', 'Opción C', 'Opción D'],
         respuesta_correcta: 'Opción B',
         justificacion: `La definición correcta de ${tema} es fundamental para comprender el tema.`,
@@ -204,7 +204,7 @@ export async function generateQuiz(
       {
         tipo: 'conocimiento',
         texto: `¿Qué elementos caracterizan a ${tema}?`,
-        texto_contexto: `Concepto: ${tema}`,
+        concepto: tema,
         opciones: ['Opción A', 'Opción B', 'Opción C', 'Opción D'],
         respuesta_correcta: 'Opción C',
         justificacion: `Los elementos característicos son esenciales para identificar ${tema}.`,
@@ -213,7 +213,7 @@ export async function generateQuiz(
       {
         tipo: 'razonamiento',
         texto: `Si no conoces ${tema}, ¿qué podrías inferir sobre su importancia?`,
-        texto_contexto: `Concepto: ${tema}`,
+        concepto: tema,
         opciones: ['Opción A', 'Opción B', 'Opción C', 'Opción D'],
         respuesta_correcta: 'Opción A',
         justificacion: `El razonamiento sobre la importancia ayuda a contextualizar el aprendizaje.`,
@@ -222,7 +222,7 @@ export async function generateQuiz(
       {
         tipo: 'conocimiento',
         texto: `¿Qué relación tiene ${tema} con otros conceptos que ya conoces?`,
-        texto_contexto: `Concepto: ${tema}`,
+        concepto: tema,
         opciones: ['Opción A', 'Opción B', 'Opción C', 'Opción D'],
         respuesta_correcta: 'Opción B',
         justificacion: `Establecer conexiones facilita el aprendizaje significativo.`,
@@ -231,7 +231,7 @@ export async function generateQuiz(
       {
         tipo: 'razonamiento',
         texto: `¿Qué preguntas te surgen sobre ${tema} antes de estudiarlo?`,
-        texto_contexto: `Concepto: ${tema}`,
+        concepto: tema,
         opciones: ['Opción A', 'Opción B', 'Opción C', 'Opción D'],
         respuesta_correcta: 'Opción D',
         justificacion: `La curiosidad es fundamental para el aprendizaje activo.`,
@@ -247,7 +247,7 @@ export async function generateQuiz(
       preguntas.push({
         tipo: tipoPregunta,
         texto: `Pregunta ${i} sobre ${tema}: Aplica los conceptos aprendidos para resolver este problema.`,
-        texto_contexto: `Concepto: ${tema}`,
+        concepto: tema,
         opciones: ['Opción A', 'Opción B', 'Opción C', 'Opción D'],
         respuesta_correcta: 'Opción B',
         justificacion: `Esta respuesta demuestra comprensión adecuada de ${tema}.`,
@@ -305,12 +305,12 @@ export async function processQuizResponses(
 
       // Find question context
       const pregunta = data.preguntas.find(p => p.id === detalle.id_pregunta);
-      if (pregunta?.texto_contexto) {
-        const concepto = pregunta.texto_contexto.replace('Concepto: ', '').trim();
-        const stats = conceptosStats.get(concepto) || { correctas: 0, total: 0 };
+      if (pregunta?.concepto) {
+        const conceptoName = pregunta.concepto;
+        const stats = conceptosStats.get(conceptoName) || { correctas: 0, total: 0 };
         stats.total++;
         if (detalle.es_correcta) stats.correctas++;
-        conceptosStats.set(concepto, stats);
+        conceptosStats.set(conceptoName, stats);
       }
     });
   });
