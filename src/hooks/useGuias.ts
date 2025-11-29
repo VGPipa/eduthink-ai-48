@@ -351,7 +351,6 @@ export function useGuiaTemaDetalle(temaId?: string) {
           curso:cursos_plan(
             id,
             nombre,
-            grado,
             horas_semanales
           )
         `)
