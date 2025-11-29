@@ -81,9 +81,13 @@ export function AsignacionDialog({ open, onOpenChange, onSuccess, editData }: As
         .select('id')
         .eq('grado', data.grado)
         .eq('seccion', data.seccion)
-        .single();
+        .maybeSingle();
 
-      if (grupoError) throw new Error('No se encontró el grupo seleccionado');
+      if (grupoError) throw grupoError;
+      
+      if (!grupoData) {
+        throw new Error(`No existe el grupo ${data.grado} - Sección ${data.seccion}. Por favor, créalo primero en la gestión de grupos.`);
+      }
 
       if (editData) {
         const { error } = await supabase
