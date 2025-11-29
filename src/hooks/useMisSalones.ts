@@ -37,6 +37,164 @@ export interface GrupoConMetricas {
   cantidadAlumnos: number;
 }
 
+export interface AsignacionConMetricas {
+  id: string;
+  materia: { id: string; nombre: string };
+  grupo: { id: string; nombre: string; grado: string; seccion: string | null };
+  promedio: number;
+  totalQuizzes: number;
+  asistencia: number;
+}
+
+// Hook para obtener las asignaciones del profesor con métricas
+export function useAsignacionesProfesor() {
+  const { profesor } = useProfesor();
+
+  return useQuery({
+    queryKey: ['asignaciones-profesor-metricas', profesor?.id],
+    queryFn: async (): Promise<AsignacionConMetricas[]> => {
+      if (!profesor?.id) return [];
+
+      // Obtener asignaciones con grupos y materias
+      const { data: asignaciones, error } = await supabase
+        .from('asignaciones_profesor')
+        .select(`
+          id,
+          id_grupo,
+          id_materia,
+          grupos (
+            id,
+            nombre,
+            grado,
+            seccion,
+            cantidad_alumnos
+          ),
+          cursos_plan (
+            id,
+            nombre
+          )
+        `)
+        .eq('id_profesor', profesor.id);
+
+      if (error) throw error;
+      if (!asignaciones || asignaciones.length === 0) return [];
+
+      // Para cada asignación, calcular métricas
+      const asignacionesConMetricas: AsignacionConMetricas[] = [];
+
+      for (const asig of asignaciones) {
+        const grupo = asig.grupos as any;
+        const materia = asig.cursos_plan as any;
+        
+        if (!grupo || !materia) continue;
+
+        // Obtener alumnos del grupo
+        const { data: alumnosGrupo } = await supabase
+          .from('alumnos_grupo')
+          .select('id_alumno')
+          .eq('id_grupo', grupo.id);
+
+        const totalAlumnos = alumnosGrupo?.length || 0;
+        const alumnoIds = alumnosGrupo?.map(a => a.id_alumno) || [];
+
+        // Obtener temas de la materia
+        const { data: temas } = await supabase
+          .from('temas_plan')
+          .select('id')
+          .eq('curso_plan_id', materia.id);
+
+        const temaIds = temas?.map(t => t.id) || [];
+
+        if (temaIds.length === 0) {
+          asignacionesConMetricas.push({
+            id: asig.id,
+            materia: { id: materia.id, nombre: materia.nombre },
+            grupo: { id: grupo.id, nombre: grupo.nombre, grado: grupo.grado, seccion: grupo.seccion },
+            promedio: 0,
+            totalQuizzes: 0,
+            asistencia: 0,
+          });
+          continue;
+        }
+
+        // Obtener clases de esos temas en ese grupo
+        const { data: clases } = await supabase
+          .from('clases')
+          .select('id')
+          .eq('id_grupo', grupo.id)
+          .in('id_tema', temaIds);
+
+        const claseIds = clases?.map(c => c.id) || [];
+
+        if (claseIds.length === 0) {
+          asignacionesConMetricas.push({
+            id: asig.id,
+            materia: { id: materia.id, nombre: materia.nombre },
+            grupo: { id: grupo.id, nombre: grupo.nombre, grado: grupo.grado, seccion: grupo.seccion },
+            promedio: 0,
+            totalQuizzes: 0,
+            asistencia: 0,
+          });
+          continue;
+        }
+
+        // Obtener quizzes de esas clases
+        const { data: quizzes } = await supabase
+          .from('quizzes')
+          .select('id')
+          .in('id_clase', claseIds);
+
+        const quizIds = quizzes?.map(q => q.id) || [];
+        const totalQuizzes = quizIds.length;
+
+        if (totalQuizzes === 0 || totalAlumnos === 0) {
+          asignacionesConMetricas.push({
+            id: asig.id,
+            materia: { id: materia.id, nombre: materia.nombre },
+            grupo: { id: grupo.id, nombre: grupo.nombre, grado: grupo.grado, seccion: grupo.seccion },
+            promedio: 0,
+            totalQuizzes: 0,
+            asistencia: 0,
+          });
+          continue;
+        }
+
+        // Obtener respuestas de los alumnos
+        const { data: respuestas } = await supabase
+          .from('respuestas_alumno')
+          .select('id_alumno, puntaje_total, estado')
+          .in('id_quiz', quizIds)
+          .in('id_alumno', alumnoIds);
+
+        // Calcular métricas
+        const completadas = respuestas?.filter(r => r.estado === 'completado') || [];
+        const puntajes = completadas
+          .filter(r => r.puntaje_total !== null)
+          .map(r => r.puntaje_total as number);
+        
+        const promedio = puntajes.length > 0
+          ? Math.round(puntajes.reduce((a, b) => a + b, 0) / puntajes.length)
+          : 0;
+
+        const alumnosQueCompletaron = new Set(completadas.map(r => r.id_alumno));
+        const asistencia = Math.round((alumnosQueCompletaron.size / totalAlumnos) * 100);
+
+        asignacionesConMetricas.push({
+          id: asig.id,
+          materia: { id: materia.id, nombre: materia.nombre },
+          grupo: { id: grupo.id, nombre: grupo.nombre, grado: grupo.grado, seccion: grupo.seccion },
+          promedio,
+          totalQuizzes,
+          asistencia,
+        });
+      }
+
+      return asignacionesConMetricas;
+    },
+    enabled: !!profesor?.id,
+  });
+}
+
 // Hook para obtener los grupos/salones asignados al profesor
 export function useGruposProfesor() {
   const { profesor } = useProfesor();

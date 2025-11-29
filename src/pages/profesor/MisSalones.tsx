@@ -10,11 +10,12 @@ import {
   TrendingUp,
   AlertTriangle,
   Target,
-  ChevronRight,
   ChevronDown,
-  Lightbulb
+  Lightbulb,
+  BookOpen
 } from 'lucide-react';
 import {
+  useAsignacionesProfesor,
   useGruposProfesor,
   useMateriasGrupo,
   useTemasMateria,
@@ -22,22 +23,26 @@ import {
   useResumenSalon,
   useMetricasPRE,
   useMetricasPOST,
-  useRecomendacionesIA
+  useRecomendacionesIA,
+  type AsignacionConMetricas
 } from '@/hooks/useMisSalones';
 
 export default function MisSalones() {
-  const [selectedSalon, setSelectedSalon] = useState<string>('');
+  const [selectedAsignacion, setSelectedAsignacion] = useState<AsignacionConMetricas | null>(null);
   const [selectedMateria, setSelectedMateria] = useState<string>('todos');
   const [selectedTema, setSelectedTema] = useState<string>('todos');
   const [selectedClase, setSelectedClase] = useState<string>('todos');
 
-  // Hooks de datos
-  const { data: grupos, isLoading: isLoadingGrupos } = useGruposProfesor();
-  const { data: materias } = useMateriasGrupo(selectedSalon || null);
+  // Hook de asignaciones con métricas para la vista inicial
+  const { data: asignaciones, isLoading: isLoadingAsignaciones } = useAsignacionesProfesor();
+  
+  // Hooks para la vista de detalle
+  const { data: grupos } = useGruposProfesor();
+  const { data: materias } = useMateriasGrupo(selectedAsignacion?.grupo.id || null);
   const { data: temas } = useTemasMateria(selectedMateria !== 'todos' ? selectedMateria : null);
   const { data: clases } = useClasesTema(
     selectedTema !== 'todos' ? selectedTema : null,
-    selectedSalon || null
+    selectedAsignacion?.grupo.id || null
   );
 
   // Filtros para métricas
@@ -48,20 +53,18 @@ export default function MisSalones() {
   };
 
   // Métricas
-  const { data: resumen, isLoading: isLoadingResumen } = useResumenSalon(selectedSalon || null, filtros);
-  const { data: metricasPre, isLoading: isLoadingPre } = useMetricasPRE(selectedSalon || null, filtros);
-  const { data: metricasPost, isLoading: isLoadingPost } = useMetricasPOST(selectedSalon || null, filtros);
+  const { data: resumen, isLoading: isLoadingResumen } = useResumenSalon(selectedAsignacion?.grupo.id || null, filtros);
+  const { data: metricasPre, isLoading: isLoadingPre } = useMetricasPRE(selectedAsignacion?.grupo.id || null, filtros);
+  const { data: metricasPost, isLoading: isLoadingPost } = useMetricasPOST(selectedAsignacion?.grupo.id || null, filtros);
   
   // Recomendaciones generadas por IA
   const { recomendacion: recomendacionPre } = useRecomendacionesIA(metricasPre?.conceptosRefuerzo || [], 'PRE');
   const { recomendacion: recomendacionPost } = useRecomendacionesIA(metricasPre?.conceptosRefuerzo || [], 'POST');
 
-  const salonActual = grupos?.find(g => g.id === selectedSalon);
-
-  // Reset filtros cuando cambia el salón
-  const handleSalonChange = (salonId: string) => {
-    setSelectedSalon(salonId);
-    setSelectedMateria('todos');
+  // Reset filtros cuando selecciona una asignación
+  const handleAsignacionSelect = (asignacion: AsignacionConMetricas) => {
+    setSelectedAsignacion(asignacion);
+    setSelectedMateria(asignacion.materia.id);
     setSelectedTema('todos');
     setSelectedClase('todos');
   };
@@ -79,8 +82,8 @@ export default function MisSalones() {
     setSelectedClase('todos');
   };
 
-  // Vista de lista de salones
-  if (!selectedSalon) {
+  // Vista de lista de asignaciones (cards según diseño)
+  if (!selectedAsignacion) {
     return (
       <div className="space-y-6 animate-fade-in">
         <div>
@@ -90,53 +93,80 @@ export default function MisSalones() {
           </p>
         </div>
 
-        {isLoadingGrupos ? (
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {[1, 2, 3].map((i) => (
-              <Card key={i}>
+        {isLoadingAsignaciones ? (
+          <div className="grid md:grid-cols-2 gap-6">
+            {[1, 2, 3, 4].map((i) => (
+              <Card key={i} className="border shadow-sm">
                 <CardContent className="p-6">
-                  <Skeleton className="h-12 w-12 rounded-xl mb-4" />
-                  <Skeleton className="h-6 w-24 mb-2" />
-                  <Skeleton className="h-4 w-32 mb-3" />
-                  <Skeleton className="h-4 w-20" />
+                  <Skeleton className="h-6 w-32 mb-2" />
+                  <Skeleton className="h-4 w-20 mb-4" />
+                  <Skeleton className="h-2 w-full mb-4" />
+                  <div className="grid grid-cols-2 gap-4">
+                    <Skeleton className="h-16" />
+                    <Skeleton className="h-16" />
+                  </div>
                 </CardContent>
               </Card>
             ))}
           </div>
-        ) : grupos && grupos.length > 0 ? (
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {grupos.map((salon) => (
+        ) : asignaciones && asignaciones.length > 0 ? (
+          <div className="grid md:grid-cols-2 gap-6">
+            {asignaciones.map((asignacion) => (
               <Card 
-                key={salon.id} 
-                className="cursor-pointer hover:shadow-elevated transition-all hover:border-primary"
-                onClick={() => handleSalonChange(salon.id)}
+                key={asignacion.id} 
+                className="border shadow-sm cursor-pointer hover:shadow-lg transition-all hover:border-blue-300"
+                onClick={() => handleAsignacionSelect(asignacion)}
               >
                 <CardContent className="p-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="p-3 rounded-xl gradient-bg">
-                      <Users className="w-6 h-6 text-primary-foreground" />
+                  {/* Header con título y badge */}
+                  <div className="flex items-start justify-between mb-1">
+                    <div>
+                      <h3 className="text-lg font-bold text-foreground">{asignacion.materia.nombre}</h3>
+                      <p className="text-sm text-muted-foreground">
+                        {asignacion.grupo.nombre}
+                      </p>
                     </div>
-                    <ChevronRight className="w-5 h-5 text-muted-foreground" />
+                    <Badge 
+                      className="bg-blue-500 hover:bg-blue-600 text-white font-semibold px-3 py-1 rounded-full"
+                    >
+                      {asignacion.promedio}%
+                    </Badge>
                   </div>
-                  <h3 className="text-xl font-bold mb-1">{salon.nombre}</h3>
-                  <p className="text-sm text-muted-foreground mb-3">
-                    {salon.grado} {salon.seccion ? `- ${salon.seccion}` : ''}
-                  </p>
-                  <div className="flex items-center gap-2 text-sm">
-                    <Users className="w-4 h-4 text-primary" />
-                    <span>{salon.cantidadAlumnos} estudiantes</span>
+
+                  {/* Barra de promedio */}
+                  <div className="mt-4 mb-4">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="text-sm text-blue-600 font-medium">Promedio</span>
+                      <span className="text-sm font-semibold">{asignacion.promedio}%</span>
+                    </div>
+                    <Progress 
+                      value={asignacion.promedio} 
+                      className="h-2 [&>div]:bg-blue-500" 
+                    />
+                  </div>
+
+                  {/* Fila de Quizzes y Asistencia */}
+                  <div className="grid grid-cols-2 gap-4 pt-3 border-t">
+                    <div className="bg-slate-50 rounded-lg p-3">
+                      <p className="text-xs text-muted-foreground mb-1">Quizzes</p>
+                      <p className="text-xl font-bold text-foreground">{asignacion.totalQuizzes}</p>
+                    </div>
+                    <div className="bg-slate-50 rounded-lg p-3">
+                      <p className="text-xs text-muted-foreground mb-1">Asistencia</p>
+                      <p className="text-xl font-bold text-foreground">{asignacion.asistencia}%</p>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
             ))}
           </div>
         ) : (
-          <Card>
+          <Card className="border shadow-sm">
             <CardContent className="p-12 text-center">
-              <Users className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-              <h3 className="text-lg font-semibold mb-2">No tienes salones asignados</h3>
+              <BookOpen className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+              <h3 className="text-lg font-semibold mb-2">No tienes asignaciones</h3>
               <p className="text-muted-foreground">
-                Contacta al administrador para que te asigne grupos.
+                Contacta al administrador para que te asigne materias y grupos.
               </p>
             </CardContent>
           </Card>
@@ -150,7 +180,7 @@ export default function MisSalones() {
     <div className="space-y-6 animate-fade-in">
       {/* Header */}
       <div className="flex items-center gap-2">
-        <Button variant="ghost" size="sm" onClick={() => setSelectedSalon('')}>
+        <Button variant="ghost" size="sm" onClick={() => setSelectedAsignacion(null)}>
           ← Volver
         </Button>
       </div>
@@ -168,7 +198,7 @@ export default function MisSalones() {
             <label className="text-sm text-muted-foreground mb-1.5 block">Salón:</label>
             <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg cursor-pointer">
               <span className="font-medium">
-                {salonActual?.nombre} - {salonActual?.grado} {salonActual?.seccion || ''}
+                {selectedAsignacion?.grupo.nombre} - {selectedAsignacion?.grupo.grado} {selectedAsignacion?.grupo.seccion || ''}
               </span>
               <ChevronDown className="w-4 h-4 text-muted-foreground" />
             </div>
