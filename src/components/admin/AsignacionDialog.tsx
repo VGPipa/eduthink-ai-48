@@ -63,17 +63,6 @@ export function AsignacionDialog({ open, onOpenChange, onSuccess, editData }: As
   const { materias, isLoading: loadingMaterias } = useMaterias();
   const { grupos, isLoading: loadingGrupos } = useGrupos();
 
-  // Refetch data when dialog opens
-  useEffect(() => {
-    if (open) {
-      refetchProfesores();
-    }
-  }, [open, refetchProfesores]);
-
-  // Extraer grados y secciones únicas de los grupos
-  const grados = Array.from(new Set(grupos.map(g => g.grado))).sort();
-  const secciones = Array.from(new Set(grupos.map(g => g.seccion).filter(Boolean))).sort();
-
   const form = useForm<AsignacionFormData>({
     resolver: zodResolver(asignacionSchema),
     defaultValues: editData || {
@@ -84,6 +73,36 @@ export function AsignacionDialog({ open, onOpenChange, onSuccess, editData }: As
       anio_escolar: '2025',
     },
   });
+
+  // Refetch data when dialog opens
+  useEffect(() => {
+    if (open) {
+      refetchProfesores();
+    }
+  }, [open, refetchProfesores]);
+
+  // Extraer grados únicos de los grupos
+  const grados = Array.from(new Set(grupos.map(g => g.grado))).sort();
+  
+  // Observar el grado seleccionado para filtrar secciones
+  const gradoSeleccionado = form.watch('grado');
+  
+  // Filtrar secciones basándose en el grado seleccionado
+  const seccionesFiltradas = gradoSeleccionado
+    ? Array.from(new Set(
+        grupos
+          .filter(g => g.grado === gradoSeleccionado)
+          .map(g => g.seccion)
+          .filter(Boolean)
+      )).sort()
+    : [];
+
+  // Resetear sección cuando cambia el grado
+  useEffect(() => {
+    if (gradoSeleccionado) {
+      form.setValue('seccion', '');
+    }
+  }, [gradoSeleccionado, form]);
 
   const onSubmit = async (data: AsignacionFormData) => {
     setIsSubmitting(true);
@@ -263,18 +282,28 @@ export function AsignacionDialog({ open, onOpenChange, onSuccess, editData }: As
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Sección</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <Select 
+                        onValueChange={field.onChange} 
+                        value={field.value}
+                        disabled={!gradoSeleccionado}
+                      >
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder="Selecciona" />
+                            <SelectValue placeholder={gradoSeleccionado ? "Selecciona" : "Primero selecciona una clase"} />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent className="bg-background z-50">
-                          {secciones.map((seccion) => (
-                            <SelectItem key={seccion} value={seccion!}>
-                              Sección {seccion}
-                            </SelectItem>
-                          ))}
+                          {seccionesFiltradas.length === 0 ? (
+                            <div className="px-2 py-3 text-sm text-muted-foreground text-center">
+                              No hay secciones disponibles para esta clase
+                            </div>
+                          ) : (
+                            seccionesFiltradas.map((seccion) => (
+                              <SelectItem key={seccion} value={seccion!}>
+                                Sección {seccion}
+                              </SelectItem>
+                            ))
+                          )}
                         </SelectContent>
                       </Select>
                       <FormMessage />
