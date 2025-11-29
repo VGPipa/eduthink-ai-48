@@ -27,6 +27,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { useProfesores } from '@/hooks/useProfesores';
 import { useMaterias } from '@/hooks/useMaterias';
+import { useGrupos } from '@/hooks/useGrupos';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
@@ -60,6 +61,7 @@ export function AsignacionDialog({ open, onOpenChange, onSuccess, editData }: As
   const { toast } = useToast();
   const { profesores, isLoading: loadingProfesores, refetch: refetchProfesores } = useProfesores();
   const { materias, isLoading: loadingMaterias } = useMaterias();
+  const { grupos, isLoading: loadingGrupos } = useGrupos();
 
   // Refetch data when dialog opens
   useEffect(() => {
@@ -67,6 +69,10 @@ export function AsignacionDialog({ open, onOpenChange, onSuccess, editData }: As
       refetchProfesores();
     }
   }, [open, refetchProfesores]);
+
+  // Extraer grados y secciones únicas de los grupos
+  const grados = Array.from(new Set(grupos.map(g => g.grado))).sort();
+  const secciones = Array.from(new Set(grupos.map(g => g.seccion).filter(Boolean))).sort();
 
   const form = useForm<AsignacionFormData>({
     resolver: zodResolver(asignacionSchema),
@@ -145,7 +151,7 @@ export function AsignacionDialog({ open, onOpenChange, onSuccess, editData }: As
     }
   };
 
-  const isLoading = loadingProfesores || loadingMaterias;
+  const isLoading = loadingProfesores || loadingMaterias || loadingGrupos;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -239,12 +245,11 @@ export function AsignacionDialog({ open, onOpenChange, onSuccess, editData }: As
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent className="bg-background z-50">
-                          <SelectItem value="1° Primaria">1° Primaria</SelectItem>
-                          <SelectItem value="2° Primaria">2° Primaria</SelectItem>
-                          <SelectItem value="3° Primaria">3° Primaria</SelectItem>
-                          <SelectItem value="4° Primaria">4° Primaria</SelectItem>
-                          <SelectItem value="5° Primaria">5° Primaria</SelectItem>
-                          <SelectItem value="6° Primaria">6° Primaria</SelectItem>
+                          {grados.map((grado) => (
+                            <SelectItem key={grado} value={grado}>
+                              {grado}
+                            </SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -265,8 +270,11 @@ export function AsignacionDialog({ open, onOpenChange, onSuccess, editData }: As
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent className="bg-background z-50">
-                          <SelectItem value="A">Sección A</SelectItem>
-                          <SelectItem value="B">Sección B</SelectItem>
+                          {secciones.map((seccion) => (
+                            <SelectItem key={seccion} value={seccion!}>
+                              Sección {seccion}
+                            </SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                       <FormMessage />
