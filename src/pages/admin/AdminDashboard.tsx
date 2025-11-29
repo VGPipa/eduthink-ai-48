@@ -20,18 +20,18 @@ import {
 const MOCK_STATS = {
   profesores: 24,
   alumnos: 580,
-  materias: 12,
+  cursos: 12,
   quizzes: 156
 };
 
 const MOCK_ACTIVIDAD = [
   { accion: 'Profesor registrado', detalle: 'María García se unió al sistema', tiempo: 'hace 2 horas' },
   { accion: 'Plan anual actualizado', detalle: '3er grado - Matemáticas', tiempo: 'hace 4 horas' },
-  { accion: 'Grupo creado', detalle: '2do A - 32 estudiantes', tiempo: 'hace 1 día' },
+  { accion: 'Salón creado', detalle: '2do A - 32 estudiantes', tiempo: 'hace 1 día' },
   { accion: 'Asignación completada', detalle: 'Prof. López - Ciencias 4to', tiempo: 'hace 2 días' }
 ];
 
-const MOCK_GRUPOS = [
+const MOCK_SALONES = [
   { nombre: '1ro A', ocupacion: 95, estudiantes: 30, capacidad: 32 },
   { nombre: '1ro B', ocupacion: 88, estudiantes: 28, capacidad: 32 },
   { nombre: '2do A', ocupacion: 100, estudiantes: 32, capacidad: 32 },
@@ -67,8 +67,8 @@ export default function AdminDashboard() {
           icon={Users}
         />
         <StatCard
-          title="Materias"
-          value={MOCK_STATS.materias}
+          title="Cursos"
+          value={MOCK_STATS.cursos}
           icon={BookOpen}
         />
         <StatCard
@@ -104,22 +104,22 @@ export default function AdminDashboard() {
             </CardContent>
           </Card>
 
-          {/* Groups status */}
+          {/* Salones status */}
           <Card>
             <CardHeader>
-              <CardTitle>Estado de Grupos</CardTitle>
-              <CardDescription>Ocupación por curso</CardDescription>
+              <CardTitle>Estado de Salones</CardTitle>
+              <CardDescription>Ocupación por salón</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {MOCK_GRUPOS.map((grupo) => (
-                <div key={grupo.nombre} className="space-y-2">
+              {MOCK_SALONES.map((salon) => (
+                <div key={salon.nombre} className="space-y-2">
                   <div className="flex justify-between text-sm">
-                    <span className="font-medium">{grupo.nombre}</span>
+                    <span className="font-medium">{salon.nombre}</span>
                     <span className="text-muted-foreground">
-                      {grupo.estudiantes}/{grupo.capacidad} estudiantes
+                      {salon.estudiantes}/{salon.capacidad} estudiantes
                     </span>
                   </div>
-                  <Progress value={grupo.ocupacion} className="h-2" />
+                  <Progress value={salon.ocupacion} className="h-2" />
                 </div>
               ))}
             </CardContent>

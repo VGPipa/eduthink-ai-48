@@ -26,28 +26,28 @@ import {
 const MOCK_STATS = {
   totalAsignaciones: 48,
   profesoresSinAsignar: 3,
-  materiasCubiertas: 12,
-  gruposCubiertos: 18
+  cursosCubiertos: 12,
+  salonesCubiertos: 18
 };
 
 const MOCK_ASIGNACIONES = [
-  { id: '1', profesor: 'María García', materia: 'Matemáticas', grupo: '3ro A', anio: '2024' },
-  { id: '2', profesor: 'María García', materia: 'Matemáticas', grupo: '3ro B', anio: '2024' },
-  { id: '3', profesor: 'Juan López', materia: 'Lenguaje', grupo: '3ro A', anio: '2024' },
-  { id: '4', profesor: 'Juan López', materia: 'Lenguaje', grupo: '4to A', anio: '2024' },
-  { id: '5', profesor: 'Ana Martínez', materia: 'Ciencias', grupo: '4to A', anio: '2024' },
-  { id: '6', profesor: 'Ana Martínez', materia: 'Ciencias', grupo: '4to B', anio: '2024' },
-  { id: '7', profesor: 'Carlos Ruiz', materia: 'Historia', grupo: '5to A', anio: '2024' },
-  { id: '8', profesor: 'Laura Sánchez', materia: 'Inglés', grupo: '3ro A', anio: '2024' }
+  { id: '1', profesor: 'María García', curso: 'Matemáticas', salon: '3ro A', anio: '2024' },
+  { id: '2', profesor: 'María García', curso: 'Matemáticas', salon: '3ro B', anio: '2024' },
+  { id: '3', profesor: 'Juan López', curso: 'Lenguaje', salon: '3ro A', anio: '2024' },
+  { id: '4', profesor: 'Juan López', curso: 'Lenguaje', salon: '4to A', anio: '2024' },
+  { id: '5', profesor: 'Ana Martínez', curso: 'Ciencias', salon: '4to A', anio: '2024' },
+  { id: '6', profesor: 'Ana Martínez', curso: 'Ciencias', salon: '4to B', anio: '2024' },
+  { id: '7', profesor: 'Carlos Ruiz', curso: 'Historia', salon: '5to A', anio: '2024' },
+  { id: '8', profesor: 'Laura Sánchez', curso: 'Inglés', salon: '3ro A', anio: '2024' }
 ];
 
 export default function Asignaciones() {
   const [searchQuery, setSearchQuery] = useState('');
 
-  const filteredAsignaciones = MOCK_ASIGNACIONES.filter(a => 
+const filteredAsignaciones = MOCK_ASIGNACIONES.filter(a => 
     a.profesor.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    a.materia.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    a.grupo.toLowerCase().includes(searchQuery.toLowerCase())
+    a.curso.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    a.salon.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (
@@ -57,7 +57,7 @@ export default function Asignaciones() {
         <div>
           <h1 className="text-2xl font-bold">Gestión de Asignaciones</h1>
           <p className="text-muted-foreground">
-            Asigna profesores a materias y grupos
+            Asigna profesores a cursos y salones
           </p>
         </div>
         <Button variant="gradient">
@@ -80,13 +80,13 @@ export default function Asignaciones() {
           description="Requieren atención"
         />
         <StatCard
-          title="Materias cubiertas"
-          value={MOCK_STATS.materiasCubiertas}
+          title="Cursos cubiertos"
+          value={MOCK_STATS.cursosCubiertos}
           icon={BookOpen}
         />
         <StatCard
-          title="Grupos cubiertos"
-          value={MOCK_STATS.gruposCubiertos}
+          title="Salones cubiertos"
+          value={MOCK_STATS.salonesCubiertos}
           icon={GraduationCap}
           variant="gradient"
         />
@@ -113,8 +113,8 @@ export default function Asignaciones() {
             <TableHeader>
               <TableRow>
                 <TableHead>Profesor</TableHead>
-                <TableHead>Materia</TableHead>
-                <TableHead>Grupo</TableHead>
+                <TableHead>Curso</TableHead>
+                <TableHead>Salón</TableHead>
                 <TableHead>Año</TableHead>
                 <TableHead className="text-right">Acciones</TableHead>
               </TableRow>
@@ -124,9 +124,9 @@ export default function Asignaciones() {
                 <TableRow key={asignacion.id}>
                   <TableCell className="font-medium">{asignacion.profesor}</TableCell>
                   <TableCell>
-                    <Badge variant="secondary">{asignacion.materia}</Badge>
+                    <Badge variant="secondary">{asignacion.curso}</Badge>
                   </TableCell>
-                  <TableCell>{asignacion.grupo}</TableCell>
+                  <TableCell>{asignacion.salon}</TableCell>
                   <TableCell>{asignacion.anio}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">

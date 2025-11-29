@@ -16,12 +16,12 @@ import {
 } from 'lucide-react';
 
 const MOCK_PLANES = [
-  { id: '1', grado: '1ro Primaria', anio: '2024', estado: 'activo', materias: 8, temas: 32, cobertura: 25 },
-  { id: '2', grado: '2do Primaria', anio: '2024', estado: 'activo', materias: 8, temas: 36, cobertura: 42 },
-  { id: '3', grado: '3ro Primaria', anio: '2024', estado: 'activo', materias: 8, temas: 40, cobertura: 38 },
-  { id: '4', grado: '4to Primaria', anio: '2024', estado: 'borrador', materias: 6, temas: 28, cobertura: 0 },
-  { id: '5', grado: '5to Primaria', anio: '2024', estado: 'borrador', materias: 4, temas: 12, cobertura: 0 },
-  { id: '6', grado: '6to Primaria', anio: '2024', estado: 'pendiente', materias: 0, temas: 0, cobertura: 0 }
+  { id: '1', grado: '1ro Primaria', anio: '2024', estado: 'activo', cursos: 8, temas: 32, cobertura: 25 },
+  { id: '2', grado: '2do Primaria', anio: '2024', estado: 'activo', cursos: 8, temas: 36, cobertura: 42 },
+  { id: '3', grado: '3ro Primaria', anio: '2024', estado: 'activo', cursos: 8, temas: 40, cobertura: 38 },
+  { id: '4', grado: '4to Primaria', anio: '2024', estado: 'borrador', cursos: 6, temas: 28, cobertura: 0 },
+  { id: '5', grado: '5to Primaria', anio: '2024', estado: 'borrador', cursos: 4, temas: 12, cobertura: 0 },
+  { id: '6', grado: '6to Primaria', anio: '2024', estado: 'pendiente', cursos: 0, temas: 0, cobertura: 0 }
 ];
 
 const ANIOS_ESCOLARES = ['2024', '2025', '2026'];
@@ -91,8 +91,8 @@ export default function PlanAnual() {
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div className="p-3 rounded-lg bg-muted/50">
-                  <p className="text-muted-foreground">Materias</p>
-                  <p className="text-xl font-bold">{plan.materias}</p>
+                  <p className="text-muted-foreground">Cursos</p>
+                  <p className="text-xl font-bold">{plan.cursos}</p>
                 </div>
                 <div className="p-3 rounded-lg bg-muted/50">
                   <p className="text-muted-foreground">Temas</p>

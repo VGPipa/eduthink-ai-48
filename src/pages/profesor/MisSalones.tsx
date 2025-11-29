@@ -15,7 +15,7 @@ import {
   ChevronRight
 } from 'lucide-react';
 
-const MOCK_SALONES = [
+const MOCK_MIS_SALONES = [
   { id: '1', nombre: '3ro A', grado: '3ro Primaria', alumnos: 28 },
   { id: '2', nombre: '3ro B', grado: '3ro Primaria', alumnos: 30 },
   { id: '3', nombre: '4to A', grado: '4to Primaria', alumnos: 32 }
@@ -53,9 +53,9 @@ const MOCK_ALUMNOS_RIESGO = [
 
 export default function MisSalones() {
   const [selectedSalon, setSelectedSalon] = useState<string>('');
-  const [selectedMateria, setSelectedMateria] = useState('todas');
+  const [selectedCurso, setSelectedCurso] = useState('todos');
 
-  const salonActual = MOCK_SALONES.find(s => s.id === selectedSalon);
+  const salonActual = MOCK_MIS_SALONES.find(s => s.id === selectedSalon);
 
   if (!selectedSalon) {
     return (
@@ -68,7 +68,7 @@ export default function MisSalones() {
         </div>
 
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {MOCK_SALONES.map((salon) => (
+          {MOCK_MIS_SALONES.map((salon) => (
             <Card 
               key={salon.id} 
               className="cursor-pointer hover:shadow-elevated transition-all hover:border-primary"
@@ -111,12 +111,12 @@ export default function MisSalones() {
           </p>
         </div>
         <div className="flex gap-3">
-          <Select value={selectedMateria} onValueChange={setSelectedMateria}>
+          <Select value={selectedCurso} onValueChange={setSelectedCurso}>
             <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Filtrar por materia" />
+              <SelectValue placeholder="Filtrar por curso" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="todas">Todas las materias</SelectItem>
+              <SelectItem value="todos">Todos los cursos</SelectItem>
               <SelectItem value="matematicas">Matemáticas</SelectItem>
               <SelectItem value="lenguaje">Lenguaje</SelectItem>
               <SelectItem value="ciencias">Ciencias</SelectItem>

@@ -23,28 +23,28 @@ const MOCK_STATS = {
 };
 
 const MOCK_POR_CURSO = [
-  { id: '1', materia: 'Matemáticas', grupo: '3ro A', promedio: 78, quizzes: 45, asistencia: 92 },
-  { id: '2', materia: 'Matemáticas', grupo: '3ro B', promedio: 74, quizzes: 42, asistencia: 88 },
-  { id: '3', materia: 'Lenguaje', grupo: '3ro A', promedio: 82, quizzes: 38, asistencia: 94 },
-  { id: '4', materia: 'Ciencias', grupo: '4to A', promedio: 71, quizzes: 35, asistencia: 90 }
+  { id: '1', curso: 'Matemáticas', salon: '3ro A', promedio: 78, quizzes: 45, asistencia: 92 },
+  { id: '2', curso: 'Matemáticas', salon: '3ro B', promedio: 74, quizzes: 42, asistencia: 88 },
+  { id: '3', curso: 'Lenguaje', salon: '3ro A', promedio: 82, quizzes: 38, asistencia: 94 },
+  { id: '4', curso: 'Ciencias', salon: '4to A', promedio: 71, quizzes: 35, asistencia: 90 }
 ];
 
 const MOCK_ALUMNOS_DESTACADOS = [
-  { nombre: 'María García', promedio: 95, racha: 12, curso: '3ro A - Matemáticas' },
-  { nombre: 'Juan López', promedio: 92, racha: 8, curso: '3ro A - Lenguaje' },
-  { nombre: 'Ana Martínez', promedio: 90, racha: 10, curso: '4to A - Ciencias' }
+  { nombre: 'María García', promedio: 95, racha: 12, cursoSalon: '3ro A - Matemáticas' },
+  { nombre: 'Juan López', promedio: 92, racha: 8, cursoSalon: '3ro A - Lenguaje' },
+  { nombre: 'Ana Martínez', promedio: 90, racha: 10, cursoSalon: '4to A - Ciencias' }
 ];
 
 const MOCK_ALUMNOS_ATENCION = [
-  { nombre: 'Carlos Ruiz', promedio: 48, pendientes: 3, curso: '3ro B - Matemáticas' },
-  { nombre: 'Pedro Sánchez', promedio: 52, pendientes: 2, curso: '3ro A - Matemáticas' },
-  { nombre: 'Laura Gómez', promedio: 55, pendientes: 4, curso: '4to A - Ciencias' }
+  { nombre: 'Carlos Ruiz', promedio: 48, pendientes: 3, cursoSalon: '3ro B - Matemáticas' },
+  { nombre: 'Pedro Sánchez', promedio: 52, pendientes: 2, cursoSalon: '3ro A - Matemáticas' },
+  { nombre: 'Laura Gómez', promedio: 55, pendientes: 4, cursoSalon: '4to A - Ciencias' }
 ];
 
 const MOCK_TEMAS_DESAFIANTES = [
-  { tema: 'Ecuaciones de segundo grado', materia: 'Matemáticas', dificultad: 'alta', promedio: 62, intentos: 45 },
-  { tema: 'Análisis literario', materia: 'Lenguaje', dificultad: 'media', promedio: 68, intentos: 38 },
-  { tema: 'Reacciones químicas', materia: 'Ciencias', dificultad: 'alta', promedio: 58, intentos: 35 }
+  { tema: 'Ecuaciones de segundo grado', curso: 'Matemáticas', dificultad: 'alta', promedio: 62, intentos: 45 },
+  { tema: 'Análisis literario', curso: 'Lenguaje', dificultad: 'media', promedio: 68, intentos: 38 },
+  { tema: 'Reacciones químicas', curso: 'Ciencias', dificultad: 'alta', promedio: 58, intentos: 35 }
 ];
 
 export default function Metricas() {
@@ -95,34 +95,34 @@ export default function Metricas() {
 
         <TabsContent value="curso" className="mt-6">
           <div className="grid md:grid-cols-2 gap-4">
-            {MOCK_POR_CURSO.map((curso) => (
-              <Card key={curso.id} className="hover:shadow-elevated transition-shadow">
+            {MOCK_POR_CURSO.map((item) => (
+              <Card key={item.id} className="hover:shadow-elevated transition-shadow">
                 <CardContent className="p-5">
                   <div className="flex items-start justify-between mb-4">
                     <div>
-                      <h3 className="font-semibold">{curso.materia}</h3>
-                      <p className="text-sm text-muted-foreground">{curso.grupo}</p>
+                      <h3 className="font-semibold">{item.curso}</h3>
+                      <p className="text-sm text-muted-foreground">{item.salon}</p>
                     </div>
-                    <Badge variant={curso.promedio >= 75 ? 'default' : 'secondary'}>
-                      {curso.promedio}%
+                    <Badge variant={item.promedio >= 75 ? 'default' : 'secondary'}>
+                      {item.promedio}%
                     </Badge>
                   </div>
                   <div className="space-y-3">
                     <div>
                       <div className="flex justify-between text-sm mb-1">
                         <span className="text-muted-foreground">Promedio</span>
-                        <span className="font-medium">{curso.promedio}%</span>
+                        <span className="font-medium">{item.promedio}%</span>
                       </div>
-                      <Progress value={curso.promedio} className="h-2" />
+                      <Progress value={item.promedio} className="h-2" />
                     </div>
                     <div className="grid grid-cols-2 gap-4 text-sm">
                       <div className="p-2 rounded bg-muted/50">
                         <p className="text-muted-foreground">Quizzes</p>
-                        <p className="font-semibold">{curso.quizzes}</p>
+                        <p className="font-semibold">{item.quizzes}</p>
                       </div>
                       <div className="p-2 rounded bg-muted/50">
                         <p className="text-muted-foreground">Asistencia</p>
-                        <p className="font-semibold">{curso.asistencia}%</p>
+                        <p className="font-semibold">{item.asistencia}%</p>
                       </div>
                     </div>
                   </div>
@@ -151,7 +151,7 @@ export default function Metricas() {
                     </div>
                     <div className="flex-1">
                       <p className="font-medium">{alumno.nombre}</p>
-                      <p className="text-sm text-muted-foreground">{alumno.curso}</p>
+                      <p className="text-sm text-muted-foreground">{alumno.cursoSalon}</p>
                     </div>
                     <div className="text-right">
                       <p className="font-bold text-success">{alumno.promedio}%</p>
@@ -182,7 +182,7 @@ export default function Metricas() {
                     </div>
                     <div className="flex-1">
                       <p className="font-medium">{alumno.nombre}</p>
-                      <p className="text-sm text-muted-foreground">{alumno.curso}</p>
+                      <p className="text-sm text-muted-foreground">{alumno.cursoSalon}</p>
                     </div>
                     <div className="text-right">
                       <p className="font-bold text-destructive">{alumno.promedio}%</p>
@@ -213,7 +213,7 @@ export default function Metricas() {
                     <div className="flex items-start justify-between mb-3">
                       <div>
                         <h4 className="font-semibold">{tema.tema}</h4>
-                        <p className="text-sm text-muted-foreground">{tema.materia}</p>
+                        <p className="text-sm text-muted-foreground">{tema.curso}</p>
                       </div>
                       <Badge variant={tema.dificultad === 'alta' ? 'destructive' : 'secondary'}>
                         Dificultad {tema.dificultad}

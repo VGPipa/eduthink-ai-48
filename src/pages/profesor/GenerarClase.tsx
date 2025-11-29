@@ -100,9 +100,9 @@ export default function GenerarClase() {
   
   // Form state
   const [formData, setFormData] = useState({
-    materia: 'Matemáticas',
+    curso: 'Matemáticas',
     tema: 'Ecuaciones de segundo grado',
-    grupo: '3ro A',
+    salon: '3ro A',
     fecha: '2024-01-25',
     duracion: 55,
     objetivo: '',
@@ -237,9 +237,9 @@ export default function GenerarClase() {
                 <div className="grid md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label className="flex items-center gap-1">
-                      Materia <Lock className="w-3 h-3 text-muted-foreground" />
+                      Curso <Lock className="w-3 h-3 text-muted-foreground" />
                     </Label>
-                    <Input value={formData.materia} disabled />
+                    <Input value={formData.curso} disabled />
                   </div>
                   <div className="space-y-2">
                     <Label className="flex items-center gap-1">
@@ -248,8 +248,8 @@ export default function GenerarClase() {
                     <Input value={formData.tema} disabled />
                   </div>
                   <div className="space-y-2">
-                    <Label>Grupo</Label>
-                    <Input value={formData.grupo} disabled />
+                    <Label>Salón</Label>
+                    <Input value={formData.salon} disabled />
                   </div>
                   <div className="space-y-2">
                     <Label>Fecha programada</Label>
@@ -344,9 +344,9 @@ export default function GenerarClase() {
               </div>
 
               <div className="space-y-2">
-                <Label>Contexto específico del grupo *</Label>
+                <Label>Contexto específico del salón *</Label>
                 <Textarea 
-                  placeholder="Describe el contexto del grupo: conocimientos previos, necesidades especiales, dinámica del aula..."
+                  placeholder="Describe el contexto del salón: conocimientos previos, necesidades especiales, dinámica del aula..."
                   value={formData.contexto}
                   onChange={(e) => setFormData({...formData, contexto: e.target.value})}
                   rows={3}
