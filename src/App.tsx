@@ -15,6 +15,7 @@ import { MainLayout } from "./components/layouts/MainLayout";
 // Admin pages
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import PlanAnual from "./pages/admin/PlanAnual";
+import PlanAnualDetalle from "./pages/admin/PlanAnualDetalle";
 import Asignaciones from "./pages/admin/Asignaciones";
 import Configuracion from "./pages/admin/Configuracion";
 
@@ -76,6 +77,7 @@ function AppRoutes() {
         {/* Admin routes */}
         <Route path="/admin/dashboard" element={<AdminDashboard />} />
         <Route path="/admin/plan-anual" element={<PlanAnual />} />
+        <Route path="/admin/plan-anual/:id" element={<PlanAnualDetalle />} />
         <Route path="/admin/asignaciones" element={<Asignaciones />} />
         <Route path="/admin/configuracion" element={<Configuracion />} />
         

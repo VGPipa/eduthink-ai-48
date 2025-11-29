@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -29,6 +30,7 @@ import {
 const ANIOS_ESCOLARES = ['2024', '2025', '2026'];
 
 export default function PlanAnual() {
+  const navigate = useNavigate();
   const [selectedAnio, setSelectedAnio] = useState('2024');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingPlan, setEditingPlan] = useState<any>(null);
@@ -171,7 +173,11 @@ export default function PlanAnual() {
                   </Button>
                 ) : (
                   <>
-                    <Button variant="outline" size="icon">
+                    <Button 
+                      variant="outline" 
+                      size="icon"
+                      onClick={() => navigate(`/admin/plan-anual/${plan.id}`)}
+                    >
                       <Eye className="w-4 h-4" />
                     </Button>
                     <Button variant="outline" size="icon" onClick={() => handleEditPlan(plan)}>
