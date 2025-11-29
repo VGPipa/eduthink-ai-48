@@ -33,7 +33,7 @@ export function useRecomendaciones(claseId?: string) {
         .from('recomendaciones')
         .select(`
           *,
-          clase:clases(
+          clase:clases!recomendaciones_id_clase_fkey(
             id,
             tema:temas_plan(nombre)
           )

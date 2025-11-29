@@ -8,6 +8,7 @@ import { useQuizzes } from '@/hooks/useQuizzes';
 import { useRecomendaciones } from '@/hooks/useRecomendaciones';
 import { useGuiasClase } from '@/hooks/useGuias';
 import { supabase } from '@/integrations/supabase/client';
+import type { Json } from '@/integrations/supabase/types';
 import { processQuizResponses } from '@/lib/ai/generate';
 import { Loader2, ChevronLeft, Send, Brain, CheckCircle2, AlertCircle, Users } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -174,8 +175,8 @@ export default function PreClase() {
             participacion: resultado.metricas.participacion,
             promedio: resultado.metricas.promedio,
             conceptosDebiles: resultado.metricas.conceptosDebiles
-          },
-          recomendaciones: resultado.recomendaciones
+          } as Json,
+          recomendaciones: resultado.recomendaciones as unknown as Json
         }]);
 
       toast({ 

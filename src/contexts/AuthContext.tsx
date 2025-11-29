@@ -80,7 +80,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const signOut = async () => {
-    await supabase.auth.signOut();
+    try {
+      // Usar scope: 'local' para limpiar localStorage incluso si la sesión ya no existe en el servidor
+      await supabase.auth.signOut({ scope: 'local' });
+    } catch (error) {
+      console.error('Error during signOut:', error);
+    } finally {
+      // Siempre limpiar el estado local
+      setUser(null);
+      setSession(null);
+    }
   };
 
   return (

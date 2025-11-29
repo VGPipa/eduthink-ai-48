@@ -66,8 +66,8 @@ export function MainLayout() {
   // Use role-based navigation, fallback to admin if no role
   const navigation = primaryRole ? NAVIGATION[primaryRole] : NAVIGATION['admin'];
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await logout();
     navigate('/auth');
   };
 
