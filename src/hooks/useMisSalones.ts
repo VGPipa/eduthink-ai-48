@@ -344,7 +344,7 @@ export function useMetricasPRE(grupoId: string | null, filtros?: { materiaId?: s
         .select(`
           es_correcta,
           preguntas (
-            texto_contexto
+            concepto
           )
         `)
         .in('id_respuesta_alumno', respuestaIds);
@@ -353,10 +353,7 @@ export function useMetricasPRE(grupoId: string | null, filtros?: { materiaId?: s
       const conceptoStats = new Map<string, { correctas: number; total: number }>();
       detalles?.forEach((d) => {
         const pregunta = d.preguntas as any;
-        const contexto = pregunta?.texto_contexto || 'Sin concepto';
-        // Extraer concepto del texto_contexto (formato: "... Concepto: X")
-        const match = contexto.match(/Concepto:\s*(.+)/);
-        const concepto = match ? match[1].trim() : contexto;
+        const concepto = pregunta?.concepto || 'Concepto no identificado';
 
         const stats = conceptoStats.get(concepto) || { correctas: 0, total: 0 };
         stats.total++;
@@ -536,11 +533,45 @@ export function useRecomendacionesSalon(grupoId: string | null, filtros?: { clas
       return recomendaciones?.map(r => ({
         id: r.id,
         tipo: r.aplicada ? 'practica' as const : 'refuerzo' as const,
-        titulo: r.contenido?.split('.')[0] || 'Recomendación',
-        descripcion: r.contenido || '',
+        titulo: r.contenido?.split('.')[0]?.replace('[DEMO]', '').trim() || 'Recomendación',
+        descripcion: r.contenido?.replace('[DEMO]', '').trim() || '',
       })) || [];
     },
     enabled: !!grupoId,
   });
+}
+
+// Hook para generar recomendaciones con IA basadas en conceptos débiles
+export function useRecomendacionesIA(conceptosDebiles: { nombre: string; porcentajeAcierto: number }[], tipo: 'PRE' | 'POST') {
+  // Genera recomendaciones dinámicas basadas en los conceptos débiles
+  // TODO: Integrar con servicio de IA real
+  
+  if (!conceptosDebiles || conceptosDebiles.length === 0) {
+    return {
+      recomendacion: null,
+      isLoading: false,
+    };
+  }
+
+  const conceptoMasDebil = conceptosDebiles[0];
+  
+  const recomendacion: RecomendacionSalon = tipo === 'PRE' 
+    ? {
+        id: 'ia-pre',
+        tipo: 'refuerzo',
+        titulo: `Refuerza el concepto de ${conceptoMasDebil.nombre}`,
+        descripcion: `El grupo muestra solo ${conceptoMasDebil.porcentajeAcierto}% de aciertos en este concepto. Considera activar conocimientos previos o usar ejemplos visuales antes de abordar el tema.`,
+      }
+    : {
+        id: 'ia-post',
+        tipo: 'refuerzo',
+        titulo: `Fortalece la comprensión de ${conceptoMasDebil.nombre}`,
+        descripcion: `Incluye un mini-ejercicio de refuerzo sobre este concepto durante el calentamiento de la siguiente clase.`,
+      };
+
+  return {
+    recomendacion,
+    isLoading: false,
+  };
 }
 
