@@ -36,7 +36,7 @@ export default function PreClase() {
     setIsLoadingRespuestas(true);
     try {
       const { data, error } = await supabase
-        .from('respuestas_alumno')
+        .from('nota_alumno')
         .select(`
           *,
           alumno:alumnos(id, user_id)
@@ -55,14 +55,14 @@ export default function PreClase() {
             *,
             pregunta:preguntas(id, texto_pregunta, concepto)
           `)
-          .in('id_respuesta_alumno', respuestaIds);
+          .in('id_nota_alumno', respuestaIds);
 
         if (detallesError) throw detallesError;
 
         // Group detalles by respuesta
         const respuestasConDetalles = data?.map(respuesta => ({
           ...respuesta,
-          respuestas_detalle: detalles?.filter(d => d.id_respuesta_alumno === respuesta.id) || []
+          respuestas_detalle: detalles?.filter(d => d.id_nota_alumno === respuesta.id) || []
         })) || [];
 
         setRespuestas(respuestasConDetalles);
