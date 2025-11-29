@@ -28,6 +28,7 @@ import { useProfesor } from '@/hooks/useProfesor';
 import { useAsignaciones } from '@/hooks/useAsignaciones';
 import { useGuiasTema } from '@/hooks/useGuias';
 import { useClases } from '@/hooks/useClases';
+import { generateGuiaMaestra } from '@/lib/ai/generate';
 import {
   Select,
   SelectContent,
@@ -98,30 +99,61 @@ export default function Planificacion() {
     if (!selectedTema || !profesorId) return;
 
     try {
-      // Generate estructura_sesiones based on totalSesiones
-      const estructuraSesiones = Array.from({ length: iniciarTemaForm.totalSesiones }, (_, i) => ({
-        numero: i + 1,
-        nombre: `Clase ${i + 1}`,
-        objetivos: [],
-        actividades: []
-      }));
+      // Get tema details for AI generation
+      const { data: temaData, error: temaError } = await supabase
+        .from('temas_plan')
+        .select(`
+          id, nombre, descripcion, objetivos, duracion_estimada,
+          curso:cursos_plan(id, nombre, grado)
+        `)
+        .eq('id', selectedTema.id)
+        .single();
+
+      if (temaError) throw temaError;
+
+      // Generate guía maestra with AI
+      const guiaMaestraGenerada = await generateGuiaMaestra({
+        tema: {
+          nombre: temaData.nombre,
+          descripcion: temaData.descripcion || undefined,
+          objetivos: temaData.objetivos || undefined,
+          duracion_estimada: temaData.duracion_estimada || undefined,
+        },
+        curso: {
+          nombre: (temaData.curso as any)?.nombre || 'Curso',
+          grado: (temaData.curso as any)?.grado || '',
+        },
+        contextoGrupo: iniciarTemaForm.contextoGrupo,
+        metodologiasPreferidas: [],
+        totalClases: iniciarTemaForm.totalSesiones,
+      });
 
       await createOrUpdateGuiaTema.mutateAsync({
         id_tema: selectedTema.id,
         id_profesor: profesorId,
         total_sesiones: iniciarTemaForm.totalSesiones,
         contexto_grupo: iniciarTemaForm.contextoGrupo,
-        estructura_sesiones: estructuraSesiones,
+        metodologias: guiaMaestraGenerada.metodologias,
+        objetivos_generales: guiaMaestraGenerada.objetivos_generales,
+        estructura_sesiones: guiaMaestraGenerada.estructura_sesiones,
         contenido: {
-          total_sesiones: iniciarTemaForm.totalSesiones,
-          contexto_grupo: iniciarTemaForm.contextoGrupo
+          objetivos_generales: guiaMaestraGenerada.objetivos_generales,
+          estructura_sesiones: guiaMaestraGenerada.estructura_sesiones,
+          recursos_recomendados: guiaMaestraGenerada.recursos_recomendados,
+          metodologias: guiaMaestraGenerada.metodologias,
+          estrategias_evaluacion: guiaMaestraGenerada.estrategias_evaluacion,
+          actividades_transversales: guiaMaestraGenerada.actividades_transversales,
+          competencias: guiaMaestraGenerada.competencias,
         }
       });
 
-      toast({ title: 'Tema iniciado', description: 'Guía maestra creada exitosamente' });
+      toast({ title: 'Tema iniciado', description: 'Guía maestra generada exitosamente' });
       setIniciarTemaDialogOpen(false);
       setSelectedTema(null);
       setIniciarTemaForm({ totalSesiones: 4, contextoGrupo: '' });
+      
+      // Navigate to TemaDetalle
+      navigate(`/profesor/planificacion/tema/${selectedTema.id}`);
     } catch (error: any) {
       toast({
         title: 'Error',
@@ -134,8 +166,8 @@ export default function Planificacion() {
   const handleProgramarSesion = (tema: { id: string; nombre: string; cursoId: string }) => {
     setSelectedTema(tema);
     setProgramarSesionDialogOpen(true);
-    // Set default grupo from asignaciones for this materia
-    const asignacion = asignaciones.find(a => a.id_materia === tema.cursoId);
+    // Set default grupo from asignaciones for this curso
+    const asignacion = asignaciones.find(a => a.id_curso === tema.cursoId);
     if (asignacion?.grupo) {
       setProgramarSesionForm(prev => ({
         ...prev,
@@ -178,7 +210,7 @@ export default function Planificacion() {
       setProgramarSesionForm({ grupoId: '', numeroSesion: 1, fechaProgramada: '', duracion: 55, contexto: '' });
       
       // Navigate to GenerarClase
-      navigate(`/profesor/generar-clase?clase=${nuevaClase.id}&tema=${selectedTema.id}&materia=${selectedTema.cursoId}`);
+      navigate(`/profesor/generar-clase?clase=${nuevaClase.id}&tema=${selectedTema.id}&curso=${selectedTema.cursoId}`);
     } catch (error: any) {
       toast({
         title: 'Error',
@@ -200,7 +232,7 @@ export default function Planificacion() {
     return (
       <div className="space-y-6 animate-fade-in">
         <div>
-          <h1 className="text-2xl font-bold">Planificación Académica 2024</h1>
+          <h1 className="text-2xl font-bold">Planificación Académica 2025</h1>
           <p className="text-muted-foreground">
             Gestiona tus cursos, temas y clases
           </p>
@@ -220,9 +252,9 @@ export default function Planificacion() {
     <div className="space-y-6 animate-fade-in">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold">Planificación Académica 2024</h1>
+        <h1 className="text-2xl font-bold">Planificación Académica 2025</h1>
         <p className="text-muted-foreground">
-          Gestiona tus materias, temas y clases
+          Gestiona tus cursos, temas y clases
         </p>
       </div>
 
@@ -340,23 +372,28 @@ export default function Planificacion() {
                                   variant="default" 
                                   size="sm" 
                                   className="flex-1"
-                                          onClick={() => handleProgramarSesion({ id: tema.id, nombre: tema.nombre, cursoId: curso.id })}
+                                          onClick={() => navigate(`/profesor/planificacion/tema/${tema.id}`)}
                                         >
-                                          <Calendar className="w-3 h-3 mr-1" />
-                                          Programar
+                                          <Eye className="w-3 h-3 mr-1" />
+                                          Ver Tema
                                         </Button>
                                         <Button 
                                           variant="outline" 
                                           size="sm" 
                                           className="flex-1"
-                                          onClick={() => navigate(`/profesor/generar-clase?tema=${tema.id}&materia=${curso.id}`)}
+                                          onClick={() => navigate(`/profesor/generar-clase?tema=${tema.id}&curso=${curso.id}`)}
                                 >
                                   <PlayCircle className="w-3 h-3 mr-1" />
-                                  Continuar
+                                  Generar
                                 </Button>
                                       </>
                               ) : (
-                                <Button variant="outline" size="sm" className="flex-1">
+                                <Button 
+                                  variant="outline" 
+                                  size="sm" 
+                                  className="flex-1"
+                                  onClick={() => navigate(`/profesor/planificacion/tema/${tema.id}`)}
+                                >
                                   <Eye className="w-3 h-3 mr-1" />
                                   Ver detalle
                                 </Button>
@@ -383,7 +420,7 @@ export default function Planificacion() {
           <DialogHeader>
             <DialogTitle>Iniciar Tema: {selectedTema?.nombre}</DialogTitle>
             <DialogDescription>
-              Crea una guía maestra para este tema. Define la estructura general de clases y metodologías.
+              Crea una guía maestra para este tema. Define la estructura general de clases.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
@@ -419,7 +456,7 @@ export default function Planificacion() {
               {isCreatingGuia ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Creando...
+                  Generando...
                 </>
               ) : (
                 <>

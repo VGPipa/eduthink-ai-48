@@ -273,3 +273,187 @@ export function useGuiasTema(profesorId?: string, temaId?: string) {
   };
 }
 
+// ============================================================================
+// HOOKS AUXILIARES PARA TEMA DETALLE
+// ============================================================================
+
+export interface GuiaTemaDetalle extends GuiaTemaRow {
+  tema?: {
+    id: string;
+    nombre: string;
+    descripcion: string | null;
+    objetivos: string | null;
+    duracion_estimada: number | null;
+    bimestre: number | null;
+    orden: number;
+    curso_plan_id: string;
+    curso?: {
+      id: string;
+      nombre: string;
+      grado: string;
+      horas_semanales: number | null;
+    };
+  };
+}
+
+export interface ClaseConDetalles {
+  id: string;
+  id_tema: string;
+  id_grupo: string;
+  estado: string;
+  numero_sesion: number | null;
+  fecha_programada: string | null;
+  fecha_ejecutada: string | null;
+  duracion_minutos: number | null;
+  contexto: any;
+  observaciones: any;
+  created_at: string;
+  tema?: {
+    id: string;
+    nombre: string;
+  };
+  grupo?: {
+    id: string;
+    nombre: string;
+    grado: string;
+    seccion: string | null;
+    cantidad_alumnos: number | null;
+  };
+  guia_version?: {
+    id: string;
+    version_numero: number;
+    estado: string;
+  };
+}
+
+/**
+ * Hook para obtener el detalle completo de una guía de tema
+ * Incluye información del tema, curso, y la guía maestra si existe
+ */
+export function useGuiaTemaDetalle(temaId?: string) {
+  const { data: guiaTema, isLoading, error, refetch } = useQuery({
+    queryKey: ['guia-tema-detalle', temaId],
+    queryFn: async () => {
+      if (!temaId) return null;
+
+      // Get tema info with curso
+      const { data: tema, error: temaError } = await supabase
+        .from('temas_plan')
+        .select(`
+          id,
+          nombre,
+          descripcion,
+          objetivos,
+          duracion_estimada,
+          bimestre,
+          orden,
+          curso_plan_id,
+          curso:cursos_plan(
+            id,
+            nombre,
+            grado,
+            horas_semanales
+          )
+        `)
+        .eq('id', temaId)
+        .single();
+
+      if (temaError) throw temaError;
+
+      // Get guia_tema if exists (any profesor for now, or we could filter by current user)
+      const { data: guia, error: guiaError } = await supabase
+        .from('guias_tema')
+        .select('*')
+        .eq('id_tema', temaId)
+        .maybeSingle();
+
+      if (guiaError && guiaError.code !== 'PGRST116') throw guiaError;
+
+      return {
+        ...guia,
+        tema: tema as GuiaTemaDetalle['tema']
+      } as GuiaTemaDetalle | null;
+    },
+    enabled: !!temaId,
+  });
+
+  return {
+    guiaTema,
+    tema: guiaTema?.tema,
+    isLoading,
+    error,
+    refetch
+  };
+}
+
+/**
+ * Hook para obtener todas las clases de un tema específico
+ * Agrupa por grupo y ordena por número de clase
+ */
+export function useClasesByTema(temaId?: string) {
+  const { data: clases = [], isLoading, error, refetch } = useQuery({
+    queryKey: ['clases-by-tema', temaId],
+    queryFn: async () => {
+      if (!temaId) return [];
+
+      const { data, error } = await supabase
+        .from('clases')
+        .select(`
+          *,
+          tema:temas_plan(id, nombre),
+          grupo:grupos(id, nombre, grado, seccion, cantidad_alumnos),
+          guia_version:guias_clase_versiones!clases_id_guia_version_actual_fkey(
+            id,
+            version_numero,
+            estado
+          )
+        `)
+        .eq('id_tema', temaId)
+        .order('numero_sesion', { ascending: true })
+        .order('fecha_programada', { ascending: true });
+
+      if (error) throw error;
+      return (data || []) as ClaseConDetalles[];
+    },
+    enabled: !!temaId,
+  });
+
+  // Group clases by grupo
+  const clasesByGrupo = clases.reduce((acc, clase) => {
+    const grupoId = clase.id_grupo;
+    if (!acc[grupoId]) {
+      acc[grupoId] = {
+        grupo: clase.grupo,
+        clases: []
+      };
+    }
+    acc[grupoId].clases.push(clase);
+    return acc;
+  }, {} as Record<string, { grupo: ClaseConDetalles['grupo']; clases: ClaseConDetalles[] }>);
+
+  // Calculate stats
+  const stats = {
+    total: clases.length,
+    completadas: clases.filter(c => c.estado === 'completada').length,
+    programadas: clases.filter(c => 
+      c.estado === 'borrador' || 
+      c.estado === 'guia_aprobada' || 
+      c.estado === 'clase_programada'
+    ).length,
+    enProceso: clases.filter(c => 
+      c.estado === 'generando_clase' || 
+      c.estado === 'editando_guia'
+    ).length,
+    pendientes: 0 // Will be calculated from estructura_sesiones - clases.length
+  };
+
+  return {
+    clases,
+    clasesByGrupo: Object.values(clasesByGrupo),
+    stats,
+    isLoading,
+    error,
+    refetch
+  };
+}
+
