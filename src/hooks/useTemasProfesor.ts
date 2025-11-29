@@ -38,7 +38,7 @@ export interface CursoConTemas {
 }
 
 export function useTemasProfesor(anioEscolar?: string) {
-  const { materias, grupos, asignaciones, isLoading: asignacionesLoading } = useAsignaciones(anioEscolar);
+  const { cursos: materias, grupos, asignaciones, isLoading: asignacionesLoading } = useAsignaciones(anioEscolar);
   // Get all clases (we'll filter by grupoIds after fetching)
   const { clases: allClases, isLoading: clasesLoading } = useClases();
   

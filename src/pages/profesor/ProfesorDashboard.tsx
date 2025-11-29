@@ -41,7 +41,7 @@ export default function ProfesorDashboard() {
   
   // Get real data
   const { clases, isLoading: clasesLoading } = useClases();
-  const { asignaciones, materias, grupos } = useAsignaciones('2024');
+  const { asignaciones, cursos: materias, grupos } = useAsignaciones('2024');
   
   // Calculate stats
   const stats = useMemo(() => {

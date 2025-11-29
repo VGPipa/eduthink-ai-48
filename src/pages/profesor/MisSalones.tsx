@@ -121,9 +121,9 @@ export default function MisSalones() {
                   {/* Header con título y badge */}
                   <div className="flex items-start justify-between mb-1">
                     <div>
-                      <h3 className="text-lg font-bold text-foreground">{asignacion.materia.nombre}</h3>
+                      <h3 className="text-xl font-bold text-foreground">{asignacion.grupo.nombre}</h3>
                       <p className="text-sm text-muted-foreground">
-                        {asignacion.grupo.nombre}
+                        {asignacion.materia.nombre}
                       </p>
                     </div>
                     <Badge 
