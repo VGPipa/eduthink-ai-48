@@ -12,26 +12,41 @@
 
 import { supabase } from '@/integrations/supabase/client';
 
+// New schema aligned with "Arquitecto Pedagógico" prompt
 export interface GuiaClaseData {
-  objetivos: string[];
-  estructura: Array<{
+  metadata: {
+    titulo: string;
+    resumen: string;
+    duracion: number;
+    grado_sugerido: string;
+  };
+  curriculo_peru: {
+    area: string;
+    competencia: string;
+    capacidad: string;
+    desempeno_precisado: string;
+    enfoque_transversal: string;
+  };
+  objetivos_aprendizaje: {
+    cognitivo: string;
+    humano: string;
+  };
+  secuencia_didactica: Array<{
+    fase: 'INICIO' | 'DESARROLLO' | 'CIERRE';
+    subtitulo: string;
     tiempo: string;
-    actividad: string;
-    descripcion: string;
+    actividad_detallada: string;
+    habilidad_foco: string;
+    rol_docente: string;
   }>;
-  preguntasSocraticas: string[];
-  recursos?: string[];
-  adaptaciones?: string[];
-  // Additional CNEB data from AI
-  situacionSignificativa?: string;
-  competencia?: string;
-  desempeno?: string;
-  enfoqueTransversal?: string;
-  habilidadesSigloXXI?: string[];
-  evaluacion?: {
-    evidencias: string[];
-    criterios: string[];
-    instrumento: string;
+  recursos_y_evaluacion: {
+    materiales_necesarios: string[];
+    criterios_evaluacion: string[];
+    instrumento_sugerido: string;
+  };
+  tips_profesor: {
+    diferenciacion: string;
+    reto_extra: string;
   };
 }
 

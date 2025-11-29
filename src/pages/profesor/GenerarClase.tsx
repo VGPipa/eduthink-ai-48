@@ -32,7 +32,14 @@ import {
   Calendar,
   Users,
   Plus,
-  X
+  X,
+  Brain,
+  Heart,
+  GraduationCap,
+  Clock,
+  Lightbulb,
+  User,
+  Rocket
 } from 'lucide-react';
 
 const STEPS = [
@@ -471,25 +478,13 @@ export default function GenerarClase() {
 
       setGuiaGenerada(guia);
 
-      // Save to DB with extended content
+      // Save to DB with new schema content
       const guiaVersion = await createGuiaVersion.mutateAsync({
         id_clase: clase.id,
-        objetivos: guia.objetivos.join('\n'),
-        estructura: guia.estructura,
-        contenido: {
-          objetivos: guia.objetivos,
-          estructura: guia.estructura,
-          recursos: guia.recursos,
-          adaptaciones: guia.adaptaciones,
-          // Extended CNEB data
-          situacionSignificativa: guia.situacionSignificativa,
-          competencia: guia.competencia,
-          desempeno: guia.desempeno,
-          enfoqueTransversal: guia.enfoqueTransversal,
-          habilidadesSigloXXI: guia.habilidadesSigloXXI,
-          evaluacion: guia.evaluacion
-        },
-        preguntas_socraticas: guia.preguntasSocraticas,
+        objetivos: `Cognitivo: ${guia.objetivos_aprendizaje.cognitivo}\nHumano: ${guia.objetivos_aprendizaje.humano}`,
+        estructura: guia.secuencia_didactica,
+        contenido: guia, // Save full new schema
+        preguntas_socraticas: [], // No longer generated in new prompt
         generada_ia: true,
         estado: 'borrador'
       });
@@ -1159,7 +1154,7 @@ export default function GenerarClase() {
                 <Sparkles className="w-12 h-12 text-primary mx-auto mb-4" />
                 <h2 className="text-lg font-semibold mb-2">Generar Guía de Clase</h2>
                 <p className="text-muted-foreground mb-6">
-                  La IA creará una guía estructurada basada en el contexto proporcionado
+                  El Arquitecto Pedagógico creará una experiencia de aprendizaje transformadora
                 </p>
                 {!guiaGenerada && (
                   <Button variant="gradient" size="lg" onClick={handleGenerarGuia} disabled={isGenerating}>
@@ -1180,50 +1175,184 @@ export default function GenerarClase() {
 
               {guiaGenerada && (
                 <div className="space-y-6 animate-fade-in">
+                  {/* Success Banner */}
                   <div className="p-4 rounded-lg bg-success/10 border border-success/20">
-                    <div className="flex items-center gap-2 text-success mb-2">
+                    <div className="flex items-center gap-2 text-success">
                       <CheckCircle2 className="w-5 h-5" />
                       <span className="font-medium">Guía generada exitosamente</span>
                     </div>
                   </div>
 
-                  <div>
-                    <h3 className="font-semibold mb-3">Objetivos de aprendizaje</h3>
-                    <ul className="space-y-2">
-                      {guiaGenerada.objetivos.map((obj, i) => (
-                        <li key={i} className="flex items-start gap-2">
-                          <Target className="w-4 h-4 text-primary mt-1 shrink-0" />
-                          <span className="text-sm">{obj}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-
-                  <div>
-                    <h3 className="font-semibold mb-3">Estructura de la clase</h3>
-                    <div className="space-y-3">
-                      {guiaGenerada.estructura.map((fase, i) => (
-                        <div key={i} className="flex gap-4 p-3 rounded-lg bg-muted/50">
-                          <Badge variant="secondary" className="shrink-0">{fase.tiempo}</Badge>
-                          <div>
-                            <p className="font-medium text-sm">{fase.actividad}</p>
-                            <p className="text-xs text-muted-foreground">{fase.descripcion}</p>
-                          </div>
-                        </div>
-                      ))}
+                  {/* Metadata Header */}
+                  <div className="p-4 rounded-lg bg-gradient-to-r from-primary/10 to-primary/5 border border-primary/20">
+                    <h3 className="text-lg font-bold text-primary mb-1">{guiaGenerada.metadata.titulo}</h3>
+                    <p className="text-sm text-muted-foreground mb-3">{guiaGenerada.metadata.resumen}</p>
+                    <div className="flex flex-wrap gap-2">
+                      <Badge variant="secondary" className="flex items-center gap-1">
+                        <Clock className="w-3 h-3" />
+                        {guiaGenerada.metadata.duracion} min
+                      </Badge>
+                      <Badge variant="outline" className="flex items-center gap-1">
+                        <GraduationCap className="w-3 h-3" />
+                        {guiaGenerada.metadata.grado_sugerido}
+                      </Badge>
                     </div>
                   </div>
 
+                  {/* Currículo CNEB */}
+                  <div className="p-4 rounded-lg border bg-card">
+                    <h4 className="font-semibold flex items-center gap-2 mb-3">
+                      <BookOpen className="w-4 h-4 text-primary" />
+                      Alineación Curricular (CNEB)
+                    </h4>
+                    <div className="grid gap-2 text-sm">
+                      <div className="flex gap-2">
+                        <span className="font-medium text-muted-foreground w-32">Área:</span>
+                        <span>{guiaGenerada.curriculo_peru.area}</span>
+                      </div>
+                      <div className="flex gap-2">
+                        <span className="font-medium text-muted-foreground w-32">Competencia:</span>
+                        <span>{guiaGenerada.curriculo_peru.competencia}</span>
+                      </div>
+                      <div className="flex gap-2">
+                        <span className="font-medium text-muted-foreground w-32">Capacidad:</span>
+                        <span>{guiaGenerada.curriculo_peru.capacidad}</span>
+                      </div>
+                      <div className="flex gap-2">
+                        <span className="font-medium text-muted-foreground w-32">Desempeño:</span>
+                        <span>{guiaGenerada.curriculo_peru.desempeno_precisado}</span>
+                      </div>
+                      <div className="flex gap-2">
+                        <span className="font-medium text-muted-foreground w-32">Enfoque:</span>
+                        <Badge variant="outline">{guiaGenerada.curriculo_peru.enfoque_transversal}</Badge>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Objetivos de Aprendizaje - Dual Pillars */}
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div className="p-4 rounded-lg border-2 border-blue-200 bg-blue-50/50">
+                      <h4 className="font-semibold flex items-center gap-2 mb-2 text-blue-700">
+                        <Brain className="w-5 h-5" />
+                        Objetivo Cognitivo (Mente)
+                      </h4>
+                      <p className="text-sm">{guiaGenerada.objetivos_aprendizaje.cognitivo}</p>
+                    </div>
+                    <div className="p-4 rounded-lg border-2 border-rose-200 bg-rose-50/50">
+                      <h4 className="font-semibold flex items-center gap-2 mb-2 text-rose-700">
+                        <Heart className="w-5 h-5" />
+                        Objetivo Humano (Corazón)
+                      </h4>
+                      <p className="text-sm">{guiaGenerada.objetivos_aprendizaje.humano}</p>
+                    </div>
+                  </div>
+
+                  {/* Secuencia Didáctica */}
                   <div>
-                    <h3 className="font-semibold mb-3">Preguntas socráticas</h3>
-                    <ul className="space-y-2">
-                      {guiaGenerada.preguntasSocraticas.map((preg, i) => (
-                        <li key={i} className="flex items-start gap-2 p-2 rounded bg-primary/5">
-                          <Info className="w-4 h-4 text-primary mt-0.5 shrink-0" />
-                          <span className="text-sm italic">{preg}</span>
-                        </li>
-                      ))}
-                    </ul>
+                    <h4 className="font-semibold mb-4">Secuencia Didáctica</h4>
+                    <div className="space-y-4">
+                      {guiaGenerada.secuencia_didactica.map((fase, i) => {
+                        const faseColors = {
+                          INICIO: 'border-l-amber-500 bg-amber-50/50',
+                          DESARROLLO: 'border-l-blue-500 bg-blue-50/50',
+                          CIERRE: 'border-l-green-500 bg-green-50/50'
+                        };
+                        const faseTextColors = {
+                          INICIO: 'text-amber-700',
+                          DESARROLLO: 'text-blue-700',
+                          CIERRE: 'text-green-700'
+                        };
+                        return (
+                          <div 
+                            key={i} 
+                            className={`p-4 rounded-lg border-l-4 ${faseColors[fase.fase] || 'border-l-gray-500 bg-gray-50/50'}`}
+                          >
+                            <div className="flex items-center justify-between mb-2">
+                              <div className="flex items-center gap-2">
+                                <span className={`font-bold ${faseTextColors[fase.fase] || 'text-gray-700'}`}>
+                                  {fase.fase}
+                                </span>
+                                <span className="text-sm text-muted-foreground">- {fase.subtitulo}</span>
+                              </div>
+                              <Badge variant="secondary" className="flex items-center gap-1">
+                                <Clock className="w-3 h-3" />
+                                {fase.tiempo}
+                              </Badge>
+                            </div>
+                            <p className="text-sm mb-3">{fase.actividad_detallada}</p>
+                            <div className="flex flex-wrap gap-2">
+                              <Badge variant="outline" className="flex items-center gap-1 text-xs">
+                                <Lightbulb className="w-3 h-3" />
+                                {fase.habilidad_foco}
+                              </Badge>
+                              <Badge variant="outline" className="flex items-center gap-1 text-xs">
+                                <User className="w-3 h-3" />
+                                {fase.rol_docente}
+                              </Badge>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Recursos y Evaluación */}
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div className="p-4 rounded-lg border bg-card">
+                      <h4 className="font-semibold mb-3">Materiales Necesarios</h4>
+                      <ul className="space-y-1">
+                        {guiaGenerada.recursos_y_evaluacion.materiales_necesarios.map((mat, i) => (
+                          <li key={i} className="text-sm flex items-center gap-2">
+                            <span className="w-1.5 h-1.5 rounded-full bg-primary"></span>
+                            {mat}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                    <div className="p-4 rounded-lg border bg-card">
+                      <h4 className="font-semibold mb-3">Evaluación</h4>
+                      <div className="space-y-2">
+                        <div>
+                          <span className="text-xs font-medium text-muted-foreground">Criterios:</span>
+                          <ul className="mt-1 space-y-1">
+                            {guiaGenerada.recursos_y_evaluacion.criterios_evaluacion.map((crit, i) => (
+                              <li key={i} className="text-sm flex items-center gap-2">
+                                <CheckCircle2 className="w-3 h-3 text-success" />
+                                {crit}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                        <div>
+                          <span className="text-xs font-medium text-muted-foreground">Instrumento:</span>
+                          <Badge variant="secondary" className="ml-2">{guiaGenerada.recursos_y_evaluacion.instrumento_sugerido}</Badge>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Tips para el Profesor */}
+                  <div className="p-4 rounded-lg border bg-gradient-to-r from-purple-50 to-pink-50 border-purple-200">
+                    <h4 className="font-semibold mb-3 flex items-center gap-2">
+                      <Lightbulb className="w-4 h-4 text-purple-600" />
+                      Tips para el Profesor
+                    </h4>
+                    <div className="grid md:grid-cols-2 gap-4">
+                      <div>
+                        <span className="text-xs font-medium text-purple-600 flex items-center gap-1 mb-1">
+                          <Target className="w-3 h-3" />
+                          Diferenciación
+                        </span>
+                        <p className="text-sm">{guiaGenerada.tips_profesor.diferenciacion}</p>
+                      </div>
+                      <div>
+                        <span className="text-xs font-medium text-pink-600 flex items-center gap-1 mb-1">
+                          <Rocket className="w-3 h-3" />
+                          Reto Extra
+                        </span>
+                        <p className="text-sm">{guiaGenerada.tips_profesor.reto_extra}</p>
+                      </div>
+                    </div>
                   </div>
                 </div>
               )}
