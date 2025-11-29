@@ -2,25 +2,121 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import Index from "./pages/Index";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+
+// Pages
+import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
+
+// Layouts
+import { MainLayout } from "./components/layouts/MainLayout";
+
+// Admin pages
+import AdminDashboard from "./pages/admin/AdminDashboard";
+import PlanAnual from "./pages/admin/PlanAnual";
+import Asignaciones from "./pages/admin/Asignaciones";
+import Configuracion from "./pages/admin/Configuracion";
+
+// Profesor pages
+import ProfesorDashboard from "./pages/profesor/ProfesorDashboard";
+import Planificacion from "./pages/profesor/Planificacion";
+import GenerarClase from "./pages/profesor/GenerarClase";
+import MisSalones from "./pages/profesor/MisSalones";
+import Metricas from "./pages/profesor/Metricas";
+
+// Alumno pages
+import AlumnoDashboard from "./pages/alumno/AlumnoDashboard";
+import Evaluaciones from "./pages/alumno/Evaluaciones";
+import Progreso from "./pages/alumno/Progreso";
+
+// Apoderado pages
+import ApoderadoDashboard from "./pages/apoderado/ApoderadoDashboard";
+import Hijos from "./pages/apoderado/Hijos";
+import Reportes from "./pages/apoderado/Reportes";
 
 const queryClient = new QueryClient();
 
+function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  const { user, isLoading } = useAuth();
+  
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="animate-pulse text-primary">Cargando...</div>
+      </div>
+    );
+  }
+  
+  if (!user) {
+    return <Navigate to="/auth" replace />;
+  }
+  
+  return <>{children}</>;
+}
+
+function RoleRedirect() {
+  const { user } = useAuth();
+  
+  if (!user) return <Navigate to="/auth" replace />;
+  
+  return <Navigate to={`/${user.rol}/dashboard`} replace />;
+}
+
+function AppRoutes() {
+  const { user } = useAuth();
+  
+  return (
+    <Routes>
+      {/* Public routes */}
+      <Route path="/auth" element={user ? <RoleRedirect /> : <Auth />} />
+      
+      {/* Root redirect */}
+      <Route path="/" element={user ? <RoleRedirect /> : <Navigate to="/auth" replace />} />
+      
+      {/* Protected routes */}
+      <Route element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
+        {/* Admin routes */}
+        <Route path="/admin/dashboard" element={<AdminDashboard />} />
+        <Route path="/admin/plan-anual" element={<PlanAnual />} />
+        <Route path="/admin/asignaciones" element={<Asignaciones />} />
+        <Route path="/admin/configuracion" element={<Configuracion />} />
+        
+        {/* Profesor routes */}
+        <Route path="/profesor/dashboard" element={<ProfesorDashboard />} />
+        <Route path="/profesor/planificacion" element={<Planificacion />} />
+        <Route path="/profesor/generar-clase" element={<GenerarClase />} />
+        <Route path="/profesor/mis-salones" element={<MisSalones />} />
+        <Route path="/profesor/metricas" element={<Metricas />} />
+        
+        {/* Alumno routes */}
+        <Route path="/alumno/dashboard" element={<AlumnoDashboard />} />
+        <Route path="/alumno/evaluaciones" element={<Evaluaciones />} />
+        <Route path="/alumno/progreso" element={<Progreso />} />
+        
+        {/* Apoderado routes */}
+        <Route path="/apoderado/dashboard" element={<ApoderadoDashboard />} />
+        <Route path="/apoderado/hijos" element={<Hijos />} />
+        <Route path="/apoderado/reportes" element={<Reportes />} />
+      </Route>
+      
+      {/* 404 */}
+      <Route path="*" element={<NotFound />} />
+    </Routes>
+  );
+}
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
+    <AuthProvider>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <AppRoutes />
+        </BrowserRouter>
+      </TooltipProvider>
+    </AuthProvider>
   </QueryClientProvider>
 );
 
