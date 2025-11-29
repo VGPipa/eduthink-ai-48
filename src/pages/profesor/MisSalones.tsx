@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { StatCard } from '@/components/dashboard/StatCard';
+import { Skeleton } from '@/components/ui/skeleton';
 import {
   Users,
   TrendingUp,
@@ -12,284 +13,491 @@ import {
   CheckCircle2,
   Target,
   BookOpen,
-  ChevronRight
+  ChevronRight,
+  Lightbulb
 } from 'lucide-react';
-
-const MOCK_MIS_SALONES = [
-  { id: '1', nombre: '3ro A', grado: '3ro Primaria', alumnos: 28 },
-  { id: '2', nombre: '3ro B', grado: '3ro Primaria', alumnos: 30 },
-  { id: '3', nombre: '4to A', grado: '4to Primaria', alumnos: 32 }
-];
-
-const MOCK_METRICAS = {
-  participacion: 85,
-  dominioConceptos: 72,
-  areasFuertes: ['Resolución de problemas', 'Trabajo en equipo', 'Comprensión lectora'],
-  areasDificultad: ['Operaciones con fracciones', 'Redacción de ensayos'],
-  alumnosEnRiesgo: 4,
-  preMetricas: {
-    participacion: 92,
-    nivelPreparacion: 65,
-    conceptosDebiles: ['Ecuaciones con fracciones', 'Factorización']
-  },
-  postMetricas: {
-    nivelLogro: 78,
-    distribucion: {
-      riesgo: 4,
-      suficiente: 8,
-      bueno: 12,
-      destacado: 4
-    },
-    conceptosLogrados: ['Ecuaciones básicas', 'Gráficas lineales']
-  }
-};
-
-const MOCK_ALUMNOS_RIESGO = [
-  { nombre: 'Carlos M.', promedio: 45, quizzesPendientes: 3 },
-  { nombre: 'Ana R.', promedio: 48, quizzesPendientes: 2 },
-  { nombre: 'Pedro S.', promedio: 52, quizzesPendientes: 1 },
-  { nombre: 'Laura G.', promedio: 55, quizzesPendientes: 2 }
-];
+import {
+  useGruposProfesor,
+  useMateriasGrupo,
+  useTemasMateria,
+  useClasesTema,
+  useResumenSalon,
+  useMetricasPRE,
+  useMetricasPOST,
+  useRecomendacionesSalon
+} from '@/hooks/useMisSalones';
 
 export default function MisSalones() {
   const [selectedSalon, setSelectedSalon] = useState<string>('');
-  const [selectedCurso, setSelectedCurso] = useState('todos');
+  const [selectedMateria, setSelectedMateria] = useState<string>('todos');
+  const [selectedTema, setSelectedTema] = useState<string>('todos');
+  const [selectedClase, setSelectedClase] = useState<string>('todos');
 
-  const salonActual = MOCK_MIS_SALONES.find(s => s.id === selectedSalon);
+  // Hooks de datos
+  const { data: grupos, isLoading: isLoadingGrupos } = useGruposProfesor();
+  const { data: materias } = useMateriasGrupo(selectedSalon || null);
+  const { data: temas } = useTemasMateria(selectedMateria !== 'todos' ? selectedMateria : null);
+  const { data: clases } = useClasesTema(
+    selectedTema !== 'todos' ? selectedTema : null,
+    selectedSalon || null
+  );
 
+  // Filtros para métricas
+  const filtros = {
+    materiaId: selectedMateria !== 'todos' ? selectedMateria : undefined,
+    temaId: selectedTema !== 'todos' ? selectedTema : undefined,
+    claseId: selectedClase !== 'todos' ? selectedClase : undefined,
+  };
+
+  // Métricas
+  const { data: resumen, isLoading: isLoadingResumen } = useResumenSalon(selectedSalon || null, filtros);
+  const { data: metricasPre, isLoading: isLoadingPre } = useMetricasPRE(selectedSalon || null, filtros);
+  const { data: metricasPost, isLoading: isLoadingPost } = useMetricasPOST(selectedSalon || null, filtros);
+  const { data: recomendaciones } = useRecomendacionesSalon(selectedSalon || null, filtros);
+
+  const salonActual = grupos?.find(g => g.id === selectedSalon);
+
+  // Reset filtros cuando cambia el salón
+  const handleSalonChange = (salonId: string) => {
+    setSelectedSalon(salonId);
+    setSelectedMateria('todos');
+    setSelectedTema('todos');
+    setSelectedClase('todos');
+  };
+
+  // Reset tema y clase cuando cambia materia
+  const handleMateriaChange = (materiaId: string) => {
+    setSelectedMateria(materiaId);
+    setSelectedTema('todos');
+    setSelectedClase('todos');
+  };
+
+  // Reset clase cuando cambia tema
+  const handleTemaChange = (temaId: string) => {
+    setSelectedTema(temaId);
+    setSelectedClase('todos');
+  };
+
+  // Función para obtener badge de nivel
+  const getNivelBadge = (valor: number) => {
+    if (valor >= 80) return <Badge className="bg-success text-success-foreground">Excelente</Badge>;
+    if (valor >= 60) return <Badge className="bg-primary text-primary-foreground">Bueno</Badge>;
+    if (valor >= 40) return <Badge variant="secondary">Medio</Badge>;
+    return <Badge variant="destructive">Bajo</Badge>;
+  };
+
+  // Vista de lista de salones
   if (!selectedSalon) {
     return (
       <div className="space-y-6 animate-fade-in">
         <div>
           <h1 className="text-2xl font-bold">Mis Salones</h1>
           <p className="text-muted-foreground">
-            Selecciona un salón para ver sus métricas detalladas
+            Métricas del desempeño del grupo
           </p>
         </div>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {MOCK_MIS_SALONES.map((salon) => (
-            <Card 
-              key={salon.id} 
-              className="cursor-pointer hover:shadow-elevated transition-all hover:border-primary"
-              onClick={() => setSelectedSalon(salon.id)}
-            >
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="p-3 rounded-xl gradient-bg">
-                    <Users className="w-6 h-6 text-primary-foreground" />
+        {isLoadingGrupos ? (
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {[1, 2, 3].map((i) => (
+              <Card key={i}>
+                <CardContent className="p-6">
+                  <Skeleton className="h-12 w-12 rounded-xl mb-4" />
+                  <Skeleton className="h-6 w-24 mb-2" />
+                  <Skeleton className="h-4 w-32 mb-3" />
+                  <Skeleton className="h-4 w-20" />
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        ) : grupos && grupos.length > 0 ? (
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {grupos.map((salon) => (
+              <Card 
+                key={salon.id} 
+                className="cursor-pointer hover:shadow-elevated transition-all hover:border-primary"
+                onClick={() => handleSalonChange(salon.id)}
+              >
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="p-3 rounded-xl gradient-bg">
+                      <Users className="w-6 h-6 text-primary-foreground" />
+                    </div>
+                    <ChevronRight className="w-5 h-5 text-muted-foreground" />
                   </div>
-                  <ChevronRight className="w-5 h-5 text-muted-foreground" />
-                </div>
-                <h3 className="text-xl font-bold mb-1">{salon.nombre}</h3>
-                <p className="text-sm text-muted-foreground mb-3">{salon.grado}</p>
-                <div className="flex items-center gap-2 text-sm">
-                  <Users className="w-4 h-4 text-primary" />
-                  <span>{salon.alumnos} estudiantes</span>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+                  <h3 className="text-xl font-bold mb-1">{salon.nombre}</h3>
+                  <p className="text-sm text-muted-foreground mb-3">
+                    {salon.grado} {salon.seccion ? `- ${salon.seccion}` : ''}
+                  </p>
+                  <div className="flex items-center gap-2 text-sm">
+                    <Users className="w-4 h-4 text-primary" />
+                    <span>{salon.cantidadAlumnos} estudiantes</span>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        ) : (
+          <Card>
+            <CardContent className="p-12 text-center">
+              <Users className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+              <h3 className="text-lg font-semibold mb-2">No tienes salones asignados</h3>
+              <p className="text-muted-foreground">
+                Contacta al administrador para que te asigne grupos.
+              </p>
+            </CardContent>
+          </Card>
+        )}
       </div>
     );
   }
 
+  // Vista de detalle del salón
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            <Button variant="ghost" size="sm" onClick={() => setSelectedSalon('')}>
-              ← Volver
-            </Button>
+      {/* Header con filtros */}
+      <Card className="border-none shadow-sm">
+        <CardContent className="p-4">
+          <div className="flex flex-col gap-4">
+            <div className="flex items-center gap-2">
+              <Button variant="ghost" size="sm" onClick={() => setSelectedSalon('')}>
+                ← Volver
+              </Button>
+              <div>
+                <h1 className="text-xl font-bold">
+                  {salonActual?.nombre} - {salonActual?.grado} {salonActual?.seccion || ''}
+                </h1>
+                <p className="text-sm text-muted-foreground">
+                  {salonActual?.cantidadAlumnos} estudiantes
+                </p>
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              {/* Filtro Salón (solo lectura) */}
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">Salón</label>
+                <Select value={selectedSalon} disabled>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={selectedSalon}>
+                      {salonActual?.nombre} - {salonActual?.grado}
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Filtro Materia */}
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">Materia</label>
+                <Select value={selectedMateria} onValueChange={handleMateriaChange}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Todas las materias" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todos">Todas las materias</SelectItem>
+                    {materias?.map((materia) => (
+                      <SelectItem key={materia.id} value={materia.id}>
+                        {materia.nombre}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Filtro Tema */}
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">Tema</label>
+                <Select 
+                  value={selectedTema} 
+                  onValueChange={handleTemaChange}
+                  disabled={selectedMateria === 'todos'}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Todos los temas" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todos">Todos los temas</SelectItem>
+                    {temas?.map((tema) => (
+                      <SelectItem key={tema.id} value={tema.id}>
+                        {tema.nombre}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Filtro Clase/Sesión */}
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">Clase / Sesión</label>
+                <Select 
+                  value={selectedClase} 
+                  onValueChange={setSelectedClase}
+                  disabled={selectedTema === 'todos'}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Todas las clases" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todos">Todas las clases</SelectItem>
+                    {clases?.map((clase) => (
+                      <SelectItem key={clase.id} value={clase.id}>
+                        Sesión {clase.numero_sesion || '?'}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
           </div>
-          <h1 className="text-2xl font-bold">{salonActual?.nombre} - {salonActual?.grado}</h1>
-          <p className="text-muted-foreground">
-            {salonActual?.alumnos} estudiantes • Métricas de desempeño
-          </p>
-        </div>
-        <div className="flex gap-3">
-          <Select value={selectedCurso} onValueChange={setSelectedCurso}>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Filtrar por curso" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todos">Todos los cursos</SelectItem>
-              <SelectItem value="matematicas">Matemáticas</SelectItem>
-              <SelectItem value="lenguaje">Lenguaje</SelectItem>
-              <SelectItem value="ciencias">Ciencias</SelectItem>
-            </SelectContent>
-          </Select>
+        </CardContent>
+      </Card>
+
+      {/* Resumen del salón - 3 StatCards */}
+      <div>
+        <h2 className="text-lg font-semibold mb-3">Resumen del salón</h2>
+        <p className="text-sm text-muted-foreground mb-4">Métricas del grupo durante el año escolar</p>
+        
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          {isLoadingResumen ? (
+            <>
+              <Skeleton className="h-32" />
+              <Skeleton className="h-32" />
+              <Skeleton className="h-32" />
+            </>
+          ) : (
+            <>
+              <Card>
+                <CardContent className="p-6">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Users className="w-4 h-4 text-primary" />
+                    <span className="text-sm text-muted-foreground">Participación</span>
+                  </div>
+                  <p className="text-3xl font-bold">{resumen?.participacion || 0}%</p>
+                  <p className="text-xs text-muted-foreground mt-1">Alumnos que completan quizzes</p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="p-6">
+                  <div className="flex items-center gap-2 mb-2">
+                    <AlertTriangle className="w-4 h-4 text-warning" />
+                    <span className="text-sm text-muted-foreground">Alumnos que requieren refuerzo</span>
+                  </div>
+                  <p className="text-3xl font-bold">{resumen?.alumnosRequierenRefuerzo || 0}</p>
+                  <p className="text-xs text-muted-foreground mt-1">{resumen?.porcentajeRefuerzo || 0}% del grupo</p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="p-6">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Target className="w-4 h-4 text-success" />
+                    <span className="text-sm text-muted-foreground">Desempeño</span>
+                  </div>
+                  <p className="text-3xl font-bold">{resumen?.desempeno || 0}%</p>
+                  <p className="text-xs text-muted-foreground mt-1">Promedio general del salón</p>
+                </CardContent>
+              </Card>
+            </>
+          )}
         </div>
       </div>
 
-      {/* Global stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard
-          title="Participación promedio"
-          value={`${MOCK_METRICAS.participacion}%`}
-          icon={Users}
-        />
-        <StatCard
-          title="Dominio de conceptos"
-          value={`${MOCK_METRICAS.dominioConceptos}%`}
-          icon={Target}
-          variant="gradient"
-        />
-        <StatCard
-          title="Nivel de logro"
-          value={`${MOCK_METRICAS.postMetricas.nivelLogro}%`}
-          icon={TrendingUp}
-        />
-        <StatCard
-          title="Alumnos en riesgo"
-          value={MOCK_METRICAS.alumnosEnRiesgo}
-          icon={AlertTriangle}
-          description="Requieren atención"
-        />
-      </div>
+      {/* Evaluación Inicial (PRE) */}
+      <div>
+        <h2 className="text-lg font-semibold mb-1">Evaluación Inicial (PRE)</h2>
+        <p className="text-sm text-muted-foreground mb-4">Conocimientos antes de la clase</p>
 
-      {/* Main content */}
-      <div className="grid lg:grid-cols-3 gap-6">
-        {/* Metrics detail */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* PRE Metrics */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <BookOpen className="w-5 h-5 text-info" />
-                Métricas PRE (Diagnóstico)
-              </CardTitle>
-              <CardDescription>Evaluación de conocimientos previos</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid sm:grid-cols-2 gap-4">
-                <div className="p-4 rounded-lg bg-muted/50">
-                  <p className="text-sm text-muted-foreground mb-1">Participación</p>
-                  <div className="flex items-center gap-2">
-                    <span className="text-2xl font-bold">{MOCK_METRICAS.preMetricas.participacion}%</span>
-                    <Badge className="bg-success text-success-foreground">Excelente</Badge>
+        <div className="grid lg:grid-cols-2 gap-4">
+          {/* Participación y Nivel PRE */}
+          <div className="grid sm:grid-cols-2 gap-4">
+            <Card>
+              <CardContent className="p-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <Users className="w-4 h-4 text-primary" />
+                  <span className="text-sm font-medium">Participación</span>
+                </div>
+                <p className="text-xs text-muted-foreground mb-2">Porcentaje de completación</p>
+                {isLoadingPre ? (
+                  <Skeleton className="h-2 w-full" />
+                ) : (
+                  <div className="space-y-1">
+                    <Progress value={metricasPre?.participacion || 0} className="h-2" />
+                    <p className="text-right text-sm font-medium">{metricasPre?.participacion || 0}%</p>
                   </div>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="p-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <Target className="w-4 h-4 text-warning" />
+                  <span className="text-sm font-medium">Nivel de Preparación</span>
                 </div>
-                <div className="p-4 rounded-lg bg-muted/50">
-                  <p className="text-sm text-muted-foreground mb-1">Nivel de preparación</p>
-                  <div className="flex items-center gap-2">
-                    <span className="text-2xl font-bold">{MOCK_METRICAS.preMetricas.nivelPreparacion}%</span>
-                    <Badge variant="secondary">Medio</Badge>
+                <p className="text-xs text-muted-foreground mb-2">Porcentaje de aciertos promedio</p>
+                {isLoadingPre ? (
+                  <Skeleton className="h-2 w-full" />
+                ) : (
+                  <div className="space-y-1">
+                    <Progress value={metricasPre?.nivelPreparacion || 0} className="h-2" />
+                    <p className="text-right text-sm font-medium">{metricasPre?.nivelPreparacion || 0}%</p>
                   </div>
-                </div>
-              </div>
-              <div>
-                <p className="text-sm font-medium mb-2">Conceptos débiles identificados:</p>
-                <div className="flex flex-wrap gap-2">
-                  {MOCK_METRICAS.preMetricas.conceptosDebiles.map((concepto, i) => (
-                    <Badge key={i} variant="destructive" className="bg-destructive/10 text-destructive">
-                      {concepto}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+                )}
+              </CardContent>
+            </Card>
+          </div>
 
-          {/* POST Metrics */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <CheckCircle2 className="w-5 h-5 text-success" />
-                Métricas POST (Evaluación)
-              </CardTitle>
-              <CardDescription>Resultados de aprendizaje</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <p className="text-sm font-medium mb-3">Distribución de niveles</p>
-                <div className="grid grid-cols-4 gap-3">
-                  {[
-                    { label: 'Riesgo', value: MOCK_METRICAS.postMetricas.distribucion.riesgo, color: 'bg-destructive' },
-                    { label: 'Suficiente', value: MOCK_METRICAS.postMetricas.distribucion.suficiente, color: 'bg-warning' },
-                    { label: 'Bueno', value: MOCK_METRICAS.postMetricas.distribucion.bueno, color: 'bg-primary' },
-                    { label: 'Destacado', value: MOCK_METRICAS.postMetricas.distribucion.destacado, color: 'bg-success' }
-                  ].map((nivel) => (
-                    <div key={nivel.label} className="text-center p-3 rounded-lg bg-muted/50">
-                      <div className={`w-8 h-8 rounded-full ${nivel.color} mx-auto mb-2 flex items-center justify-center text-sm font-bold text-white`}>
-                        {nivel.value}
-                      </div>
-                      <p className="text-xs text-muted-foreground">{nivel.label}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-              <div>
-                <p className="text-sm font-medium mb-2">Conceptos logrados:</p>
-                <div className="flex flex-wrap gap-2">
-                  {MOCK_METRICAS.postMetricas.conceptosLogrados.map((concepto, i) => (
-                    <Badge key={i} className="bg-success/10 text-success">
-                      <CheckCircle2 className="w-3 h-3 mr-1" />
-                      {concepto}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Sidebar */}
-        <div className="space-y-6">
-          {/* Areas fuertes y débiles */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Áreas Fuertes</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              {MOCK_METRICAS.areasFuertes.map((area, i) => (
-                <div key={i} className="flex items-center gap-2 p-2 rounded bg-success/10">
-                  <CheckCircle2 className="w-4 h-4 text-success" />
-                  <span className="text-sm">{area}</span>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Áreas de Dificultad</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              {MOCK_METRICAS.areasDificultad.map((area, i) => (
-                <div key={i} className="flex items-center gap-2 p-2 rounded bg-warning/10">
+          {/* Conceptos que necesitan refuerzo */}
+          <div className="grid sm:grid-cols-2 gap-4">
+            <Card>
+              <CardContent className="p-4">
+                <div className="flex items-center gap-2 mb-3">
                   <AlertTriangle className="w-4 h-4 text-warning" />
-                  <span className="text-sm">{area}</span>
+                  <span className="text-sm font-medium">Conceptos que necesitan refuerzo</span>
                 </div>
-              ))}
-            </CardContent>
-          </Card>
-
-          {/* Alumnos en riesgo */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base flex items-center gap-2">
-                <AlertTriangle className="w-4 h-4 text-destructive" />
-                Alumnos que Requieren Atención
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {MOCK_ALUMNOS_RIESGO.map((alumno, i) => (
-                <div key={i} className="flex items-center justify-between p-2 rounded-lg bg-destructive/5 border border-destructive/10">
-                  <div>
-                    <p className="font-medium text-sm">{alumno.nombre}</p>
-                    <p className="text-xs text-muted-foreground">
-                      Promedio: {alumno.promedio}% • {alumno.quizzesPendientes} quiz pendiente(s)
-                    </p>
+                <p className="text-xs text-muted-foreground mb-3">Ranking de conceptos que requieren más atención</p>
+                {isLoadingPre ? (
+                  <Skeleton className="h-20" />
+                ) : metricasPre?.conceptosRefuerzo && metricasPre.conceptosRefuerzo.length > 0 ? (
+                  <div className="space-y-2">
+                    {metricasPre.conceptosRefuerzo.map((concepto, i) => (
+                      <div key={i} className="flex items-center justify-between p-2 rounded bg-muted/50">
+                        <span className="text-sm truncate">{concepto.nombre}</span>
+                        <Badge variant="outline" className="ml-2">{concepto.porcentajeAcierto}%</Badge>
+                      </div>
+                    ))}
                   </div>
-                  <Button variant="ghost" size="sm">Ver</Button>
+                ) : (
+                  <p className="text-sm text-muted-foreground">Sin conceptos identificados</p>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="p-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <Lightbulb className="w-4 h-4 text-info" />
+                  <span className="text-sm font-medium">Recomendaciones</span>
                 </div>
-              ))}
-            </CardContent>
-          </Card>
+                <p className="text-xs text-muted-foreground mb-3">Acciones sugeridas para preparar la sesión</p>
+                {recomendaciones && recomendaciones.length > 0 ? (
+                  <div className="space-y-2">
+                    {recomendaciones.slice(0, 2).map((rec) => (
+                      <div key={rec.id} className="p-2 rounded bg-info/5 border border-info/10">
+                        <p className="text-sm font-medium">{rec.titulo}</p>
+                        <p className="text-xs text-muted-foreground line-clamp-2">{rec.descripcion}</p>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">Sin recomendaciones disponibles</p>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </div>
+
+      {/* Logro de la Clase (POST) */}
+      <div>
+        <h2 className="text-lg font-semibold mb-1">Logro de la Clase (POST)</h2>
+        <p className="text-sm text-muted-foreground mb-4">Conocimientos después de la clase</p>
+
+        <div className="grid lg:grid-cols-2 gap-4">
+          {/* Participación y Nivel POST */}
+          <div className="grid sm:grid-cols-2 gap-4">
+            <Card>
+              <CardContent className="p-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <Users className="w-4 h-4 text-primary" />
+                  <span className="text-sm font-medium">Participación</span>
+                </div>
+                <p className="text-xs text-muted-foreground mb-2">Porcentaje de completación</p>
+                {isLoadingPost ? (
+                  <Skeleton className="h-2 w-full" />
+                ) : (
+                  <div className="space-y-1">
+                    <Progress value={metricasPost?.participacion || 0} className="h-2" />
+                    <p className="text-right text-sm font-medium">{metricasPost?.participacion || 0}%</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="p-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <TrendingUp className="w-4 h-4 text-success" />
+                  <span className="text-sm font-medium">Nivel de Desempeño</span>
+                </div>
+                <p className="text-xs text-muted-foreground mb-2">Promedio de logro</p>
+                {isLoadingPost ? (
+                  <Skeleton className="h-2 w-full" />
+                ) : (
+                  <div className="space-y-1">
+                    <Progress value={metricasPost?.nivelDesempeno || 0} className="h-2" />
+                    <p className="text-right text-sm font-medium">{metricasPost?.nivelDesempeno || 0}%</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Alumnos que requieren refuerzo y Recomendaciones POST */}
+          <div className="grid sm:grid-cols-2 gap-4">
+            <Card>
+              <CardContent className="p-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <AlertTriangle className="w-4 h-4 text-destructive" />
+                  <span className="text-sm font-medium">Alumnos que requieren refuerzo</span>
+                </div>
+                <p className="text-xs text-muted-foreground mb-3">Alumnos con bajo desempeño</p>
+                {isLoadingPost ? (
+                  <Skeleton className="h-20" />
+                ) : metricasPost?.alumnosRefuerzo && metricasPost.alumnosRefuerzo.length > 0 ? (
+                  <div className="space-y-2">
+                    {metricasPost.alumnosRefuerzo.map((alumno) => (
+                      <div key={alumno.id} className="flex items-center justify-between p-2 rounded bg-destructive/5 border border-destructive/10">
+                        <span className="text-sm truncate">{alumno.nombre}</span>
+                        <Badge variant="destructive">{alumno.porcentaje}%</Badge>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">No hay alumnos en riesgo</p>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="p-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <Lightbulb className="w-4 h-4 text-warning" />
+                  <span className="text-sm font-medium">Recomendaciones</span>
+                </div>
+                <p className="text-xs text-muted-foreground mb-3">Acciones sugeridas después de la clase</p>
+                {recomendaciones && recomendaciones.length > 0 ? (
+                  <div className="space-y-2">
+                    {recomendaciones.slice(0, 1).map((rec) => (
+                      <div key={rec.id} className="p-2 rounded bg-warning/5 border border-warning/10">
+                        <Badge className="mb-1 bg-warning text-warning-foreground text-xs">
+                          {rec.tipo === 'refuerzo' ? 'Refuerzo' : 'Práctica'}
+                        </Badge>
+                        <p className="text-sm font-medium">{rec.titulo}</p>
+                        <p className="text-xs text-muted-foreground line-clamp-2">{rec.descripcion}</p>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">Sin recomendaciones disponibles</p>
+                )}
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </div>
     </div>
