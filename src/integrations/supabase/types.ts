@@ -562,41 +562,6 @@ export type Database = {
         }
         Relationships: []
       }
-      metricas_clase: {
-        Row: {
-          datos_estadisticos: Json | null
-          fecha_generacion: string | null
-          id: string
-          id_clase: string
-          recomendaciones: Json | null
-          tipo: Database["public"]["Enums"]["tipo_quiz"] | null
-        }
-        Insert: {
-          datos_estadisticos?: Json | null
-          fecha_generacion?: string | null
-          id?: string
-          id_clase: string
-          recomendaciones?: Json | null
-          tipo?: Database["public"]["Enums"]["tipo_quiz"] | null
-        }
-        Update: {
-          datos_estadisticos?: Json | null
-          fecha_generacion?: string | null
-          id?: string
-          id_clase?: string
-          recomendaciones?: Json | null
-          tipo?: Database["public"]["Enums"]["tipo_quiz"] | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "metricas_clase_id_clase_fkey"
-            columns: ["id_clase"]
-            isOneToOne: false
-            referencedRelation: "clases"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       periodos_academicos: {
         Row: {
           activo: boolean | null
