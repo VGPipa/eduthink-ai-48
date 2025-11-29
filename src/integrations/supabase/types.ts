@@ -657,7 +657,6 @@ export type Database = {
           opciones: Json | null
           orden: number | null
           respuesta_correcta: string | null
-          texto_contexto: string | null
           texto_pregunta: string
           tipo: Database["public"]["Enums"]["tipo_pregunta"] | null
         }
@@ -670,7 +669,6 @@ export type Database = {
           opciones?: Json | null
           orden?: number | null
           respuesta_correcta?: string | null
-          texto_contexto?: string | null
           texto_pregunta: string
           tipo?: Database["public"]["Enums"]["tipo_pregunta"] | null
         }
@@ -683,7 +681,6 @@ export type Database = {
           opciones?: Json | null
           orden?: number | null
           respuesta_correcta?: string | null
-          texto_contexto?: string | null
           texto_pregunta?: string
           tipo?: Database["public"]["Enums"]["tipo_pregunta"] | null
         }

@@ -552,7 +552,7 @@ export default function GenerarClase() {
       const preguntasToInsert = quiz.preguntas.map(p => ({
         id_quiz: quizCreated.id,
         texto_pregunta: p.texto,
-        texto_contexto: p.texto_contexto,
+        concepto: p.concepto,
         tipo: 'opcion_multiple' as const,
         opciones: p.opciones || [],
         respuesta_correcta: p.respuesta_correcta,
@@ -622,7 +622,7 @@ export default function GenerarClase() {
       const preguntasToInsert = quiz.preguntas.map(p => ({
         id_quiz: quizCreated.id,
         texto_pregunta: p.texto,
-        texto_contexto: p.texto_contexto,
+        concepto: p.concepto,
         tipo: 'opcion_multiple' as const,
         opciones: p.opciones || [],
         respuesta_correcta: p.respuesta_correcta,

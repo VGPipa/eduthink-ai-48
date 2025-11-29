@@ -43,7 +43,7 @@ export interface CreatePreguntaData {
   opciones?: any;
   respuesta_correcta?: string;
   justificacion?: string;
-  texto_contexto?: string;
+  concepto?: string;
   orden?: number;
 }
 

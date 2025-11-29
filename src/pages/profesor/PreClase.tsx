@@ -58,7 +58,7 @@ export default function PreClase() {
           .from('respuestas_detalle')
           .select(`
             *,
-            pregunta:preguntas(id, texto_pregunta, texto_contexto)
+            pregunta:preguntas(id, texto_pregunta, concepto)
           `)
           .in('id_respuesta_alumno', respuestaIds);
 
@@ -134,7 +134,7 @@ export default function PreClase() {
       // Get preguntas del quiz
       const { data: preguntas, error: preguntasError } = await supabase
         .from('preguntas')
-        .select('id, texto_pregunta, texto_contexto')
+        .select('id, texto_pregunta, concepto')
         .eq('id_quiz', quizPre.id)
         .order('orden');
 
