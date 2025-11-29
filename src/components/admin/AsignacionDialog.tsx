@@ -202,17 +202,17 @@ export function AsignacionDialog({ open, onOpenChange, onSuccess, editData }: As
                 name="id_grupo"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Grupo/Salón</FormLabel>
+                    <FormLabel>Clase y Sección</FormLabel>
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Selecciona un grupo" />
+                          <SelectValue placeholder="Selecciona clase y sección" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
                         {grupos.map((grupo) => (
                           <SelectItem key={grupo.id} value={grupo.id}>
-                            {grupo.nombre}
+                            {grupo.grado} - Sección {grupo.seccion}
                           </SelectItem>
                         ))}
                       </SelectContent>
