@@ -12,10 +12,13 @@ import {
   Target,
   ChevronDown,
   Lightbulb,
-  BookOpen
+  BookOpen,
+  ClipboardList,
+  CheckCircle
 } from 'lucide-react';
 import {
   useAsignacionesProfesor,
+  useMetricasGlobalesProfesor,
   useGruposProfesor,
   useMateriasGrupo,
   useTemasMateria,
@@ -35,6 +38,9 @@ export default function MisSalones() {
 
   // Hook de asignaciones con métricas para la vista inicial
   const { data: asignaciones, isLoading: isLoadingAsignaciones } = useAsignacionesProfesor();
+  
+  // Hook de métricas globales
+  const { data: metricasGlobales, isLoading: isLoadingGlobales } = useMetricasGlobalesProfesor();
   
   // Hooks para la vista de detalle
   const { data: grupos } = useGruposProfesor();
@@ -91,6 +97,88 @@ export default function MisSalones() {
           <p className="text-muted-foreground">
             Métricas del desempeño del grupo
           </p>
+        </div>
+
+        {/* Métricas Globales */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {isLoadingGlobales ? (
+            <>
+              <Skeleton className="h-24 rounded-xl" />
+              <Skeleton className="h-24 rounded-xl" />
+              <Skeleton className="h-24 rounded-xl" />
+              <Skeleton className="h-24 rounded-xl" />
+            </>
+          ) : (
+            <>
+              {/* Card 1: Promedio general - Gradiente */}
+              <Card className="bg-gradient-to-br from-cyan-500 to-blue-600 border-0 shadow-lg">
+                <CardContent className="p-4">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <p className="text-sm text-white/90">Promedio general</p>
+                      <p className="text-3xl font-bold text-white mt-2">
+                        {metricasGlobales?.promedioGeneral || 0}%
+                      </p>
+                    </div>
+                    <div className="bg-white/20 p-2 rounded-lg">
+                      <TrendingUp className="w-5 h-5 text-white" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Card 2: Total alumnos */}
+              <Card className="border shadow-sm">
+                <CardContent className="p-4">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Total alumnos</p>
+                      <p className="text-3xl font-bold mt-2">
+                        {metricasGlobales?.totalAlumnos || 0}
+                      </p>
+                    </div>
+                    <div className="bg-blue-50 p-2 rounded-lg">
+                      <Users className="w-5 h-5 text-blue-500" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Card 3: Quizzes completados */}
+              <Card className="border shadow-sm">
+                <CardContent className="p-4">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Quizzes completados</p>
+                      <p className="text-3xl font-bold mt-2">
+                        {metricasGlobales?.quizzesCompletados || 0}
+                      </p>
+                    </div>
+                    <div className="bg-blue-50 p-2 rounded-lg">
+                      <ClipboardList className="w-5 h-5 text-blue-500" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Card 4: Participación */}
+              <Card className="border shadow-sm">
+                <CardContent className="p-4">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Participación</p>
+                      <p className="text-3xl font-bold mt-2">
+                        {metricasGlobales?.participacion || 0}%
+                      </p>
+                    </div>
+                    <div className="bg-blue-50 p-2 rounded-lg">
+                      <CheckCircle className="w-5 h-5 text-blue-500" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </>
+          )}
         </div>
 
         {isLoadingAsignaciones ? (
