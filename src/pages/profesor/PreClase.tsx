@@ -165,19 +165,6 @@ export default function PreClase() {
         });
       }
 
-      // Save metricas_clase
-      await supabase
-        .from('metricas_clase')
-        .insert([{
-          id_clase: selectedClaseId!,
-          tipo: 'previo',
-          datos_estadisticos: {
-            participacion: resultado.metricas.participacion,
-            promedio: resultado.metricas.promedio,
-            conceptosDebiles: resultado.metricas.conceptosDebiles
-          } as Json,
-          recomendaciones: resultado.recomendaciones as unknown as Json
-        }]);
 
       toast({ 
         title: 'Respuestas procesadas', 

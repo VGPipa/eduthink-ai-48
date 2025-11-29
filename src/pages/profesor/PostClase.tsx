@@ -186,25 +186,6 @@ export default function PostClase() {
         recomendaciones: retroGrupal.recomendaciones
       });
 
-      // Save metricas_clase
-      const respuestasConPuntaje = respuestas.filter(r => r.puntaje_total !== null);
-      const promedio = respuestasConPuntaje.length > 0
-        ? Math.round(
-            respuestasConPuntaje.reduce((sum, r) => sum + (r.puntaje_total || 0), 0) / respuestasConPuntaje.length
-          )
-        : 0;
-
-      await supabase
-        .from('metricas_clase')
-        .insert([{
-          id_clase: selectedClaseId,
-          tipo: 'post',
-          datos_estadisticos: {
-            participacion: Math.round((respuestas.length / (alumnos.length || 1)) * 100),
-            promedio,
-            totalRespuestas: respuestas.length
-          }
-        }]);
 
       // Update clase estado to completada
       await updateClase.mutateAsync({
