@@ -26,6 +26,8 @@ import Usuarios from "./pages/admin/Usuarios";
 import ProfesorDashboard from "./pages/profesor/ProfesorDashboard";
 import Planificacion from "./pages/profesor/Planificacion";
 import GenerarClase from "./pages/profesor/GenerarClase";
+import PreClase from "./pages/profesor/PreClase";
+import PostClase from "./pages/profesor/PostClase";
 import MisSalones from "./pages/profesor/MisSalones";
 import Metricas from "./pages/profesor/Metricas";
 
@@ -106,6 +108,8 @@ function AppRoutes() {
         <Route path="/profesor/dashboard" element={<ProfesorDashboard />} />
         <Route path="/profesor/planificacion" element={<Planificacion />} />
         <Route path="/profesor/generar-clase" element={<GenerarClase />} />
+        <Route path="/profesor/pre-clase" element={<PreClase />} />
+        <Route path="/profesor/post-clase" element={<PostClase />} />
         <Route path="/profesor/mis-salones" element={<MisSalones />} />
         <Route path="/profesor/metricas" element={<Metricas />} />
         

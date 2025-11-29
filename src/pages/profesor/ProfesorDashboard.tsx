@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -6,6 +6,10 @@ import { StatCard } from '@/components/dashboard/StatCard';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useClases } from '@/hooks/useClases';
+import { useAsignaciones } from '@/hooks/useAsignaciones';
+import { useRecomendacionesSalon } from '@/hooks/useMisSalones';
+import { Loader2 } from 'lucide-react';
 import {
   Sparkles,
   BookOpen,
@@ -20,74 +24,6 @@ import {
   Lightbulb
 } from 'lucide-react';
 
-// Mock data
-const MOCK_STATS = {
-  clasesEstaSemana: 12,
-  cursosAsignados: 4,
-  totalEstudiantes: 128,
-  promedioGeneral: 78
-};
-
-const MOCK_CLASES_EN_PREPARACION = [
-  {
-    id: '1',
-    tema: 'Ecuaciones de segundo grado',
-    curso: 'Matemáticas',
-    salon: '3ro A',
-    fecha: '2024-01-20',
-    estado: 'sin_guia',
-    categoria: 'guia_pendiente'
-  },
-  {
-    id: '2',
-    tema: 'La Revolución Industrial',
-    curso: 'Historia',
-    salon: '4to B',
-    fecha: '2024-01-21',
-    estado: 'editando_guia',
-    categoria: 'evaluacion_pre_pendiente'
-  },
-  {
-    id: '3',
-    tema: 'El ciclo del agua',
-    curso: 'Ciencias',
-    salon: '2do A',
-    fecha: '2024-01-22',
-    estado: 'quiz_pre_enviado',
-    categoria: 'evaluacion_post_pendiente'
-  }
-];
-
-const MOCK_CLASES_PROGRAMADAS = {
-  hoy: [
-    { id: '4', tema: 'Fracciones equivalentes', curso: 'Matemáticas', salon: '2do B', hora: '08:00' },
-    { id: '5', tema: 'Verbos irregulares', curso: 'Lenguaje', salon: '3ro A', hora: '10:30' }
-  ],
-  manana: [
-    { id: '6', tema: 'Ecosistemas', curso: 'Ciencias', salon: '4to A', hora: '09:00' }
-  ],
-  estaSemana: [
-    { id: '7', tema: 'Geometría básica', curso: 'Matemáticas', salon: '1ro C', fecha: '2024-01-24' },
-    { id: '8', tema: 'Comprensión lectora', curso: 'Lenguaje', salon: '2do A', fecha: '2024-01-25' }
-  ]
-};
-
-const MOCK_RECOMENDACIONES = [
-  {
-    id: '1',
-    titulo: 'Reforzar conceptos básicos',
-    descripcion: 'Los estudiantes de 3ro A mostraron dificultades en el quiz PRE sobre ecuaciones.',
-    clase: 'Ecuaciones de segundo grado',
-    prioridad: 'alta'
-  },
-  {
-    id: '2',
-    titulo: 'Excelente comprensión',
-    descripcion: 'El salón 2do B demostró dominio sólido en fracciones. Considera avanzar más rápido.',
-    clase: 'Fracciones equivalentes',
-    prioridad: 'media'
-  }
-];
 
 const estadoBadgeConfig: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
   sin_guia: { label: 'Sin guía', variant: 'destructive' },
@@ -102,6 +38,93 @@ export default function ProfesorDashboard() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [selectedTab, setSelectedTab] = useState('preparacion');
+  
+  // Get real data
+  const { clases, isLoading: clasesLoading } = useClases();
+  const { asignaciones, materias, grupos } = useAsignaciones('2024');
+  
+  // Calculate stats
+  const stats = useMemo(() => {
+    const hoy = new Date();
+    const inicioSemana = new Date(hoy);
+    inicioSemana.setDate(hoy.getDate() - hoy.getDay());
+    const finSemana = new Date(inicioSemana);
+    finSemana.setDate(inicioSemana.getDate() + 6);
+    
+    const clasesEstaSemana = clases.filter(c => {
+      if (!c.fecha_programada) return false;
+      const fecha = new Date(c.fecha_programada);
+      return fecha >= inicioSemana && fecha <= finSemana;
+    }).length;
+    
+    const totalEstudiantes = grupos.reduce((sum, g) => sum + (g?.cantidad_alumnos || 0), 0);
+    
+    return {
+      clasesEstaSemana,
+      cursosAsignados: materias.length,
+      totalEstudiantes,
+      promedioGeneral: 0 // TODO: Calculate from quiz results
+    };
+  }, [clases, materias, grupos]);
+  
+  // Filter classes by state
+  const clasesEnPreparacion = useMemo(() => {
+    return clases.filter(c => 
+      c.estado === 'borrador' || 
+      c.estado === 'generando_clase' || 
+      c.estado === 'editando_guia'
+    );
+  }, [clases]);
+  
+  const clasesProgramadas = useMemo(() => {
+    const hoy = new Date();
+    hoy.setHours(0, 0, 0, 0);
+    const manana = new Date(hoy);
+    manana.setDate(manana.getDate() + 1);
+    const finSemana = new Date(hoy);
+    finSemana.setDate(finSemana.getDate() + 7);
+    
+    const programadas = clases.filter(c => 
+      c.estado === 'clase_programada' || 
+      c.estado === 'guia_aprobada'
+    );
+    
+    const hoyClases = programadas.filter(c => {
+      if (!c.fecha_programada) return false;
+      const fecha = new Date(c.fecha_programada);
+      fecha.setHours(0, 0, 0, 0);
+      return fecha.getTime() === hoy.getTime();
+    });
+    
+    const mananaClases = programadas.filter(c => {
+      if (!c.fecha_programada) return false;
+      const fecha = new Date(c.fecha_programada);
+      fecha.setHours(0, 0, 0, 0);
+      return fecha.getTime() === manana.getTime();
+    });
+    
+    const estaSemanaClases = programadas.filter(c => {
+      if (!c.fecha_programada) return false;
+      const fecha = new Date(c.fecha_programada);
+      return fecha >= hoy && fecha <= finSemana && 
+             fecha.getTime() !== hoy.getTime() && 
+             fecha.getTime() !== manana.getTime();
+    });
+    
+    return { hoy: hoyClases, manana: mananaClases, estaSemana: estaSemanaClases };
+  }, [clases]);
+  
+  // Get recommendations from first grupo (or combine all)
+  const primerGrupoId = grupos[0]?.id || null;
+  const { data: recomendaciones = [] } = useRecomendacionesSalon(primerGrupoId);
+  
+  if (clasesLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -128,23 +151,22 @@ export default function ProfesorDashboard() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
           title="Clases esta semana"
-          value={MOCK_STATS.clasesEstaSemana}
+          value={stats.clasesEstaSemana}
           icon={Calendar}
-          trend={{ value: 8, positive: true }}
         />
         <StatCard
           title="Cursos asignados"
-          value={MOCK_STATS.cursosAsignados}
+          value={stats.cursosAsignados}
           icon={BookOpen}
         />
         <StatCard
           title="Total estudiantes"
-          value={MOCK_STATS.totalEstudiantes}
+          value={stats.totalEstudiantes}
           icon={Users}
         />
         <StatCard
           title="Promedio general"
-          value={`${MOCK_STATS.promedioGeneral}%`}
+          value={stats.promedioGeneral > 0 ? `${stats.promedioGeneral}%` : 'N/A'}
           icon={TrendingUp}
           variant="gradient"
         />
@@ -167,115 +189,159 @@ export default function ProfesorDashboard() {
             </TabsList>
 
             <TabsContent value="preparacion" className="space-y-3 mt-4">
-              {MOCK_CLASES_EN_PREPARACION.map((clase) => (
-                <Card key={clase.id} className="hover:shadow-elevated transition-shadow cursor-pointer">
-                  <CardContent className="p-4">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <h3 className="font-semibold truncate">{clase.tema}</h3>
-                          <Badge variant={estadoBadgeConfig[clase.estado]?.variant || 'outline'}>
-                            {estadoBadgeConfig[clase.estado]?.label || clase.estado}
-                          </Badge>
-                        </div>
-                        <p className="text-sm text-muted-foreground">
-                          {clase.curso} • {clase.salon}
-                        </p>
-                        <div className="flex items-center gap-2 mt-2 text-sm text-muted-foreground">
-                          <Calendar className="w-4 h-4" />
-                          {new Date(clase.fecha).toLocaleDateString('es-ES', { 
-                            weekday: 'short', 
-                            day: 'numeric', 
-                            month: 'short' 
-                          })}
-                        </div>
-                      </div>
-                      <Button variant="ghost" size="icon">
-                        <ChevronRight className="w-5 h-5" />
-                      </Button>
-                    </div>
+              {clasesEnPreparacion.length === 0 ? (
+                <Card>
+                  <CardContent className="p-8 text-center">
+                    <p className="text-muted-foreground">No hay clases en preparación</p>
                   </CardContent>
                 </Card>
-              ))}
+              ) : (
+                clasesEnPreparacion.map((clase) => (
+                  <Card 
+                    key={clase.id} 
+                    className="hover:shadow-elevated transition-shadow cursor-pointer"
+                    onClick={() => navigate(`/profesor/generar-clase?clase=${clase.id}&tema=${clase.id_tema}&materia=${clase.tema?.curso_plan_id}`)}
+                  >
+                    <CardContent className="p-4">
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <h3 className="font-semibold truncate">{clase.tema?.nombre || 'Sin tema'}</h3>
+                            <Badge variant={estadoBadgeConfig[clase.estado || '']?.variant || 'outline'}>
+                              {estadoBadgeConfig[clase.estado || '']?.label || clase.estado}
+                            </Badge>
+                          </div>
+                          <p className="text-sm text-muted-foreground">
+                            {clase.grupo?.nombre || `${clase.grupo?.grado} ${clase.grupo?.seccion || ''}`.trim()}
+                          </p>
+                          {clase.fecha_programada && (
+                            <div className="flex items-center gap-2 mt-2 text-sm text-muted-foreground">
+                              <Calendar className="w-4 h-4" />
+                              {new Date(clase.fecha_programada).toLocaleDateString('es-ES', { 
+                                weekday: 'short', 
+                                day: 'numeric', 
+                                month: 'short' 
+                              })}
+                            </div>
+                          )}
+                        </div>
+                        <Button variant="ghost" size="icon">
+                          <ChevronRight className="w-5 h-5" />
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))
+              )}
             </TabsContent>
 
             <TabsContent value="programadas" className="space-y-4 mt-4">
               {/* Today */}
-              <div>
-                <h3 className="text-sm font-semibold text-muted-foreground uppercase mb-2">Hoy</h3>
-                <div className="space-y-2">
-                  {MOCK_CLASES_PROGRAMADAS.hoy.map((clase) => (
-                    <Card key={clase.id} className="hover:shadow-elevated transition-shadow">
-                      <CardContent className="p-4 flex items-center justify-between">
-                        <div className="flex items-center gap-4">
-                          <div className="p-2 rounded-lg bg-success/10 text-success">
-                            <Clock className="w-5 h-5" />
+              {clasesProgramadas.hoy.length > 0 && (
+                <div>
+                  <h3 className="text-sm font-semibold text-muted-foreground uppercase mb-2">Hoy</h3>
+                  <div className="space-y-2">
+                    {clasesProgramadas.hoy.map((clase) => (
+                      <Card key={clase.id} className="hover:shadow-elevated transition-shadow">
+                        <CardContent className="p-4 flex items-center justify-between">
+                          <div className="flex items-center gap-4">
+                            <div className="p-2 rounded-lg bg-success/10 text-success">
+                              <Clock className="w-5 h-5" />
+                            </div>
+                            <div>
+                              <h4 className="font-medium">{clase.tema?.nombre || 'Sin tema'}</h4>
+                              <p className="text-sm text-muted-foreground">
+                                {clase.grupo?.nombre || `${clase.grupo?.grado} ${clase.grupo?.seccion || ''}`.trim()}
+                              </p>
+                            </div>
                           </div>
-                          <div>
-                            <h4 className="font-medium">{clase.tema}</h4>
-                            <p className="text-sm text-muted-foreground">
-                              {clase.curso} • {clase.salon} • {clase.hora}
-                            </p>
-                          </div>
-                        </div>
-                        <Button variant="outline" size="sm">Ver guía</Button>
-                      </CardContent>
-                    </Card>
-                  ))}
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => navigate(`/profesor/generar-clase?clase=${clase.id}`)}
+                          >
+                            Ver guía
+                          </Button>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Tomorrow */}
-              <div>
-                <h3 className="text-sm font-semibold text-muted-foreground uppercase mb-2">Mañana</h3>
-                <div className="space-y-2">
-                  {MOCK_CLASES_PROGRAMADAS.manana.map((clase) => (
-                    <Card key={clase.id} className="hover:shadow-elevated transition-shadow">
-                      <CardContent className="p-4 flex items-center justify-between">
-                        <div className="flex items-center gap-4">
-                          <div className="p-2 rounded-lg bg-primary/10 text-primary">
-                            <Calendar className="w-5 h-5" />
+              {clasesProgramadas.manana.length > 0 && (
+                <div>
+                  <h3 className="text-sm font-semibold text-muted-foreground uppercase mb-2">Mañana</h3>
+                  <div className="space-y-2">
+                    {clasesProgramadas.manana.map((clase) => (
+                      <Card key={clase.id} className="hover:shadow-elevated transition-shadow">
+                        <CardContent className="p-4 flex items-center justify-between">
+                          <div className="flex items-center gap-4">
+                            <div className="p-2 rounded-lg bg-primary/10 text-primary">
+                              <Calendar className="w-5 h-5" />
+                            </div>
+                            <div>
+                              <h4 className="font-medium">{clase.tema?.nombre || 'Sin tema'}</h4>
+                              <p className="text-sm text-muted-foreground">
+                                {clase.grupo?.nombre || `${clase.grupo?.grado} ${clase.grupo?.seccion || ''}`.trim()}
+                              </p>
+                            </div>
                           </div>
-                          <div>
-                            <h4 className="font-medium">{clase.tema}</h4>
-                            <p className="text-sm text-muted-foreground">
-                              {clase.curso} • {clase.salon} • {clase.hora}
-                            </p>
-                          </div>
-                        </div>
-                        <Button variant="outline" size="sm">Ver guía</Button>
-                      </CardContent>
-                    </Card>
-                  ))}
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => navigate(`/profesor/generar-clase?clase=${clase.id}`)}
+                          >
+                            Ver guía
+                          </Button>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* This week */}
-              <div>
-                <h3 className="text-sm font-semibold text-muted-foreground uppercase mb-2">Esta semana</h3>
-                <div className="space-y-2">
-                  {MOCK_CLASES_PROGRAMADAS.estaSemana.map((clase) => (
-                    <Card key={clase.id} className="hover:shadow-elevated transition-shadow">
-                      <CardContent className="p-4 flex items-center justify-between">
-                        <div className="flex items-center gap-4">
-                          <div className="p-2 rounded-lg bg-muted text-muted-foreground">
-                            <Calendar className="w-5 h-5" />
+              {clasesProgramadas.estaSemana.length > 0 && (
+                <div>
+                  <h3 className="text-sm font-semibold text-muted-foreground uppercase mb-2">Esta semana</h3>
+                  <div className="space-y-2">
+                    {clasesProgramadas.estaSemana.map((clase) => (
+                      <Card key={clase.id} className="hover:shadow-elevated transition-shadow">
+                        <CardContent className="p-4 flex items-center justify-between">
+                          <div className="flex items-center gap-4">
+                            <div className="p-2 rounded-lg bg-muted text-muted-foreground">
+                              <Calendar className="w-5 h-5" />
+                            </div>
+                            <div>
+                              <h4 className="font-medium">{clase.tema?.nombre || 'Sin tema'}</h4>
+                              <p className="text-sm text-muted-foreground">
+                                {clase.grupo?.nombre || `${clase.grupo?.grado} ${clase.grupo?.seccion || ''}`.trim()} • {clase.fecha_programada && new Date(clase.fecha_programada).toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric' })}
+                              </p>
+                            </div>
                           </div>
-                          <div>
-                            <h4 className="font-medium">{clase.tema}</h4>
-                            <p className="text-sm text-muted-foreground">
-                              {clase.curso} • {clase.salon} • {new Date(clase.fecha).toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric' })}
-                            </p>
-                          </div>
-                        </div>
-                        <Button variant="ghost" size="sm">
-                          <ChevronRight className="w-4 h-4" />
-                        </Button>
-                      </CardContent>
-                    </Card>
-                  ))}
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => navigate(`/profesor/generar-clase?clase=${clase.id}`)}
+                          >
+                            <ChevronRight className="w-4 h-4" />
+                          </Button>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
+              
+              {clasesProgramadas.hoy.length === 0 && clasesProgramadas.manana.length === 0 && clasesProgramadas.estaSemana.length === 0 && (
+                <Card>
+                  <CardContent className="p-8 text-center">
+                    <p className="text-muted-foreground">No hay clases programadas</p>
+                  </CardContent>
+                </Card>
+              )}
             </TabsContent>
           </Tabs>
         </div>
@@ -293,24 +359,33 @@ export default function ProfesorDashboard() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {MOCK_RECOMENDACIONES.map((rec) => (
-                <div 
-                  key={rec.id}
-                  className="p-3 rounded-lg bg-muted/50 border border-border/50 hover:border-primary/30 transition-colors cursor-pointer"
-                >
-                  <div className="flex items-start gap-2 mb-1">
-                    <Badge variant={rec.prioridad === 'alta' ? 'destructive' : 'secondary'} className="text-xs">
-                      {rec.prioridad}
-                    </Badge>
-                  </div>
-                  <h4 className="font-medium text-sm mb-1">{rec.titulo}</h4>
-                  <p className="text-xs text-muted-foreground line-clamp-2">{rec.descripcion}</p>
-                  <p className="text-xs text-primary mt-2">{rec.clase}</p>
-                </div>
-              ))}
-              <Button variant="ghost" className="w-full text-sm">
-                Ver todas las recomendaciones
-              </Button>
+              {recomendaciones.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-4">
+                  No hay recomendaciones disponibles
+                </p>
+              ) : (
+                <>
+                  {recomendaciones.slice(0, 3).map((rec) => (
+                    <div 
+                      key={rec.id}
+                      className="p-3 rounded-lg bg-muted/50 border border-border/50 hover:border-primary/30 transition-colors cursor-pointer"
+                    >
+                      <div className="flex items-start gap-2 mb-1">
+                        <Badge variant={rec.tipo === 'refuerzo' ? 'destructive' : 'secondary'} className="text-xs">
+                          {rec.tipo}
+                        </Badge>
+                      </div>
+                      <h4 className="font-medium text-sm mb-1">{rec.titulo}</h4>
+                      <p className="text-xs text-muted-foreground line-clamp-2">{rec.descripcion}</p>
+                    </div>
+                  ))}
+                  {recomendaciones.length > 3 && (
+                    <Button variant="ghost" className="w-full text-sm">
+                      Ver todas las recomendaciones ({recomendaciones.length})
+                    </Button>
+                  )}
+                </>
+              )}
             </CardContent>
           </Card>
 

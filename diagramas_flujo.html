@@ -1,0 +1,730 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Diagramas de Flujo - EduThink</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+      :root {
+        color-scheme: light dark;
+        --bg: #0f172a;
+        --bg-alt: #020617;
+        --card: #020617;
+        --border: #1e293b;
+        --text: #e5e7eb;
+        --muted: #9ca3af;
+        --accent: #38bdf8;
+        --accent-soft: rgba(56, 189, 248, 0.1);
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text",
+          "Segoe UI", sans-serif;
+        background: radial-gradient(circle at top, #1e293b 0, #020617 55%, #020617 100%);
+        color: var(--text);
+      }
+      .shell {
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+      }
+      header {
+        padding: 1.25rem 1.5rem;
+        border-bottom: 1px solid rgba(148, 163, 184, 0.3);
+        backdrop-filter: blur(18px);
+        background: linear-gradient(
+          to right,
+          rgba(15, 23, 42, 0.9),
+          rgba(15, 23, 42, 0.7)
+        );
+        position: sticky;
+        top: 0;
+        z-index: 10;
+      }
+      header h1 {
+        margin: 0;
+        font-size: 1.35rem;
+        letter-spacing: 0.03em;
+        background: linear-gradient(to right, #38bdf8, #a78bfa);
+        -webkit-background-clip: text;
+        color: transparent;
+        font-weight: 700;
+      }
+      header p {
+        margin: 0.25rem 0 0;
+        font-size: 0.85rem;
+        color: var(--muted);
+      }
+      main {
+        flex: 1;
+        padding: 1.5rem;
+        max-width: 1200px;
+        margin: 0 auto;
+        display: grid;
+        gap: 1rem;
+      }
+      @media (min-width: 1024px) {
+        main {
+          grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.2fr);
+          align-items: flex-start;
+        }
+      }
+      .card {
+        background: radial-gradient(circle at top left, #020617, #020617 60%);
+        border-radius: 0.9rem;
+        padding: 1rem 1rem 1.1rem;
+        border: 1px solid rgba(148, 163, 184, 0.3);
+        box-shadow:
+          0 18px 45px rgba(15, 23, 42, 0.85),
+          0 0 0 1px rgba(15, 23, 42, 0.9);
+        position: relative;
+        overflow: hidden;
+      }
+      .card::before {
+        content: "";
+        position: absolute;
+        inset: -40%;
+        background: radial-gradient(
+          circle at top,
+          rgba(56, 189, 248, 0.05),
+          transparent 55%
+        );
+        opacity: 0.9;
+        z-index: -1;
+      }
+      .card h2 {
+        margin: 0 0 0.35rem;
+        font-size: 1rem;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+      }
+      .card h2 span.badge {
+        font-size: 0.65rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        padding: 0.12rem 0.45rem;
+        border-radius: 999px;
+        border: 1px solid rgba(148, 163, 184, 0.4);
+        color: var(--muted);
+      }
+      .card p.subtitle {
+        margin: 0 0 0.65rem;
+        font-size: 0.8rem;
+        color: var(--muted);
+      }
+      pre.flow {
+        margin: 0;
+        padding: 0.75rem 0.8rem;
+        border-radius: 0.6rem;
+        background:
+          radial-gradient(circle at top left, rgba(56, 189, 248, 0.08), rgba(15, 23, 42, 0.96));
+        border: 1px solid rgba(148, 163, 184, 0.35);
+        font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco,
+          Consolas, "Liberation Mono", "Courier New", monospace;
+        font-size: 0.78rem;
+        line-height: 1.5;
+        color: #e5e7eb;
+        overflow: auto;
+        max-height: 440px;
+      }
+      .layout-row {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        gap: 1rem;
+      }
+      @media (min-width: 1024px) {
+        .layout-row {
+          grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.2fr);
+        }
+      }
+      footer {
+        padding: 0.75rem 1.5rem 1.25rem;
+        font-size: 0.75rem;
+        color: var(--muted);
+        text-align: right;
+        border-top: 1px solid rgba(148, 163, 184, 0.25);
+        background: linear-gradient(
+          to right,
+          rgba(15, 23, 42, 0.96),
+          rgba(15, 23, 42, 0.9)
+        );
+      }
+      .pill-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.25rem;
+        margin-bottom: 0.5rem;
+      }
+      .pill {
+        font-size: 0.68rem;
+        padding: 0.14rem 0.5rem;
+        border-radius: 999px;
+        border: 1px solid rgba(148, 163, 184, 0.4);
+        background: radial-gradient(circle at top, rgba(56, 189, 248, 0.08), transparent);
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="shell">
+      <header>
+        <h1>EduThink · Diagramas de Flujo</h1>
+        <p>
+          Vista gráfica de alto nivel de los flujos por rol: Administrador, Profesor,
+          Alumno y Apoderado.
+        </p>
+      </header>
+
+      <main>
+        <!-- Diagrama global 4 roles -->
+        <section class="card">
+          <h2>
+            Flujo Global
+            <span class="badge">Overview</span>
+          </h2>
+          <p class="subtitle">
+            Conexión de los 4 roles y el ciclo completo de una clase, desde la
+            currícula hasta el feedback.
+          </p>
+          <pre class="flow"><code>             ┌────────────────────────┐
+             │        ADMIN           │
+             │                        │
+             │  1) Año escolar        │
+             │  2) Períodos           │
+             │  3) Plan anual         │
+             │  4) Asignaciones       │
+             │  5) Alertas            │
+             └─────────┬──────────────┘
+                       │
+                       │  (anios_escolares, periodos,
+                       │   plan_anual, asignaciones_profesor,
+                       │   configuracion_alertas)
+                       v
+             ┌────────────────────────┐
+             │       PROFESOR         │
+             │                        │
+             │  A) Planificación      │
+             │     - Iniciar tema     │
+             │       → guias_tema     │
+             │                        │
+             │  B) Programar sesiones │
+             │     - programar-sesion │
+             │       → clases(borrador)
+             │                        │
+             │  C) Generar clase      │
+             │     - generar-guia-clase
+             │       → guias_clase_versiones
+             │     - generar-evaluacion
+             │       → quizzes (PRE/POST)
+             │     - validar-clase    │
+             │       → clases(guia_aprobada/
+             │                 clase_programada)
+             │                        │
+             │  D) Pre-clase          │
+             │     - enviar-quiz PRE  │
+             │     - procesar-respuestas-quiz-pre
+             │     - aplicar-recomendaciones-guia
+             │     - aprobar-guia (guia_final) 
+             │                        │
+             │  E) Dictar clase       │
+             │     - clases(en_clase) │
+             │                        │
+             │  F) Post-clase         │
+             │     - enviar-quiz POST │
+             │     - generar-retroalimentaciones
+             │       → metricas_clase,
+             │         resultados_clase,
+             │         retroalimentaciones
+             └───────┬────────┬───────┘
+                     │        │
+                     │        │
+                     v        v
+      ┌────────────────┐   ┌────────────────┐
+      │    ALUMNO      │   │   APODERADO    │
+      │                │   │                │
+      │ - Ve clases    │   │ - Ve progreso  │
+      │ - Responde     │   │   del alumno   │
+      │   quizzes      │   │ - Ve           │
+      │ - Recibe       │   │   retroaliment.│
+      │   feedback     │   │                │
+      └────────────────┘   └────────────────┘</code></pre>
+        </section>
+
+        <!-- Panel Admin + Profesor -->
+        <section class="layout-row">
+          <div class="card">
+            <h2>
+              Flujo Administrador
+              <span class="badge">Admin</span>
+            </h2>
+            <p class="subtitle">
+              Desde la definición del año escolar hasta las alertas que alimentan el
+              dashboard del profesor.
+            </p>
+            <div class="pill-row">
+              <span class="pill">Año escolar</span>
+              <span class="pill">Períodos</span>
+              <span class="pill">Plan anual</span>
+              <span class="pill">Asignaciones</span>
+              <span class="pill">Alertas</span>
+            </div>
+            <pre class="flow"><code>ADMIN UI (/admin/plan-anual o config)
+    |
+    | 1. Crear/editar Año Escolar
+    v
+[ Formulario Año Escolar ]
+    |
+    |  Guardar
+    v
+Edge Function: manage-anio-escolar
+    |
+    v
+Tabla: anios_escolares
+    |
+    | 2. Crear/editar Períodos del año
+    v
+[ Formulario Períodos ]
+    |
+    |  Guardar
+    v
+Edge Function: manage-periodo-academico
+    |
+    v
+Tabla: periodos_academicos
+
+---
+
+ADMIN UI (/admin/plan-anual)
+    |
+    | 1. Seleccionar Año + Grado
+    v
+  [ Vista Plan Anual ]
+    ┌───────────────────────────────────────────────────┐
+    │ Grado 5°                                         │
+    │   ├─ Matemática                                  │
+    │   │    ├─ Tema: Números fraccionarios (Bim.1)    │
+    │   │    └─ Tema: Porcentajes (Bim.2)              │
+    │   └─ Comunicación                                │
+    │        └─ Tema: Comprensión lectora (Bim.1)      │
+    └───────────────────────────────────────────────────┘
+    |
+    | 2. Crear/editar Materia / Tema
+    v
+Edge Function: get-plan-anual-admin
+    |
+    v
+Tablas: materias / temas / (plan_anual)</code></pre>
+          </div>
+
+          <div class="card">
+            <h2>
+              Planificación Profesor
+              <span class="badge">Profesor</span>
+            </h2>
+            <p class="subtitle">
+              Cómo el profesor ve la currícula definida por el admin y la convierte en
+              temas con guía maestra.
+            </p>
+            <div class="pill-row">
+              <span class="pill">Planificación</span>
+              <span class="pill">Guias_tema</span>
+              <span class="pill">Asignaciones_profesor</span>
+            </div>
+            <pre class="flow"><code>PROFESOR UI (/profesor/planificacion)
+    |
+    | 1. Ver materias y temas asignados por bimestre
+    v
+Edge Function: get-planificacion-profesor
+    |
+    v
+Tablas: asignaciones_profesor, temas, guias_tema
+    |
+    v
+  [ Vista Planificación ]
+    ┌───────────────────────────────────────────────────┐
+    │ Matemática - 5° A                               │
+    │   - Tema: Números fraccionarios (pendiente)     │
+    │   - Tema: Porcentajes (en_progreso)             │
+    └───────────────────────────────────────────────────┘
+    |
+    | 2. Iniciar Tema (crear guía maestra)
+    v
+ [ IniciarTemaDialog ]
+    - Total de sesiones estimadas
+    - Contexto del grupo
+    - Metodologías preferidas
+    |
+    | Confirmar
+    v
+Edge Function: iniciar-tema
+    |
+    v
+Tabla: guias_tema
+    - Estructura de sesiones (JSON)
+    - Objetivos generales y competencias</code></pre>
+          </div>
+        </section>
+
+        <!-- Panel Sesiones + Generar Clase -->
+        <section class="layout-row">
+          <div class="card">
+            <h2>
+              Programar Sesiones
+              <span class="badge">Profesor</span>
+            </h2>
+            <p class="subtitle">
+              Paso intermedio entre la guía maestra del tema y las clases concretas
+              (clases en borrador).
+            </p>
+            <div class="pill-row">
+              <span class="pill">TemaDetalle</span>
+              <span class="pill">ProgramarSesion</span>
+              <span class="pill">Clases(borrador)</span>
+            </div>
+            <pre class="flow"><code>PROFESOR UI (/profesor/planificacion/tema/:temaId)
+    |
+    | 1. Ver detalle de un tema con su guía maestra
+    v
+Edge Function: get-tema-detalle
+    |
+    v
+Tablas: temas, guias_tema, clases
+    |
+    v
+  [ TemaDetalle ]
+    ┌───────────────────────────────────────────────────┐
+    │ Tema: Números fraccionarios                      │
+    │ Guía maestra: estructura de 4 sesiones           │
+    │ Sesiones programadas:                            │
+    │   - Sesión 1 (5° A) - 10/03 - borrador           │
+    │   - Sesión 2 (5° A) - 17/03 - sin programar      │
+    └───────────────────────────────────────────────────┘
+    |
+    | 2. Programar nueva sesión
+    v
+  [ ProgramarSesionDialog ]
+    - Grupo (salón)
+    - Número de sesión
+    - Fecha programada
+    - Duración
+    - Contexto específico (opcional)
+    |
+    | Confirmar
+    v
+Edge Function: programar-sesion
+    |
+    v
+Tabla: clases
+    - estado: 'borrador'
+    - id_guia_tema
+    - numero_sesion
+    - fecha_programada
+    - contexto preliminar</code></pre>
+          </div>
+
+          <div class="card">
+            <h2>
+              Generar Clase (Guía + Quizzes)
+              <span class="badge">Profesor</span>
+            </h2>
+            <p class="subtitle">
+              De sesión programada a clase lista con guía específica y evaluaciones
+              PRE/POST.
+            </p>
+            <div class="pill-row">
+              <span class="pill">get-sesiones-pendientes</span>
+              <span class="pill">generar-guia-clase</span>
+              <span class="pill">generar-evaluacion</span>
+              <span class="pill">validar-clase</span>
+            </div>
+            <pre class="flow"><code>PROFESOR UI (/profesor/generar-clase)
+    |
+    | 1. Ver sesiones pendientes de preparación
+    v
+Edge Function: get-sesiones-pendientes
+    |
+    v
+Tablas: clases, temas, grupos
+    |
+    v
+  [ SeleccionarSesionSection ]
+    ┌───────────────────────────────────────────────────┐
+    │ Sesión 1 - Matemática 5° A  - borrador           │
+    │ Sesión 2 - Matemática 5° A  - editando_guia      │
+    │ Clase extraordinaria (crear nueva)               │
+    └───────────────────────────────────────────────────┘
+
+---
+
+PROFESOR UI (/profesor/generar-clase?clase=&lt;id&gt;)
+    |
+    | 2. Completar contexto avanzado
+    v
+  [ Formulario Contexto ]
+    - Tema / Grupo (bloqueados si vienen de sesión)
+    - Metodologías, inclusión, recursos, observaciones
+    |
+    | Guardar / Continuar
+    v
+Tabla: clases
+    - estado: 'generando_clase'
+    - contexto (JSON)
+    - observaciones (JSON)
+    |
+    | 3. Generar guía de clase con IA
+    v
+Edge Function: generar-guia-clase
+    |
+    v
+Tablas:
+  - guias_clase_versiones (borrador)
+  - clases (estado: editando_guia, id_guia_version_actual)
+    |
+    | 4. Generar evaluaciones PRE y POST
+    v
+Edge Function: generar-evaluacion (previo / post)
+    |
+    v
+Tabla: quizzes (borrador)
+    |
+    | 5. Validar clase
+    v
+Edge Function: validar-clase
+    |
+    v
+Tabla: clases (guia_aprobada / clase_programada)</code></pre>
+          </div>
+        </section>
+
+        <!-- Panel Pre/Post clase -->
+        <section class="layout-row">
+          <div class="card">
+            <h2>
+              Pre-clase (Quiz PRE &amp; Recomendaciones)
+              <span class="badge">Profesor + Alumnos</span>
+            </h2>
+            <p class="subtitle">
+              Uso del diagnóstico previo para ajustar la guía de clase antes de
+              impartirla.
+            </p>
+            <div class="pill-row">
+              <span class="pill">enviar-quiz</span>
+              <span class="pill">procesar-respuestas-quiz-pre</span>
+              <span class="pill">aplicar-recomendaciones-guia</span>
+            </div>
+            <pre class="flow"><code>PROFESOR UI (gestión de quizzes)
+    |
+    | 1. Publicar quiz PRE
+    v
+Edge Function: enviar-quiz (tipo: previo)
+    |
+    v
+Tabla: quizzes (publicado)
+
+ALUMNOS
+    |
+    | 2. Responder quiz PRE
+    v
+Tabla: respuestas_alumno (previo)
+
+SISTEMA / IA
+    |
+    | 3. Procesar respuestas de quiz PRE
+    v
+Edge Function: procesar-respuestas-quiz-pre
+    |
+    v
+Tablas:
+  - recomendaciones
+  - metricas_clase
+
+PROFESOR UI (/profesor/recomendaciones-quiz-pre/:claseId)
+    |
+    | 4. Ver recomendaciones y aplicar cambios
+    v
+Edge Function: aplicar-recomendaciones-guia
+    |
+    v
+Tablas:
+  - guias_clase_versiones (nueva versión)
+  - clases (modificando_guia → guia_final)</code></pre>
+          </div>
+
+          <div class="card">
+            <h2>
+              Post-clase (Quiz POST &amp; Feedback)
+              <span class="badge">Profesor + Alumno + Apoderado</span>
+            </h2>
+            <p class="subtitle">
+              Cierre de la sesión con evaluación final, métricas y retroalimentaciones
+              para todos los actores.
+            </p>
+            <div class="pill-row">
+              <span class="pill">enviar-quiz (post)</span>
+              <span class="pill">generar-retroalimentaciones</span>
+            </div>
+            <pre class="flow"><code>PROFESOR
+    |
+    | 1. Dictar la clase
+    v
+Tabla: clases (en_clase)
+
+    |
+    | 2. Enviar quiz POST
+    v
+Edge Function: enviar-quiz (tipo: post)
+    |
+    v
+Tabla: quizzes (post, publicado)
+
+ALUMNOS
+    |
+    | 3. Responder quiz POST
+    v
+Tabla: respuestas_alumno (post)
+
+SISTEMA / IA
+    |
+    | 4. Analizar resultados y generar feedback
+    v
+Edge Function: generar-retroalimentaciones
+    |
+    v
+Tablas:
+  - metricas_clase / resultados_clase
+  - retroalimentaciones
+  - clases (analizando_resultados → completada)
+
+PROFESOR UI (/profesor/retroalimentaciones/:claseId)
+    |
+    | 5. Ver feedback por alumno / grupo
+
+ALUMNO / APODERADO
+    |
+    | 6. Consultar retroalimentaciones y progreso</code></pre>
+          </div>
+        </section>
+
+        <!-- Panel Alumno + Apoderado dedicados -->
+        <section class="layout-row">
+          <div class="card">
+            <h2>
+              Flujo Alumno
+              <span class="badge">Alumno</span>
+            </h2>
+            <p class="subtitle">
+              Cómo el alumno entra, ve sus actividades, responde quizzes y recibe
+              retroalimentación.
+            </p>
+            <div class="pill-row">
+              <span class="pill">/alumno/dashboard</span>
+              <span class="pill">Quizzes publicados</span>
+              <span class="pill">Retroalimentaciones</span>
+            </div>
+            <pre class="flow"><code>ALUMNO UI (/alumno/dashboard)
+    |
+    | 1. Inicia sesión y es redirigido a /alumno/dashboard
+    v
+SISTEMA
+    |
+    | Carga datos de:
+    |  - clases asignadas (según grupo)
+    |  - quizzes publicados (estado: publicado)
+    |  - retroalimentaciones disponibles
+    v
+  [ Dashboard Alumno ]
+    ┌────────────────────────────────────────────┐
+    │ Clases de hoy / próximas                  │
+    │ Quizzes pendientes (PRE / POST)           │
+    │ Retroalimentaciones recientes             │
+    └────────────────────────────────────────────┘
+    |
+    | 2. Responder quiz (PRE o POST)
+    v
+  [ Vista de Quiz ]
+    - Preguntas generadas por IA
+    - Opciones / campos de respuesta
+    |
+    | Enviar respuestas
+    v
+Tabla: respuestas_alumno
+    - id_alumno
+    - id_quiz
+    - respuestas
+    - puntaje / metadatos
+    |
+    | 3. Recibir feedback
+    v
+  [ Sección Retroalimentaciones ]
+    - Mensajes personalizados por clase
+    - Recomendaciones para mejorar
+    |
+    v
+Tablas: retroalimentaciones, resultados_clase</code></pre>
+          </div>
+
+          <div class="card">
+            <h2>
+              Flujo Apoderado
+              <span class="badge">Apoderado</span>
+            </h2>
+            <p class="subtitle">
+              Cómo el apoderado consulta el progreso del alumno y sus
+              retroalimentaciones.
+            </p>
+            <div class="pill-row">
+              <span class="pill">/apoderado/dashboard</span>
+              <span class="pill">Progreso alumno</span>
+              <span class="pill">Feedback</span>
+            </div>
+            <pre class="flow"><code>APODERADO UI (/apoderado/dashboard)
+    |
+    | 1. Inicia sesión y es redirigido a /apoderado/dashboard
+    v
+SISTEMA
+    |
+    | Carga datos vinculados a sus hijos:
+    |  - clases cursadas y próximas
+    |  - resultados de quizzes
+    |  - retroalimentaciones generadas
+    v
+  [ Dashboard Apoderado ]
+    ┌────────────────────────────────────────────┐
+    │ Progreso general del alumno               │
+    │ Clases y temas trabajados                 │
+    │ Retroalimentaciones individuales          │
+    │ Alertas o focos de atención               │
+    └────────────────────────────────────────────┘
+    |
+    | 2. Ver detalle de una clase / tema
+    v
+  [ Detalle de Clase / Tema ]
+    - Resultados del quiz PRE/POST
+    - Comentarios clave del profesor / IA
+    - Recomendaciones para acompañar al alumno
+    |
+    v
+Tablas:
+  - retroalimentaciones
+  - resultados_clase
+  - quizzes / respuestas_alumno (agregado)</code></pre>
+          </div>
+        </section>
+      </main>
+
+      <footer>
+        EduThink · Diagramas de flujo generados automáticamente para apoyar
+        documentación funcional.
+      </footer>
+    </div>
+  </body>
+  </html>
+
+

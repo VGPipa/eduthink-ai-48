@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -9,6 +9,13 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
+import { useProfesor } from '@/hooks/useProfesor';
+import { useAsignaciones } from '@/hooks/useAsignaciones';
+import { useClases } from '@/hooks/useClases';
+import { useGuiasClase } from '@/hooks/useGuias';
+import { useQuizzes } from '@/hooks/useQuizzes';
+import { supabase } from '@/integrations/supabase/client';
+import { generateGuiaClase, generateQuiz, type GuiaClaseData, type QuizData } from '@/lib/ai/generate';
 import {
   Sparkles,
   ChevronLeft,
@@ -56,96 +63,356 @@ const ADAPTACIONES = [
   { id: 'otro', nombre: 'Otro' }
 ];
 
-// Mock de guía generada
-const MOCK_GUIA = {
-  objetivos: [
-    'Comprender los conceptos fundamentales de las ecuaciones de segundo grado',
-    'Aplicar la fórmula general para resolver ecuaciones cuadráticas',
-    'Analizar críticamente los resultados obtenidos'
-  ],
-  estructura: [
-    { tiempo: '10 min', actividad: 'Introducción', descripcion: 'Activación de conocimientos previos mediante preguntas socráticas' },
-    { tiempo: '15 min', actividad: 'Desarrollo conceptual', descripcion: 'Explicación de la fórmula general con ejemplos' },
-    { tiempo: '20 min', actividad: 'Práctica guiada', descripcion: 'Resolución de ejercicios en grupos pequeños' },
-    { tiempo: '10 min', actividad: 'Cierre', descripcion: 'Reflexión metacognitiva y preguntas de verificación' }
-  ],
-  preguntasSocraticas: [
-    '¿Qué patrones observas en las soluciones de estas ecuaciones?',
-    '¿Cómo podrías verificar si tu respuesta es correcta?',
-    '¿En qué situaciones de la vida real podrías aplicar este conocimiento?'
-  ]
-};
-
-const MOCK_QUIZ_PRE = [
-  { tipo: 'conocimiento', texto: '¿Cuál es la forma general de una ecuación de segundo grado?' },
-  { tipo: 'conocimiento', texto: '¿Qué significa el discriminante en una ecuación cuadrática?' },
-  { tipo: 'razonamiento', texto: 'Si una ecuación tiene discriminante negativo, ¿qué puedes inferir sobre sus soluciones?' }
-];
-
-const MOCK_QUIZ_POST = [
-  { tipo: 'aplicacion', texto: 'Resuelve: x² + 5x + 6 = 0' },
-  { tipo: 'analisis', texto: 'Explica por qué la ecuación x² + 1 = 0 no tiene soluciones reales' },
-  { tipo: 'razonamiento', texto: 'Un jardín rectangular tiene área de 24m². Si el largo es 2m más que el ancho, ¿cuáles son sus dimensiones?' },
-  { tipo: 'aplicacion', texto: 'Determina los valores de x para los cuales x² - 4x = 0' },
-  { tipo: 'analisis', texto: 'Compara las soluciones de x² = 9 y x² = -9. ¿Qué diferencias observas y por qué?' }
-];
-
 export default function GenerarClase() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { toast } = useToast();
+  const { profesorId } = useProfesor();
+  const { asignaciones, grupos, materias } = useAsignaciones('2024');
+  
+  const temaId = searchParams.get('tema');
+  const materiaId = searchParams.get('materia');
+  const claseId = searchParams.get('clase');
   
   const [currentStep, setCurrentStep] = useState(1);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isLoadingData, setIsLoadingData] = useState(true);
+  
+  // Data from DB
+  const [temaData, setTemaData] = useState<any>(null);
+  const [materiaData, setMateriaData] = useState<any>(null);
+  const [grupoData, setGrupoData] = useState<any>(null);
+  const [claseData, setClaseData] = useState<any>(null);
   
   // Form state
   const [formData, setFormData] = useState({
-    curso: 'Matemáticas',
-    tema: 'Ecuaciones de segundo grado',
-    salon: '3ro A',
-    fecha: '2024-01-25',
+    fecha: '',
     duracion: 55,
     objetivo: '',
-    metodologias: ['socratico'],
-    recursos: ['proyector', 'pizarra'],
-    adaptaciones: ['ninguna'],
-    recursoOtro: '',
-    adaptacionOtro: '',
+    metodologias: [] as string[],
+    recursos: [] as string[],
+    adaptaciones: [] as string[],
     contexto: ''
   });
 
   // Generated content
-  const [guiaGenerada, setGuiaGenerada] = useState<typeof MOCK_GUIA | null>(null);
-  const [quizPre, setQuizPre] = useState<typeof MOCK_QUIZ_PRE | null>(null);
-  const [quizPost, setQuizPost] = useState<typeof MOCK_QUIZ_POST | null>(null);
+  const [guiaGenerada, setGuiaGenerada] = useState<GuiaClaseData | null>(null);
+  const [quizPreData, setQuizPreData] = useState<QuizData | null>(null);
+  const [quizPostData, setQuizPostData] = useState<QuizData | null>(null);
+  
+  // Hooks for DB operations
+  const { createClase, updateClase } = useClases();
+  const { createGuiaVersion } = useGuiasClase(claseData?.id);
+  const { createQuiz } = useQuizzes(claseData?.id);
+  
+  // Load initial data
+  useEffect(() => {
+    const loadData = async () => {
+      if (!temaId || !materiaId || !profesorId) {
+        toast({
+          title: 'Error',
+          description: 'Faltan parámetros necesarios (tema, materia)',
+          variant: 'destructive'
+        });
+        navigate('/profesor/planificacion');
+        return;
+      }
+
+      try {
+        // Load tema
+        const { data: tema, error: temaError } = await supabase
+          .from('temas_plan')
+          .select('*')
+          .eq('id', temaId)
+          .single();
+        
+        if (temaError) throw temaError;
+        setTemaData(tema);
+
+        // Load materia
+        const { data: materia, error: materiaError } = await supabase
+          .from('cursos_plan')
+          .select('*')
+          .eq('id', materiaId)
+          .single();
+        
+        if (materiaError) throw materiaError;
+        setMateriaData(materia);
+
+        // Find grupo from asignaciones
+        const asignacion = asignaciones.find(a => a.id_materia === materiaId);
+        if (asignacion?.grupo) {
+          setGrupoData(asignacion.grupo);
+        }
+
+        // Load existing clase if claseId provided
+        if (claseId) {
+          const { data: clase, error: claseError } = await supabase
+            .from('clases')
+            .select(`
+              *,
+              grupo:grupos(id, nombre, grado, seccion),
+              tema:temas_plan(id, nombre)
+            `)
+            .eq('id', claseId)
+            .single();
+          
+          if (!claseError && clase) {
+            setClaseData(clase);
+            setFormData({
+              fecha: clase.fecha_programada || '',
+              duracion: clase.duracion_minutos || 55,
+              objetivo: '',
+              metodologias: clase.metodologia ? [clase.metodologia] : [],
+              recursos: [],
+              adaptaciones: [],
+              contexto: clase.contexto || ''
+            });
+          }
+        }
+
+        setIsLoadingData(false);
+      } catch (error: any) {
+        toast({
+          title: 'Error',
+          description: 'Error al cargar datos: ' + error.message,
+          variant: 'destructive'
+        });
+        setIsLoadingData(false);
+      }
+    };
+
+    loadData();
+  }, [temaId, materiaId, claseId, profesorId, asignaciones]);
+
+  // Ensure clase exists before generating
+  const ensureClase = async () => {
+    if (claseData) return claseData;
+
+    if (!temaData || !grupoData || !profesorId) {
+      throw new Error('Faltan datos necesarios para crear la clase');
+    }
+
+    const nuevaClase = await createClase.mutateAsync({
+      id_tema: temaId!,
+      id_grupo: grupoData.id,
+      fecha_programada: formData.fecha || new Date().toISOString().split('T')[0],
+      duracion_minutos: formData.duracion,
+      contexto: formData.contexto,
+      metodologia: formData.metodologias.join(', '),
+      estado: 'borrador'
+    });
+
+    setClaseData(nuevaClase);
+    return nuevaClase;
+  };
 
   const handleGenerarGuia = async () => {
+    if (!temaData || !formData.objetivo || !formData.contexto) {
+      toast({
+        title: 'Error',
+        description: 'Completa el objetivo y contexto antes de generar la guía',
+        variant: 'destructive'
+      });
+      return;
+    }
+
     setIsGenerating(true);
-    // Simulate AI generation
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    setGuiaGenerada(MOCK_GUIA);
-    setIsGenerating(false);
-    toast({ title: '¡Guía generada!', description: 'La guía de clase ha sido creada con éxito' });
+    try {
+      // Ensure clase exists
+      const clase = await ensureClase();
+      
+      // Update clase state
+      await updateClase.mutateAsync({
+        id: clase.id,
+        estado: 'generando_clase',
+        contexto: formData.contexto,
+        metodologia: formData.metodologias.join(', ')
+      });
+
+      // Generate guide with AI
+      const guia = await generateGuiaClase(
+        temaData.nombre,
+        formData.contexto,
+        formData.metodologias,
+        formData.objetivo,
+        formData.recursos,
+        formData.adaptaciones
+      );
+
+      setGuiaGenerada(guia);
+
+      // Save to DB
+      const guiaVersion = await createGuiaVersion.mutateAsync({
+        id_clase: clase.id,
+        objetivos: guia.objetivos.join('\n'),
+        estructura: guia.estructura,
+        contenido: {
+          objetivos: guia.objetivos,
+          estructura: guia.estructura,
+          recursos: guia.recursos,
+          adaptaciones: guia.adaptaciones
+        },
+        preguntas_socraticas: guia.preguntasSocraticas,
+        generada_ia: true,
+        estado: 'borrador'
+      });
+
+      // Update clase to reference guia and change state
+      await updateClase.mutateAsync({
+        id: clase.id,
+        estado: 'editando_guia',
+        id_guia_version_actual: guiaVersion.id
+      });
+
+      toast({ title: '¡Guía generada!', description: 'La guía de clase ha sido creada con éxito' });
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: 'Error al generar la guía: ' + error.message,
+        variant: 'destructive'
+      });
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   const handleGenerarQuizPre = async () => {
+    if (!temaData) {
+      toast({
+        title: 'Error',
+        description: 'No se encontró la información del tema',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    if (!claseData && !guiaGenerada) {
+      toast({
+        title: 'Error',
+        description: 'Primero debes generar la guía de clase',
+        variant: 'destructive'
+      });
+      return;
+    }
+
     setIsGenerating(true);
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    setQuizPre(MOCK_QUIZ_PRE);
-    setIsGenerating(false);
-    toast({ title: 'Quiz PRE generado', description: '3 preguntas diagnósticas listas' });
+    try {
+      const clase = claseData || await ensureClase();
+
+      // Generate quiz with AI
+      const quiz = await generateQuiz('previo', temaData.nombre, 'intermedio', 5);
+      setQuizPreData(quiz);
+
+      // Save quiz to DB
+      const quizCreated = await createQuiz.mutateAsync({
+        id_clase: clase.id,
+        tipo: 'previo',
+        titulo: quiz.titulo,
+        instrucciones: quiz.instrucciones,
+        tiempo_limite: 20,
+        estado: 'borrador'
+      });
+
+      // Save questions directly to DB
+      const preguntasToInsert = quiz.preguntas.map(p => ({
+        id_quiz: quizCreated.id,
+        texto_pregunta: p.texto,
+        texto_contexto: p.texto_contexto,
+        tipo: 'opcion_multiple' as const,
+        opciones: p.opciones || [],
+        respuesta_correcta: p.respuesta_correcta,
+        justificacion: p.justificacion,
+        orden: p.orden
+      }));
+
+      const { error: preguntasError } = await supabase
+        .from('preguntas')
+        .insert(preguntasToInsert);
+
+      if (preguntasError) throw preguntasError;
+
+      toast({ title: 'Quiz PRE generado', description: `${quiz.preguntas.length} preguntas diagnósticas listas` });
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: 'Error al generar el quiz PRE: ' + error.message,
+        variant: 'destructive'
+      });
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   const handleGenerarQuizPost = async () => {
+    if (!temaData) {
+      toast({
+        title: 'Error',
+        description: 'No se encontró la información del tema',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    if (!claseData && !guiaGenerada) {
+      toast({
+        title: 'Error',
+        description: 'Primero debes generar la guía de clase',
+        variant: 'destructive'
+      });
+      return;
+    }
+
     setIsGenerating(true);
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    setQuizPost(MOCK_QUIZ_POST);
-    setIsGenerating(false);
-    toast({ title: 'Quiz POST generado', description: '5 preguntas de evaluación listas' });
+    try {
+      const clase = claseData || await ensureClase();
+
+      // Generate quiz with AI
+      const quiz = await generateQuiz('post', temaData.nombre, 'intermedio', 10);
+      setQuizPostData(quiz);
+
+      // Save quiz to DB
+      const quizCreated = await createQuiz.mutateAsync({
+        id_clase: clase.id,
+        tipo: 'post',
+        titulo: quiz.titulo,
+        instrucciones: quiz.instrucciones,
+        tiempo_limite: 30,
+        estado: 'borrador'
+      });
+
+      // Save questions directly to DB
+      const preguntasToInsert = quiz.preguntas.map(p => ({
+        id_quiz: quizCreated.id,
+        texto_pregunta: p.texto,
+        texto_contexto: p.texto_contexto,
+        tipo: 'opcion_multiple' as const,
+        opciones: p.opciones || [],
+        respuesta_correcta: p.respuesta_correcta,
+        justificacion: p.justificacion,
+        orden: p.orden
+      }));
+
+      const { error: preguntasError } = await supabase
+        .from('preguntas')
+        .insert(preguntasToInsert);
+
+      if (preguntasError) throw preguntasError;
+
+      toast({ title: 'Quiz POST generado', description: `${quiz.preguntas.length} preguntas de evaluación listas` });
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: 'Error al generar el quiz POST: ' + error.message,
+        variant: 'destructive'
+      });
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
-  const handleValidar = () => {
-    if (!guiaGenerada || !quizPre || !quizPost) {
+  const handleValidar = async () => {
+    if (!guiaGenerada || !quizPreData || !quizPostData || !claseData) {
       toast({ 
         title: 'Pasos incompletos', 
         description: 'Debes completar todos los pasos anteriores',
@@ -153,24 +420,64 @@ export default function GenerarClase() {
       });
       return;
     }
-    toast({ title: '¡Clase validada!', description: 'Tu clase está lista para ser impartida' });
-    navigate('/profesor/dashboard');
+
+    try {
+      // Update clase state to clase_programada
+      await updateClase.mutateAsync({
+        id: claseData.id,
+        estado: 'clase_programada'
+      });
+
+      toast({ title: '¡Clase validada!', description: 'Tu clase está lista para ser impartida' });
+      navigate('/profesor/dashboard');
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: 'Error al validar la clase: ' + error.message,
+        variant: 'destructive'
+      });
+    }
   };
 
   const canProceed = () => {
     switch (currentStep) {
       case 1:
-        return formData.objetivo && formData.metodologias.length > 0 && formData.contexto;
+        return formData.objetivo && formData.metodologias.length > 0 && formData.contexto && formData.fecha;
       case 2:
         return guiaGenerada !== null;
       case 3:
-        return quizPre !== null;
+        return quizPreData !== null;
       case 4:
-        return quizPost !== null;
+        return quizPostData !== null;
       default:
         return true;
     }
   };
+
+  if (isLoadingData) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!temaData || !materiaData || !grupoData) {
+    return (
+      <div className="max-w-4xl mx-auto space-y-6 animate-fade-in">
+        <Card>
+          <CardContent className="p-12 text-center">
+            <p className="text-muted-foreground">
+              No se pudieron cargar los datos necesarios. Por favor, vuelve a la planificación.
+            </p>
+            <Button onClick={() => navigate('/profesor/planificacion')} className="mt-4">
+              Volver a Planificación
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   const progress = (currentStep / STEPS.length) * 100;
 
@@ -239,17 +546,17 @@ export default function GenerarClase() {
                     <Label className="flex items-center gap-1">
                       Curso <Lock className="w-3 h-3 text-muted-foreground" />
                     </Label>
-                    <Input value={formData.curso} disabled />
+                    <Input value={materiaData.nombre} disabled />
                   </div>
                   <div className="space-y-2">
                     <Label className="flex items-center gap-1">
                       Tema <Lock className="w-3 h-3 text-muted-foreground" />
                     </Label>
-                    <Input value={formData.tema} disabled />
+                    <Input value={temaData.nombre} disabled />
                   </div>
                   <div className="space-y-2">
                     <Label>Salón</Label>
-                    <Input value={formData.salon} disabled />
+                    <Input value={grupoData.nombre || `${grupoData.grado} ${grupoData.seccion || ''}`.trim()} disabled />
                   </div>
                   <div className="space-y-2">
                     <Label>Fecha programada</Label>
@@ -459,16 +766,16 @@ export default function GenerarClase() {
                 )}
               </div>
 
-              {quizPre && (
+              {quizPreData && (
                 <div className="space-y-4 animate-fade-in">
                   <div className="p-4 rounded-lg bg-success/10 border border-success/20">
                     <div className="flex items-center gap-2 text-success">
                       <CheckCircle2 className="w-5 h-5" />
-                      <span className="font-medium">Quiz PRE generado ({quizPre.length} preguntas)</span>
+                      <span className="font-medium">Quiz PRE generado ({quizPreData.preguntas.length} preguntas)</span>
                     </div>
                   </div>
 
-                  {quizPre.map((pregunta, i) => (
+                  {quizPreData.preguntas.map((pregunta, i) => (
                     <div key={i} className="p-4 rounded-lg border">
                       <div className="flex items-center gap-2 mb-2">
                         <Badge variant="outline" className="text-xs">{pregunta.tipo}</Badge>
@@ -508,16 +815,16 @@ export default function GenerarClase() {
                 )}
               </div>
 
-              {quizPost && (
+              {quizPostData && (
                 <div className="space-y-4 animate-fade-in">
                   <div className="p-4 rounded-lg bg-success/10 border border-success/20">
                     <div className="flex items-center gap-2 text-success">
                       <CheckCircle2 className="w-5 h-5" />
-                      <span className="font-medium">Quiz POST generado ({quizPost.length} preguntas)</span>
+                      <span className="font-medium">Quiz POST generado ({quizPostData.preguntas.length} preguntas)</span>
                     </div>
                   </div>
 
-                  {quizPost.map((pregunta, i) => (
+                  {quizPostData.preguntas.map((pregunta, i) => (
                     <div key={i} className="p-4 rounded-lg border">
                       <div className="flex items-center gap-2 mb-2">
                         <Badge variant="outline" className="text-xs">{pregunta.tipo}</Badge>
@@ -546,8 +853,8 @@ export default function GenerarClase() {
                 {[
                   { label: 'Contexto de la clase', completed: true },
                   { label: 'Guía de clase generada', completed: !!guiaGenerada },
-                  { label: 'Quiz PRE (diagnóstico)', completed: !!quizPre },
-                  { label: 'Quiz POST (evaluación)', completed: !!quizPost }
+                  { label: 'Quiz PRE (diagnóstico)', completed: !!quizPreData },
+                  { label: 'Quiz POST (evaluación)', completed: !!quizPostData }
                 ].map((item, i) => (
                   <div key={i} className={`flex items-center gap-3 p-4 rounded-lg ${item.completed ? 'bg-success/10' : 'bg-muted'}`}>
                     {item.completed ? (
@@ -562,7 +869,7 @@ export default function GenerarClase() {
                 ))}
               </div>
 
-              {guiaGenerada && quizPre && quizPost && (
+              {guiaGenerada && quizPreData && quizPostData && (
                 <div className="p-4 rounded-lg bg-primary/5 border border-primary/20 text-center">
                   <CheckCircle2 className="w-8 h-8 text-primary mx-auto mb-2" />
                   <p className="font-medium text-primary">¡Todo listo!</p>
@@ -598,7 +905,7 @@ export default function GenerarClase() {
           <Button 
             variant="gradient"
             onClick={handleValidar}
-            disabled={!guiaGenerada || !quizPre || !quizPost}
+            disabled={!guiaGenerada || !quizPreData || !quizPostData}
           >
             <CheckCircle2 className="w-4 h-4 mr-2" />
             Validar Clase

@@ -1,0 +1,1174 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>EduThink · Modelo de Datos v2</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card: #1e293b;
+      --border: #334155;
+      --text: #f1f5f9;
+      --muted: #94a3b8;
+      --accent: #38bdf8;
+      --accent2: #a78bfa;
+      --success: #4ade80;
+      --warning: #fbbf24;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+      color: var(--text);
+      min-height: 100vh;
+      line-height: 1.6;
+    }
+    header {
+      background: linear-gradient(to right, rgba(15,23,42,0.98), rgba(30,41,59,0.95));
+      border-bottom: 1px solid var(--border);
+      padding: 1.5rem 2rem;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      backdrop-filter: blur(12px);
+    }
+    header h1 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 0.25rem;
+    }
+    header p { color: var(--muted); font-size: 0.875rem; }
+    
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 2rem;
+    }
+    
+    /* Navegación de categorías */
+    .nav-tabs {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      margin-bottom: 2rem;
+      padding: 1rem;
+      background: rgba(30,41,59,0.5);
+      border-radius: 1rem;
+      border: 1px solid var(--border);
+    }
+    .nav-tab {
+      padding: 0.6rem 1.2rem;
+      border-radius: 0.5rem;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      transition: all 0.2s;
+      font-size: 0.85rem;
+      font-weight: 500;
+    }
+    .nav-tab:hover { background: var(--card); color: var(--text); }
+    .nav-tab.active {
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      color: #0f172a;
+      border-color: transparent;
+    }
+    
+    /* Sección de categoría */
+    .category {
+      margin-bottom: 3rem;
+    }
+    .category-header {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+      padding-bottom: 1rem;
+      border-bottom: 2px solid var(--border);
+    }
+    .category-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+    }
+    .category-icon.inst { background: linear-gradient(135deg, #3b82f6, #1d4ed8); }
+    .category-icon.users { background: linear-gradient(135deg, #8b5cf6, #6d28d9); }
+    .category-icon.curr { background: linear-gradient(135deg, #10b981, #059669); }
+    .category-icon.class { background: linear-gradient(135deg, #f59e0b, #d97706); }
+    .category-icon.eval { background: linear-gradient(135deg, #ef4444, #dc2626); }
+    .category-icon.metrics { background: linear-gradient(135deg, #06b6d4, #0891b2); }
+    
+    .category-title h2 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin-bottom: 0.25rem;
+    }
+    .category-title p { color: var(--muted); font-size: 0.85rem; }
+    
+    /* Tabla card */
+    .table-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 1rem;
+      margin-bottom: 1.5rem;
+      overflow: hidden;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .table-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 30px rgba(0,0,0,0.3);
+    }
+    .table-header {
+      background: linear-gradient(to right, rgba(56,189,248,0.1), rgba(167,139,250,0.1));
+      padding: 1rem 1.25rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .table-name {
+      font-weight: 600;
+      font-size: 1.1rem;
+      color: var(--accent);
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .table-badge {
+      font-size: 0.7rem;
+      padding: 0.25rem 0.6rem;
+      border-radius: 999px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      font-weight: 600;
+    }
+    .badge-principal { background: var(--accent); color: #0f172a; }
+    .badge-relacion { background: var(--accent2); color: #0f172a; }
+    .badge-config { background: var(--success); color: #0f172a; }
+    .badge-analisis { background: var(--warning); color: #0f172a; }
+    
+    .table-function {
+      padding: 0.75rem 1.25rem;
+      background: rgba(15,23,42,0.5);
+      border-bottom: 1px solid var(--border);
+      font-size: 0.85rem;
+      color: var(--muted);
+    }
+    .table-function strong { color: var(--text); }
+    
+    /* Campos */
+    .fields-container {
+      padding: 1rem 1.25rem;
+    }
+    .fields-grid {
+      display: grid;
+      gap: 0.5rem;
+    }
+    .field-row {
+      display: grid;
+      grid-template-columns: 180px 120px 1fr;
+      gap: 1rem;
+      padding: 0.5rem 0.75rem;
+      border-radius: 0.5rem;
+      font-size: 0.85rem;
+      align-items: center;
+    }
+    .field-row:nth-child(odd) { background: rgba(15,23,42,0.3); }
+    .field-name {
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--text);
+      font-weight: 500;
+    }
+    .field-name.pk { color: var(--warning); }
+    .field-name.fk { color: var(--accent2); }
+    .field-type {
+      color: var(--muted);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8rem;
+    }
+    .field-desc { color: var(--muted); }
+    
+    /* Relaciones */
+    .relations {
+      padding: 1rem 1.25rem;
+      background: rgba(167,139,250,0.05);
+      border-top: 1px solid var(--border);
+    }
+    .relations-title {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--accent2);
+      margin-bottom: 0.75rem;
+      font-weight: 600;
+    }
+    .relation-item {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.4rem 0;
+      font-size: 0.85rem;
+    }
+    .relation-arrow {
+      color: var(--accent2);
+      font-weight: bold;
+    }
+    .relation-table {
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--accent);
+    }
+    .relation-type {
+      color: var(--muted);
+      font-size: 0.75rem;
+    }
+    
+    /* Diagrama ER simplificado */
+    .er-diagram {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 1rem;
+      padding: 1.5rem;
+      margin-bottom: 2rem;
+    }
+    .er-diagram h3 {
+      font-size: 1rem;
+      margin-bottom: 1rem;
+      color: var(--accent);
+    }
+    .er-diagram pre {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8rem;
+      line-height: 1.5;
+      color: var(--text);
+      overflow-x: auto;
+    }
+    
+    /* Responsive */
+    @media (max-width: 768px) {
+      .field-row {
+        grid-template-columns: 1fr;
+        gap: 0.25rem;
+      }
+      .field-type { order: -1; }
+    }
+    
+    /* Stats */
+    .stats-bar {
+      display: flex;
+      gap: 1.5rem;
+      flex-wrap: wrap;
+      margin-bottom: 2rem;
+      padding: 1rem 1.5rem;
+      background: var(--card);
+      border-radius: 1rem;
+      border: 1px solid var(--border);
+    }
+    .stat-item {
+      text-align: center;
+    }
+    .stat-value {
+      font-size: 2rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .stat-label { font-size: 0.8rem; color: var(--muted); }
+    
+    footer {
+      text-align: center;
+      padding: 2rem;
+      color: var(--muted);
+      font-size: 0.8rem;
+      border-top: 1px solid var(--border);
+      margin-top: 2rem;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>📊 EduThink · Modelo de Datos v2</h1>
+    <p>Estructura relacional optimizada — 23 tablas activas (sin tablas legacy/redundantes)</p>
+  </header>
+
+  <div class="container">
+    <!-- Stats -->
+    <div class="stats-bar">
+      <div class="stat-item">
+        <div class="stat-value">23</div>
+        <div class="stat-label">Tablas activas</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-value">6</div>
+        <div class="stat-label">Categorías</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-value">4</div>
+        <div class="stat-label">Roles de usuario</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-value">7</div>
+        <div class="stat-label">ENUMs</div>
+      </div>
+    </div>
+
+    <!-- Navegación -->
+    <nav class="nav-tabs">
+      <a href="#institucional" class="nav-tab active">🏛️ Institucional</a>
+      <a href="#usuarios" class="nav-tab">👥 Usuarios</a>
+      <a href="#curricula" class="nav-tab">📚 Currícula</a>
+      <a href="#clases" class="nav-tab">🎓 Clases y Guías</a>
+      <a href="#evaluaciones" class="nav-tab">📝 Evaluaciones</a>
+      <a href="#metricas" class="nav-tab">📈 Métricas</a>
+    </nav>
+
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <!-- INSTITUCIONAL -->
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <section class="category" id="institucional">
+      <div class="category-header">
+        <div class="category-icon inst">🏛️</div>
+        <div class="category-title">
+          <h2>Contexto Institucional</h2>
+          <p>Configuración base de la institución, años escolares y períodos académicos</p>
+        </div>
+      </div>
+
+      <!-- instituciones -->
+      <article class="table-card">
+        <div class="table-header">
+          <span class="table-name">instituciones</span>
+          <span class="table-badge badge-principal">Principal</span>
+        </div>
+        <div class="table-function">
+          <strong>Función:</strong> Almacena la información de cada institución educativa que usa el sistema. Es la raíz de toda la jerarquía de datos.
+        </div>
+        <div class="fields-container">
+          <div class="fields-grid">
+            <div class="field-row"><span class="field-name pk">id</span><span class="field-type">UUID</span><span class="field-desc">Identificador único (PK)</span></div>
+            <div class="field-row"><span class="field-name">nombre</span><span class="field-type">TEXT</span><span class="field-desc">Nombre de la institución</span></div>
+            <div class="field-row"><span class="field-name">logo</span><span class="field-type">TEXT</span><span class="field-desc">URL del logo</span></div>
+            <div class="field-row"><span class="field-name">configuracion</span><span class="field-type">JSONB</span><span class="field-desc">Configuración adicional</span></div>
+            <div class="field-row"><span class="field-name">created_at</span><span class="field-type">TIMESTAMPTZ</span><span class="field-desc">Fecha de creación</span></div>
+          </div>
+        </div>
+        <div class="relations">
+          <div class="relations-title">Relaciones</div>
+          <div class="relation-item"><span class="relation-arrow">1 ──&lt;</span><span class="relation-table">anios_escolares</span><span class="relation-type">(1:N)</span></div>
+          <div class="relation-item"><span class="relation-arrow">1 ──&lt;</span><span class="relation-table">plan_anual</span><span class="relation-type">(1:N)</span></div>
+          <div class="relation-item"><span class="relation-arrow">1 ──&lt;</span><span class="relation-table">grupos</span><span class="relation-type">(1:N)</span></div>
+          <div class="relation-item"><span class="relation-arrow">1 ──&lt;</span><span class="relation-table">profiles</span><span class="relation-type">(1:N)</span></div>
+          <div class="relation-item"><span class="relation-arrow">1 ── 1</span><span class="relation-table">configuracion_alertas</span><span class="relation-type">(1:1)</span></div>
+        </div>
+      </article>
+
+      <!-- anios_escolares -->
+      <article class="table-card">
+        <div class="table-header">
+          <span class="table-name">anios_escolares</span>
+          <span class="table-badge badge-config">Config</span>
+        </div>
+        <div class="table-function">
+          <strong>Función:</strong> Define los años escolares de una institución (ej: 2024-2025). Solo uno puede estar activo a la vez.
+        </div>
+        <div class="fields-container">
+          <div class="fields-grid">
+            <div class="field-row"><span class="field-name pk">id</span><span class="field-type">UUID</span><span class="field-desc">Identificador único (PK)</span></div>
+            <div class="field-row"><span class="field-name fk">id_institucion</span><span class="field-type">UUID</span><span class="field-desc">FK → instituciones</span></div>
+            <div class="field-row"><span class="field-name">anio_escolar</span><span class="field-type">TEXT</span><span class="field-desc">Nombre del año (ej: "2024-2025")</span></div>
+            <div class="field-row"><span class="field-name">fecha_inicio</span><span class="field-type">DATE</span><span class="field-desc">Inicio del año escolar</span></div>
+            <div class="field-row"><span class="field-name">fecha_fin</span><span class="field-type">DATE</span><span class="field-desc">Fin del año escolar</span></div>
+            <div class="field-row"><span class="field-name">activo</span><span class="field-type">BOOLEAN</span><span class="field-desc">¿Es el año activo?</span></div>
+            <div class="field-row"><span class="field-name">created_at</span><span class="field-type">TIMESTAMPTZ</span><span class="field-desc">Fecha de creación</span></div>
+          </div>
+        </div>
+        <div class="relations">
+          <div class="relations-title">Relaciones</div>
+          <div class="relation-item"><span class="relation-arrow">&gt;── 1</span><span class="relation-table">instituciones</span><span class="relation-type">(N:1)</span></div>
+          <div class="relation-item"><span class="relation-arrow">1 ──&lt;</span><span class="relation-table">periodos_academicos</span><span class="relation-type">(1:N)</span></div>
+        </div>
+      </article>
+
+      <!-- periodos_academicos -->
+      <article class="table-card">
+        <div class="table-header">
+          <span class="table-name">periodos_academicos</span>
+          <span class="table-badge badge-config">Config</span>
+        </div>
+        <div class="table-function">
+          <strong>Función:</strong> Define los períodos (bimestres/trimestres) dentro de un año escolar. Organiza la currícula temporalmente.
+        </div>
+        <div class="fields-container">
+          <div class="fields-grid">
+            <div class="field-row"><span class="field-name pk">id</span><span class="field-type">UUID</span><span class="field-desc">Identificador único (PK)</span></div>
+            <div class="field-row"><span class="field-name fk">id_anio_escolar</span><span class="field-type">UUID</span><span class="field-desc">FK → anios_escolares</span></div>
+            <div class="field-row"><span class="field-name">nombre</span><span class="field-type">TEXT</span><span class="field-desc">Nombre (ej: "Bimestre 1")</span></div>
+            <div class="field-row"><span class="field-name">numero</span><span class="field-type">INTEGER</span><span class="field-desc">Número del período (1, 2, 3...)</span></div>
+            <div class="field-row"><span class="field-name">fecha_inicio</span><span class="field-type">DATE</span><span class="field-desc">Inicio del período</span></div>
+            <div class="field-row"><span class="field-name">fecha_fin</span><span class="field-type">DATE</span><span class="field-desc">Fin del período</span></div>
+            <div class="field-row"><span class="field-name">activo</span><span class="field-type">BOOLEAN</span><span class="field-desc">¿Es el período activo?</span></div>
+          </div>
+        </div>
+        <div class="relations">
+          <div class="relations-title">Relaciones</div>
+          <div class="relation-item"><span class="relation-arrow">&gt;── 1</span><span class="relation-table">anios_escolares</span><span class="relation-type">(N:1)</span></div>
+        </div>
+      </article>
+
+      <!-- configuracion_alertas -->
+      <article class="table-card">
+        <div class="table-header">
+          <span class="table-name">configuracion_alertas</span>
+          <span class="table-badge badge-config">Config</span>
+        </div>
+        <div class="table-function">
+          <strong>Función:</strong> Configura umbrales de alertas (días) para clasificar clases como urgentes, próximas, etc. en dashboards.
+        </div>
+        <div class="fields-container">
+          <div class="fields-grid">
+            <div class="field-row"><span class="field-name pk">id</span><span class="field-type">UUID</span><span class="field-desc">Identificador único (PK)</span></div>
+            <div class="field-row"><span class="field-name fk">id_institucion</span><span class="field-type">UUID</span><span class="field-desc">FK → instituciones (UNIQUE)</span></div>
+            <div class="field-row"><span class="field-name">dias_urgente</span><span class="field-type">INTEGER</span><span class="field-desc">Días para marcar como urgente</span></div>
+            <div class="field-row"><span class="field-name">dias_proxima</span><span class="field-type">INTEGER</span><span class="field-desc">Días para marcar como próxima</span></div>
+            <div class="field-row"><span class="field-name">dias_programada</span><span class="field-type">INTEGER</span><span class="field-desc">Días para marcar como programada</span></div>
+            <div class="field-row"><span class="field-name">dias_lejana</span><span class="field-type">INTEGER</span><span class="field-desc">Días para marcar como lejana</span></div>
+            <div class="field-row"><span class="field-name">rango_dias_clases_pendientes</span><span class="field-type">INTEGER</span><span class="field-desc">Rango para mostrar pendientes</span></div>
+          </div>
+        </div>
+        <div class="relations">
+          <div class="relations-title">Relaciones</div>
+          <div class="relation-item"><span class="relation-arrow">1 ── 1</span><span class="relation-table">instituciones</span><span class="relation-type">(1:1)</span></div>
+        </div>
+      </article>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <!-- USUARIOS -->
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <section class="category" id="usuarios">
+      <div class="category-header">
+        <div class="category-icon users">👥</div>
+        <div class="category-title">
+          <h2>Usuarios y Roles</h2>
+          <p>Gestión de usuarios, perfiles y roles (admin, profesor, alumno, apoderado)</p>
+        </div>
+      </div>
+
+      <!-- profiles -->
+      <article class="table-card">
+        <div class="table-header">
+          <span class="table-name">profiles</span>
+          <span class="table-badge badge-principal">Principal</span>
+        </div>
+        <div class="table-function">
+          <strong>Función:</strong> Almacena información adicional de cada usuario autenticado (nombre, apellido, avatar, institución).
+        </div>
+        <div class="fields-container">
+          <div class="fields-grid">
+            <div class="field-row"><span class="field-name pk">id</span><span class="field-type">UUID</span><span class="field-desc">Identificador único (PK)</span></div>
+            <div class="field-row"><span class="field-name fk">user_id</span><span class="field-type">UUID</span><span class="field-desc">FK → auth.users (UNIQUE)</span></div>
+            <div class="field-row"><span class="field-name">email</span><span class="field-type">TEXT</span><span class="field-desc">Correo electrónico</span></div>
+            <div class="field-row"><span class="field-name">nombre</span><span class="field-type">TEXT</span><span class="field-desc">Nombre del usuario</span></div>
+            <div class="field-row"><span class="field-name">apellido</span><span class="field-type">TEXT</span><span class="field-desc">Apellido del usuario</span></div>
+            <div class="field-row"><span class="field-name">avatar_url</span><span class="field-type">TEXT</span><span class="field-desc">URL del avatar</span></div>
+            <div class="field-row"><span class="field-name fk">id_institucion</span><span class="field-type">UUID</span><span class="field-desc">FK → instituciones</span></div>
+          </div>
+        </div>
+        <div class="relations">
+          <div class="relations-title">Relaciones</div>
+          <div class="relation-item"><span class="relation-arrow">1 ── 1</span><span class="relation-table">auth.users</span><span class="relation-type">(1:1)</span></div>
+          <div class="relation-item"><span class="relation-arrow">&gt;── 1</span><span class="relation-table">instituciones</span><span class="relation-type">(N:1)</span></div>
+        </div>
+      </article>
+
+      <!-- user_roles -->
+      <article class="table-card">
+        <div class="table-header">
+          <span class="table-name">user_roles</span>
+          <span class="table-badge badge-relacion">Relación</span>
+        </div>
+        <div class="table-function">
+          <strong>Función:</strong> Define los roles de cada usuario. Un usuario puede tener múltiples roles. Controla acceso a rutas y funciones.
+        </div>
+        <div class="fields-container">
+          <div class="fields-grid">
+            <div class="field-row"><span class="field-name pk">id</span><span class="field-type">UUID</span><span class="field-desc">Identificador único (PK)</span></div>
+            <div class="field-row"><span class="field-name fk">user_id</span><span class="field-type">UUID</span><span class="field-desc">FK → auth.users</span></div>
+            <div class="field-row"><span class="field-name">role</span><span class="field-type">app_role</span><span class="field-desc">Rol: admin/profesor/alumno/apoderado</span></div>
+            <div class="field-row"><span class="field-name fk">id_institucion</span><span class="field-type">UUID</span><span class="field-desc">FK → instituciones</span></div>
+          </div>
+        </div>
+        <div class="relations">
+          <div class="relations-title">Relaciones</div>
+          <div class="relation-item"><span class="relation-arrow">&gt;── 1</span><span class="relation-table">auth.users</span><span class="relation-type">(N:1)</span></div>
+          <div class="relation-item"><span class="relation-arrow">&gt;── 1</span><span class="relation-table">instituciones</span><span class="relation-type">(N:1)</span></div>
+        </div>
+      </article>
+
+      <!-- profesores -->
+      <article class="table-card">
+        <div class="table-header">
+          <span class="table-name">profesores</span>
+          <span class="table-badge badge-principal">Principal</span>
+        </div>
+        <div class="table-function">
+          <strong>Función:</strong> Información específica de profesores. Se crea cuando un usuario tiene rol "profesor". Vincula con clases y guías.
+        </div>
+        <div class="fields-container">
+          <div class="fields-grid">
+            <div class="field-row"><span class="field-name pk">id</span><span class="field-type">UUID</span><span class="field-desc">Identificador único (PK)</span></div>
+            <div class="field-row"><span class="field-name fk">user_id</span><span class="field-type">UUID</span><span class="field-desc">FK → auth.users (UNIQUE)</span></div>
+            <div class="field-row"><span class="field-name">especialidad</span><span class="field-type">TEXT</span><span class="field-desc">Especialidad del profesor</span></div>
+            <div class="field-row"><span class="field-name">activo</span><span class="field-type">BOOLEAN</span><span class="field-desc">¿Está activo?</span></div>
+          </div>
+        </div>
+        <div class="relations">
+          <div class="relations-title">Relaciones</div>
+          <div class="relation-item"><span class="relation-arrow">1 ── 1</span><span class="relation-table">auth.users</span><span class="relation-type">(1:1)</span></div>
+          <div class="relation-item"><span class="relation-arrow">1 ──&lt;</span><span class="relation-table">asignaciones_profesor</span><span class="relation-type">(1:N)</span></div>
+          <div class="relation-item"><span class="relation-arrow">1 ──&lt;</span><span class="relation-table">guias_tema</span><span class="relation-type">(1:N)</span></div>
+          <div class="relation-item"><span class="relation-arrow">1 ──&lt;</span><span class="relation-table">clases</span><span class="relation-type">(1:N)</span></div>
+        </div>
+      </article>
+
+      <!-- alumnos -->
+      <article class="table-card">
+        <div class="table-header">
+          <span class="table-name">alumnos</span>
+          <span class="table-badge badge-principal">Principal</span>
+        </div>
+        <div class="table-function">
+          <strong>Función:</strong> Información específica de alumnos. Se crea cuando un usuario tiene rol "alumno". Vincula con grupos y respuestas.
+        </div>
+        <div class="fields-container">
+          <div class="fields-grid">
+            <div class="field-row"><span class="field-name pk">id</span><span class="field-type">UUID</span><span class="field-desc">Identificador único (PK)</span></div>
+            <div class="field-row"><span class="field-name fk">user_id</span><span class="field-type">UUID</span><span class="field-desc">FK → auth.users (UNIQUE)</span></div>
+            <div class="field-row"><span class="field-name">grado</span><span class="field-type">TEXT</span><span class="field-desc">Grado académico</span></div>
+            <div class="field-row"><span class="field-name">seccion</span><span class="field-type">TEXT</span><span class="field-desc">Sección</span></div>
+            <div class="field-row"><span class="field-name">edad</span><span class="field-type">INTEGER</span><span class="field-desc">Edad del alumno</span></div>
+            <div class="field-row"><span class="field-name">caracteristicas</span><span class="field-type">JSONB</span><span class="field-desc">Características adicionales</span></div>
+            <div class="field-row"><span class="field-name">activo</span><span class="field-type">BOOLEAN</span><span class="field-desc">¿Está activo?</span></div>
+          </div>
+        </div>
+        <div class="relations">
+          <div class="relations-title">Relaciones</div>
+          <div class="relation-item"><span class="relation-arrow">1 ── 1</span><span class="relation-table">auth.users</span><span class="relation-type">(1:1)</span></div>
+          <div class="relation-item"><span class="relation-arrow">1 ──&lt;</span><span class="relation-table">alumnos_grupo</span><span class="relation-type">(1:N)</span></div>
+          <div class="relation-item"><span class="relation-arrow">1 ──&lt;</span><span class="relation-table">respuestas_alumno</span><span class="relation-type">(1:N)</span></div>
+          <div class="relation-item"><span class="relation-arrow">1 ──&lt;</span><span class="relation-table">apoderados</span><span class="relation-type">(1:N)</span></div>
+        </div>
+      </article>
+
+      <!-- apoderados -->
+      <article class="table-card">
+        <div class="table-header">
+          <span class="table-name">apoderados</span>
+          <span class="table-badge badge-principal">Principal</span>
+        </div>
+        <div class="table-function">
+          <strong>Función:</strong> Relaciona apoderados (padres/tutores) con alumnos. Permite que un apoderado vea el progreso de su hijo.
+        </div>
+        <div class="fields-container">
+          <div class="fields-grid">
+            <div class="field-row"><span class="field-name pk">id</span><span class="field-type">UUID</span><span class="field-desc">Identificador único (PK)</span></div>
+            <div class="field-row"><span class="field-name fk">user_id</span><span class="field-type">UUID</span><span class="field-desc">FK → auth.users (UNIQUE)</span></div>
+            <div class="field-row"><span class="field-name fk">id_alumno</span><span class="field-type">UUID</span><span class="field-desc">FK → alumnos</span></div>
+            <div class="field-row"><span class="field-name">relacion</span><span class="field-type">relacion_apoderado</span><span class="field-desc">Tipo: padre/madre/tutor</span></div>
+          </div>
+        </div>
+        <div class="relations">
+          <div class="relations-title">Relaciones</div>
+          <div class="relation-item"><span class="relation-arrow">1 ── 1</span><span class="relation-table">auth.users</span><span class="relation-type">(1:1)</span></div>
+          <div class="relation-item"><span class="relation-arrow">&gt;── 1</span><span class="relation-table">alumnos</span><span class="relation-type">(N:1)</span></div>
+        </div>
+      </article>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <!-- CURRÍCULA -->
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <section class="category" id="curricula">
+      <div class="category-header">
+        <div class="category-icon curr">📚</div>
+        <div class="category-title">
+          <h2>Currícula y Planificación</h2>
+          <p>Plan anual, materias, temas y grupos académicos</p>
+        </div>
+      </div>
+
+      <!-- plan_anual -->
+      <article class="table-card">
+        <div class="table-header">
+          <span class="table-name">plan_anual</span>
+          <span class="table-badge badge-principal">Principal</span>
+        </div>
+        <div class="table-function">
+          <strong>Función:</strong> Define el plan académico anual por grado. Contiene las materias que se impartirán durante el año escolar.
+        </div>
+        <div class="fields-container">
+          <div class="fields-grid">
+            <div class="field-row"><span class="field-name pk">id</span><span class="field-type">UUID</span><span class="field-desc">Identificador único (PK)</span></div>
+            <div class="field-row"><span class="field-name fk">id_institucion</span><span class="field-type">UUID</span><span class="field-desc">FK → instituciones</span></div>
+            <div class="field-row"><span class="field-name">anio_escolar</span><span class="field-type">TEXT</span><span class="field-desc">Año escolar (ej: "2024-2025")</span></div>
+            <div class="field-row"><span class="field-name">grado</span><span class="field-type">TEXT</span><span class="field-desc">Grado académico (ej: "5to")</span></div>
+            <div class="field-row"><span class="field-name">estado</span><span class="field-type">TEXT</span><span class="field-desc">Estado: activo/inactivo</span></div>
+            <div class="field-row"><span class="field-name">plan_base</span><span class="field-type">BOOLEAN</span><span class="field-desc">¿Es plan base?</span></div>
+          </div>
+        </div>
+        <div class="relations">
+          <div class="relations-title">Relaciones</div>
+          <div class="relation-item"><span class="relation-arrow">&gt;── 1</span><span class="relation-table">instituciones</span><span class="relation-type">(N:1)</span></div>
+          <div class="relation-item"><span class="relation-arrow">1 ──&lt;</span><span class="relation-table">materias</span><span class="relation-type">(1:N)</span></div>
+        </div>
+      </article>
+
+      <!-- materias -->
+      <article class="table-card">
+        <div class="table-header">
+          <span class="table-name">materias</span>
+          <span class="table-badge badge-principal">Principal</span>
+        </div>
+        <div class="table-function">
+          <strong>Función:</strong> Representa las asignaturas de un plan anual (ej: Matemáticas, Comunicación). Contiene los temas a enseñar.
+        </div>
+        <div class="fields-container">
+          <div class="fields-grid">
+            <div class="field-row"><span class="field-name pk">id</span><span class="field-type">UUID</span><span class="field-desc">Identificador único (PK)</span></div>
+            <div class="field-row"><span class="field-name fk">id_plan_anual</span><span class="field-type">UUID</span><span class="field-desc">FK → plan_anual</span></div>
+            <div class="field-row"><span class="field-name">nombre</span><span class="field-type">TEXT</span><span class="field-desc">Nombre de la materia</span></div>
+            <div class="field-row"><span class="field-name">descripcion</span><span class="field-type">TEXT</span><span class="field-desc">Descripción detallada</span></div>
+            <div class="field-row"><span class="field-name">horas_semanales</span><span class="field-type">INTEGER</span><span class="field-desc">Horas semanales asignadas</span></div>
+            <div class="field-row"><span class="field-name">orden</span><span class="field-type">INTEGER</span><span class="field-desc">Orden de presentación</span></div>
+          </div>
+        </div>
+        <div class="relations">
+          <div class="relations-title">Relaciones</div>
+          <div class="relation-item"><span class="relation-arrow">&gt;── 1</span><span class="relation-table">plan_anual</span><span class="relation-type">(N:1)</span></div>
+          <div class="relation-item"><span class="relation-arrow">1 ──&lt;</span><span class="relation-table">temas</span><span class="relation-type">(1:N)</span></div>
+          <div class="relation-item"><span class="relation-arrow">1 ──&lt;</span><span class="relation-table">asignaciones_profesor</span><span class="relation-type">(1:N)</span></div>
+        </div>
+      </article>
+
+      <!-- temas -->
+      <article class="table-card">
+        <div class="table-header">
+          <span class="table-name">temas</span>
+          <span class="table-badge badge-principal">Principal</span>
+        </div>
+        <div class="table-function">
+          <strong>Función:</strong> Unidades temáticas dentro de una materia. Cada tema puede tener múltiples sesiones de clase y una guía maestra.
+        </div>
+        <div class="fields-container">
+          <div class="fields-grid">
+            <div class="field-row"><span class="field-name pk">id</span><span class="field-type">UUID</span><span class="field-desc">Identificador único (PK)</span></div>
+            <div class="field-row"><span class="field-name fk">id_materia</span><span class="field-type">UUID</span><span class="field-desc">FK → materias</span></div>
+            <div class="field-row"><span class="field-name">nombre</span><span class="field-type">TEXT</span><span class="field-desc">Nombre del tema</span></div>
+            <div class="field-row"><span class="field-name">descripcion</span><span class="field-type">TEXT</span><span class="field-desc">Descripción detallada</span></div>
+            <div class="field-row"><span class="field-name">objetivos</span><span class="field-type">TEXT</span><span class="field-desc">Objetivos de aprendizaje</span></div>
+            <div class="field-row"><span class="field-name">duracion_estimada</span><span class="field-type">INTEGER</span><span class="field-desc">Duración en horas/sesiones</span></div>
+            <div class="field-row"><span class="field-name">bimestre</span><span class="field-type">INTEGER</span><span class="field-desc">Bimestre (1-4)</span></div>
+            <div class="field-row"><span class="field-name">orden</span><span class="field-type">INTEGER</span><span class="field-desc">Orden dentro de la materia</span></div>
+            <div class="field-row"><span class="field-name fk">tema_base_id</span><span class="field-type">UUID</span><span class="field-desc">FK → temas (auto-ref)</span></div>
+          </div>
+        </div>
+        <div class="relations">
+          <div class="relations-title">Relaciones</div>
+          <div class="relation-item"><span class="relation-arrow">&gt;── 1</span><span class="relation-table">materias</span><span class="relation-type">(N:1)</span></div>
+          <div class="relation-item"><span class="relation-arrow">1 ──&lt;</span><span class="relation-table">guias_tema</span><span class="relation-type">(1:N)</span></div>
+          <div class="relation-item"><span class="relation-arrow">1 ──&lt;</span><span class="relation-table">clases</span><span class="relation-type">(1:N)</span></div>
+        </div>
+      </article>
+
+      <!-- grupos -->
+      <article class="table-card">
+        <div class="table-header">
+          <span class="table-name">grupos</span>
+          <span class="table-badge badge-principal">Principal</span>
+        </div>
+        <div class="table-function">
+          <strong>Función:</strong> Representa los salones de clase (ej: "5to A"). Agrupa alumnos y se asigna a profesores por materia.
+        </div>
+        <div class="fields-container">
+          <div class="fields-grid">
+            <div class="field-row"><span class="field-name pk">id</span><span class="field-type">UUID</span><span class="field-desc">Identificador único (PK)</span></div>
+            <div class="field-row"><span class="field-name fk">id_institucion</span><span class="field-type">UUID</span><span class="field-desc">FK → instituciones</span></div>
+            <div class="field-row"><span class="field-name">nombre</span><span class="field-type">TEXT</span><span class="field-desc">Nombre del grupo (ej: "5to A")</span></div>
+            <div class="field-row"><span class="field-name">grado</span><span class="field-type">TEXT</span><span class="field-desc">Grado académico</span></div>
+            <div class="field-row"><span class="field-name">seccion</span><span class="field-type">TEXT</span><span class="field-desc">Sección (A, B, C...)</span></div>
+            <div class="field-row"><span class="field-name">cantidad_alumnos</span><span class="field-type">INTEGER</span><span class="field-desc">Número de alumnos</span></div>
+            <div class="field-row"><span class="field-name">perfil</span><span class="field-type">JSONB</span><span class="field-desc">Perfil/contexto del grupo</span></div>
+          </div>
+        </div>
+        <div class="relations">
+          <div class="relations-title">Relaciones</div>
+          <div class="relation-item"><span class="relation-arrow">&gt;── 1</span><span class="relation-table">instituciones</span><span class="relation-type">(N:1)</span></div>
+          <div class="relation-item"><span class="relation-arrow">1 ──&lt;</span><span class="relation-table">alumnos_grupo</span><span class="relation-type">(1:N)</span></div>
+          <div class="relation-item"><span class="relation-arrow">1 ──&lt;</span><span class="relation-table">asignaciones_profesor</span><span class="relation-type">(1:N)</span></div>
+          <div class="relation-item"><span class="relation-arrow">1 ──&lt;</span><span class="relation-table">clases</span><span class="relation-type">(1:N)</span></div>
+        </div>
+      </article>
+
+      <!-- asignaciones_profesor -->
+      <article class="table-card">
+        <div class="table-header">
+          <span class="table-name">asignaciones_profesor</span>
+          <span class="table-badge badge-relacion">Relación N:M</span>
+        </div>
+        <div class="table-function">
+          <strong>Función:</strong> Tabla puente que relaciona profesores con materias y grupos para un año escolar. Define "quién enseña qué a quién".
+        </div>
+        <div class="fields-container">
+          <div class="fields-grid">
+            <div class="field-row"><span class="field-name pk">id</span><span class="field-type">UUID</span><span class="field-desc">Identificador único (PK)</span></div>
+            <div class="field-row"><span class="field-name fk">id_profesor</span><span class="field-type">UUID</span><span class="field-desc">FK → profesores</span></div>
+            <div class="field-row"><span class="field-name fk">id_materia</span><span class="field-type">UUID</span><span class="field-desc">FK → materias</span></div>
+            <div class="field-row"><span class="field-name fk">id_grupo</span><span class="field-type">UUID</span><span class="field-desc">FK → grupos</span></div>
+            <div class="field-row"><span class="field-name">anio_escolar</span><span class="field-type">TEXT</span><span class="field-desc">Año escolar de la asignación</span></div>
+          </div>
+        </div>
+        <div class="relations">
+          <div class="relations-title">Relaciones</div>
+          <div class="relation-item"><span class="relation-arrow">&gt;── 1</span><span class="relation-table">profesores</span><span class="relation-type">(N:1)</span></div>
+          <div class="relation-item"><span class="relation-arrow">&gt;── 1</span><span class="relation-table">materias</span><span class="relation-type">(N:1)</span></div>
+          <div class="relation-item"><span class="relation-arrow">&gt;── 1</span><span class="relation-table">grupos</span><span class="relation-type">(N:1)</span></div>
+        </div>
+      </article>
+
+      <!-- alumnos_grupo -->
+      <article class="table-card">
+        <div class="table-header">
+          <span class="table-name">alumnos_grupo</span>
+          <span class="table-badge badge-relacion">Relación N:M</span>
+        </div>
+        <div class="table-function">
+          <strong>Función:</strong> Tabla puente que relaciona alumnos con grupos para un año escolar. Un alumno puede cambiar de grupo entre años.
+        </div>
+        <div class="fields-container">
+          <div class="fields-grid">
+            <div class="field-row"><span class="field-name pk">id</span><span class="field-type">UUID</span><span class="field-desc">Identificador único (PK)</span></div>
+            <div class="field-row"><span class="field-name fk">id_alumno</span><span class="field-type">UUID</span><span class="field-desc">FK → alumnos</span></div>
+            <div class="field-row"><span class="field-name fk">id_grupo</span><span class="field-type">UUID</span><span class="field-desc">FK → grupos</span></div>
+            <div class="field-row"><span class="field-name">anio_escolar</span><span class="field-type">TEXT</span><span class="field-desc">Año escolar</span></div>
+          </div>
+        </div>
+        <div class="relations">
+          <div class="relations-title">Relaciones</div>
+          <div class="relation-item"><span class="relation-arrow">&gt;── 1</span><span class="relation-table">alumnos</span><span class="relation-type">(N:1)</span></div>
+          <div class="relation-item"><span class="relation-arrow">&gt;── 1</span><span class="relation-table">grupos</span><span class="relation-type">(N:1)</span></div>
+        </div>
+      </article>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <!-- CLASES Y GUÍAS -->
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <section class="category" id="clases">
+      <div class="category-header">
+        <div class="category-icon class">🎓</div>
+        <div class="category-title">
+          <h2>Clases y Guías</h2>
+          <p>Sesiones de clase, guías maestras por tema y versiones de guía por clase</p>
+        </div>
+      </div>
+
+      <!-- guias_tema -->
+      <article class="table-card">
+        <div class="table-header">
+          <span class="table-name">guias_tema</span>
+          <span class="table-badge badge-principal">Principal</span>
+        </div>
+        <div class="table-function">
+          <strong>Función:</strong> Guía maestra generada por IA para un tema. Define estructura general de sesiones, objetivos y recursos. Se crea una vez por tema.
+        </div>
+        <div class="fields-container">
+          <div class="fields-grid">
+            <div class="field-row"><span class="field-name pk">id</span><span class="field-type">UUID</span><span class="field-desc">Identificador único (PK)</span></div>
+            <div class="field-row"><span class="field-name fk">id_tema</span><span class="field-type">UUID</span><span class="field-desc">FK → temas</span></div>
+            <div class="field-row"><span class="field-name fk">id_profesor</span><span class="field-type">UUID</span><span class="field-desc">FK → profesores</span></div>
+            <div class="field-row"><span class="field-name">contenido</span><span class="field-type">JSONB</span><span class="field-desc">Contenido completo (objetivos, competencias)</span></div>
+            <div class="field-row"><span class="field-name">estructura_sesiones</span><span class="field-type">JSONB</span><span class="field-desc">Estructura de cada sesión</span></div>
+            <div class="field-row"><span class="field-name">total_sesiones</span><span class="field-type">INTEGER</span><span class="field-desc">Número total de sesiones</span></div>
+            <div class="field-row"><span class="field-name">objetivos_generales</span><span class="field-type">TEXT</span><span class="field-desc">Objetivos generales</span></div>
+            <div class="field-row"><span class="field-name">metodologias</span><span class="field-type">TEXT[]</span><span class="field-desc">Metodologías a usar</span></div>
+            <div class="field-row"><span class="field-name">contexto_grupo</span><span class="field-type">TEXT</span><span class="field-desc">Contexto del grupo</span></div>
+          </div>
+        </div>
+        <div class="relations">
+          <div class="relations-title">Relaciones</div>
+          <div class="relation-item"><span class="relation-arrow">&gt;── 1</span><span class="relation-table">temas</span><span class="relation-type">(N:1)</span></div>
+          <div class="relation-item"><span class="relation-arrow">&gt;── 1</span><span class="relation-table">profesores</span><span class="relation-type">(N:1)</span></div>
+          <div class="relation-item"><span class="relation-arrow">1 ──&lt;</span><span class="relation-table">clases</span><span class="relation-type">(1:N)</span></div>
+        </div>
+      </article>
+
+      <!-- clases -->
+      <article class="table-card">
+        <div class="table-header">
+          <span class="table-name">clases</span>
+          <span class="table-badge badge-principal">Principal</span>
+        </div>
+        <div class="table-function">
+          <strong>Función:</strong> Sesiones de clase programadas/ejecutadas. Núcleo del sistema: une tema + grupo + profesor. Tiene estados que controlan el flujo completo.
+        </div>
+        <div class="fields-container">
+          <div class="fields-grid">
+            <div class="field-row"><span class="field-name pk">id</span><span class="field-type">UUID</span><span class="field-desc">Identificador único (PK)</span></div>
+            <div class="field-row"><span class="field-name fk">id_tema</span><span class="field-type">UUID</span><span class="field-desc">FK → temas</span></div>
+            <div class="field-row"><span class="field-name fk">id_grupo</span><span class="field-type">UUID</span><span class="field-desc">FK → grupos</span></div>
+            <div class="field-row"><span class="field-name fk">id_profesor</span><span class="field-type">UUID</span><span class="field-desc">FK → profesores</span></div>
+            <div class="field-row"><span class="field-name fk">id_guia_tema</span><span class="field-type">UUID</span><span class="field-desc">FK → guias_tema</span></div>
+            <div class="field-row"><span class="field-name fk">id_guia_version_actual</span><span class="field-type">UUID</span><span class="field-desc">FK → guias_clase_versiones</span></div>
+            <div class="field-row"><span class="field-name">numero_sesion</span><span class="field-type">INTEGER</span><span class="field-desc">Número de sesión (1, 2, 3...)</span></div>
+            <div class="field-row"><span class="field-name">estado</span><span class="field-type">estado_clase</span><span class="field-desc">Estado actual (ver ENUMs)</span></div>
+            <div class="field-row"><span class="field-name">fecha_programada</span><span class="field-type">DATE</span><span class="field-desc">Fecha programada</span></div>
+            <div class="field-row"><span class="field-name">fecha_ejecutada</span><span class="field-type">DATE</span><span class="field-desc">Fecha de ejecución real</span></div>
+            <div class="field-row"><span class="field-name">duracion_minutos</span><span class="field-type">INTEGER</span><span class="field-desc">Duración en minutos</span></div>
+            <div class="field-row"><span class="field-name">contexto</span><span class="field-type">TEXT</span><span class="field-desc">Contexto específico</span></div>
+            <div class="field-row"><span class="field-name">metodologia</span><span class="field-type">TEXT</span><span class="field-desc">Metodología a usar</span></div>
+            <div class="field-row"><span class="field-name">observaciones</span><span class="field-type">TEXT</span><span class="field-desc">Observaciones adicionales</span></div>
+          </div>
+        </div>
+        <div class="relations">
+          <div class="relations-title">Relaciones</div>
+          <div class="relation-item"><span class="relation-arrow">&gt;── 1</span><span class="relation-table">temas</span><span class="relation-type">(N:1)</span></div>
+          <div class="relation-item"><span class="relation-arrow">&gt;── 1</span><span class="relation-table">grupos</span><span class="relation-type">(N:1)</span></div>
+          <div class="relation-item"><span class="relation-arrow">&gt;── 1</span><span class="relation-table">profesores</span><span class="relation-type">(N:1)</span></div>
+          <div class="relation-item"><span class="relation-arrow">&gt;── 1</span><span class="relation-table">guias_tema</span><span class="relation-type">(N:1)</span></div>
+          <div class="relation-item"><span class="relation-arrow">1 ──&lt;</span><span class="relation-table">guias_clase_versiones</span><span class="relation-type">(1:N)</span></div>
+          <div class="relation-item"><span class="relation-arrow">1 ──&lt;</span><span class="relation-table">quizzes</span><span class="relation-type">(1:N)</span></div>
+          <div class="relation-item"><span class="relation-arrow">1 ──&lt;</span><span class="relation-table">metricas_clase</span><span class="relation-type">(1:N)</span></div>
+          <div class="relation-item"><span class="relation-arrow">1 ──&lt;</span><span class="relation-table">recomendaciones</span><span class="relation-type">(1:N)</span></div>
+          <div class="relation-item"><span class="relation-arrow">1 ──&lt;</span><span class="relation-table">retroalimentaciones</span><span class="relation-type">(1:N)</span></div>
+        </div>
+      </article>
+
+      <!-- guias_clase_versiones -->
+      <article class="table-card">
+        <div class="table-header">
+          <span class="table-name">guias_clase_versiones</span>
+          <span class="table-badge badge-principal">Principal</span>
+        </div>
+        <div class="table-function">
+          <strong>Función:</strong> Versiones de guía específica para cada sesión de clase. Permite iterar y mejorar sin perder historial. Generadas por IA.
+        </div>
+        <div class="fields-container">
+          <div class="fields-grid">
+            <div class="field-row"><span class="field-name pk">id</span><span class="field-type">UUID</span><span class="field-desc">Identificador único (PK)</span></div>
+            <div class="field-row"><span class="field-name fk">id_clase</span><span class="field-type">UUID</span><span class="field-desc">FK → clases</span></div>
+            <div class="field-row"><span class="field-name">version_numero</span><span class="field-type">INTEGER</span><span class="field-desc">Número de versión (1, 2, 3...)</span></div>
+            <div class="field-row"><span class="field-name">contenido</span><span class="field-type">JSONB</span><span class="field-desc">Contenido completo de la guía</span></div>
+            <div class="field-row"><span class="field-name">objetivos</span><span class="field-type">TEXT</span><span class="field-desc">Objetivos específicos</span></div>
+            <div class="field-row"><span class="field-name">estructura</span><span class="field-type">JSONB</span><span class="field-desc">Estructura detallada (actividades, tiempos)</span></div>
+            <div class="field-row"><span class="field-name">preguntas_socraticas</span><span class="field-type">JSONB</span><span class="field-desc">Preguntas para pensamiento crítico</span></div>
+            <div class="field-row"><span class="field-name">estado</span><span class="field-type">TEXT</span><span class="field-desc">Estado: borrador/aprobada/final</span></div>
+            <div class="field-row"><span class="field-name">es_version_final</span><span class="field-type">BOOLEAN</span><span class="field-desc">¿Es la versión final?</span></div>
+            <div class="field-row"><span class="field-name">generada_ia</span><span class="field-type">BOOLEAN</span><span class="field-desc">¿Generada por IA?</span></div>
+            <div class="field-row"><span class="field-name fk">aprobada_por</span><span class="field-type">UUID</span><span class="field-desc">FK → profesores</span></div>
+            <div class="field-row"><span class="field-name">fecha_aprobacion</span><span class="field-type">TIMESTAMPTZ</span><span class="field-desc">Fecha de aprobación</span></div>
+          </div>
+        </div>
+        <div class="relations">
+          <div class="relations-title">Relaciones</div>
+          <div class="relation-item"><span class="relation-arrow">&gt;── 1</span><span class="relation-table">clases</span><span class="relation-type">(N:1)</span></div>
+          <div class="relation-item"><span class="relation-arrow">&gt;── 1</span><span class="relation-table">profesores</span><span class="relation-type">(N:1) como aprobador</span></div>
+        </div>
+      </article>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <!-- EVALUACIONES -->
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <section class="category" id="evaluaciones">
+      <div class="category-header">
+        <div class="category-icon eval">📝</div>
+        <div class="category-title">
+          <h2>Evaluaciones</h2>
+          <p>Quizzes PRE/POST, preguntas y respuestas de alumnos</p>
+        </div>
+      </div>
+
+      <!-- quizzes -->
+      <article class="table-card">
+        <div class="table-header">
+          <span class="table-name">quizzes</span>
+          <span class="table-badge badge-principal">Principal</span>
+        </div>
+        <div class="table-function">
+          <strong>Función:</strong> Evaluaciones asociadas a una clase. Tipo "previo" (diagnóstico) o "post" (evaluación final). Generadas por IA.
+        </div>
+        <div class="fields-container">
+          <div class="fields-grid">
+            <div class="field-row"><span class="field-name pk">id</span><span class="field-type">UUID</span><span class="field-desc">Identificador único (PK)</span></div>
+            <div class="field-row"><span class="field-name fk">id_clase</span><span class="field-type">UUID</span><span class="field-desc">FK → clases</span></div>
+            <div class="field-row"><span class="field-name">tipo</span><span class="field-type">tipo_quiz</span><span class="field-desc">Tipo: previo/post</span></div>
+            <div class="field-row"><span class="field-name">titulo</span><span class="field-type">TEXT</span><span class="field-desc">Título del quiz</span></div>
+            <div class="field-row"><span class="field-name">instrucciones</span><span class="field-type">TEXT</span><span class="field-desc">Instrucciones para alumnos</span></div>
+            <div class="field-row"><span class="field-name">estado</span><span class="field-type">estado_quiz</span><span class="field-desc">Estado: borrador/publicado/cerrado</span></div>
+            <div class="field-row"><span class="field-name">fecha_disponible</span><span class="field-type">TIMESTAMPTZ</span><span class="field-desc">Desde cuándo está disponible</span></div>
+            <div class="field-row"><span class="field-name">fecha_limite</span><span class="field-type">TIMESTAMPTZ</span><span class="field-desc">Fecha límite para responder</span></div>
+            <div class="field-row"><span class="field-name">tiempo_limite</span><span class="field-type">INTEGER</span><span class="field-desc">Tiempo límite en minutos</span></div>
+          </div>
+        </div>
+        <div class="relations">
+          <div class="relations-title">Relaciones</div>
+          <div class="relation-item"><span class="relation-arrow">&gt;── 1</span><span class="relation-table">clases</span><span class="relation-type">(N:1)</span></div>
+          <div class="relation-item"><span class="relation-arrow">1 ──&lt;</span><span class="relation-table">preguntas</span><span class="relation-type">(1:N)</span></div>
+          <div class="relation-item"><span class="relation-arrow">1 ──&lt;</span><span class="relation-table">respuestas_alumno</span><span class="relation-type">(1:N)</span></div>
+        </div>
+      </article>
+
+      <!-- preguntas -->
+      <article class="table-card">
+        <div class="table-header">
+          <span class="table-name">preguntas</span>
+          <span class="table-badge badge-principal">Principal</span>
+        </div>
+        <div class="table-function">
+          <strong>Función:</strong> Preguntas que forman parte de un quiz. Pueden ser opción múltiple, verdadero/falso o respuesta corta.
+        </div>
+        <div class="fields-container">
+          <div class="fields-grid">
+            <div class="field-row"><span class="field-name pk">id</span><span class="field-type">UUID</span><span class="field-desc">Identificador único (PK)</span></div>
+            <div class="field-row"><span class="field-name fk">id_quiz</span><span class="field-type">UUID</span><span class="field-desc">FK → quizzes</span></div>
+            <div class="field-row"><span class="field-name">texto_pregunta</span><span class="field-type">TEXT</span><span class="field-desc">Texto de la pregunta</span></div>
+            <div class="field-row"><span class="field-name">texto_contexto</span><span class="field-type">TEXT</span><span class="field-desc">Contexto adicional</span></div>
+            <div class="field-row"><span class="field-name">tipo</span><span class="field-type">tipo_pregunta</span><span class="field-desc">Tipo de pregunta</span></div>
+            <div class="field-row"><span class="field-name">opciones</span><span class="field-type">JSONB</span><span class="field-desc">Opciones (para opción múltiple)</span></div>
+            <div class="field-row"><span class="field-name">respuesta_correcta</span><span class="field-type">TEXT</span><span class="field-desc">Respuesta correcta</span></div>
+            <div class="field-row"><span class="field-name">justificacion</span><span class="field-type">TEXT</span><span class="field-desc">Justificación de la respuesta</span></div>
+            <div class="field-row"><span class="field-name">orden</span><span class="field-type">INTEGER</span><span class="field-desc">Orden en el quiz</span></div>
+          </div>
+        </div>
+        <div class="relations">
+          <div class="relations-title">Relaciones</div>
+          <div class="relation-item"><span class="relation-arrow">&gt;── 1</span><span class="relation-table">quizzes</span><span class="relation-type">(N:1)</span></div>
+          <div class="relation-item"><span class="relation-arrow">1 ──&lt;</span><span class="relation-table">respuestas_detalle</span><span class="relation-type">(1:N)</span></div>
+        </div>
+      </article>
+
+      <!-- respuestas_alumno -->
+      <article class="table-card">
+        <div class="table-header">
+          <span class="table-name">respuestas_alumno</span>
+          <span class="table-badge badge-principal">Principal</span>
+        </div>
+        <div class="table-function">
+          <strong>Función:</strong> Registro de cada intento de un alumno en un quiz. Contiene estado (en progreso/completado) y fechas.
+        </div>
+        <div class="fields-container">
+          <div class="fields-grid">
+            <div class="field-row"><span class="field-name pk">id</span><span class="field-type">UUID</span><span class="field-desc">Identificador único (PK)</span></div>
+            <div class="field-row"><span class="field-name fk">id_alumno</span><span class="field-type">UUID</span><span class="field-desc">FK → alumnos</span></div>
+            <div class="field-row"><span class="field-name fk">id_quiz</span><span class="field-type">UUID</span><span class="field-desc">FK → quizzes</span></div>
+            <div class="field-row"><span class="field-name">estado</span><span class="field-type">estado_respuesta</span><span class="field-desc">Estado: en_progreso/completado</span></div>
+            <div class="field-row"><span class="field-name">fecha_inicio</span><span class="field-type">TIMESTAMPTZ</span><span class="field-desc">Cuándo empezó</span></div>
+            <div class="field-row"><span class="field-name">fecha_envio</span><span class="field-type">TIMESTAMPTZ</span><span class="field-desc">Cuándo envió</span></div>
+          </div>
+        </div>
+        <div class="relations">
+          <div class="relations-title">Relaciones</div>
+          <div class="relation-item"><span class="relation-arrow">&gt;── 1</span><span class="relation-table">alumnos</span><span class="relation-type">(N:1)</span></div>
+          <div class="relation-item"><span class="relation-arrow">&gt;── 1</span><span class="relation-table">quizzes</span><span class="relation-type">(N:1)</span></div>
+          <div class="relation-item"><span class="relation-arrow">1 ──&lt;</span><span class="relation-table">respuestas_detalle</span><span class="relation-type">(1:N)</span></div>
+        </div>
+      </article>
+
+      <!-- respuestas_detalle -->
+      <article class="table-card">
+        <div class="table-header">
+          <span class="table-name">respuestas_detalle</span>
+          <span class="table-badge badge-principal">Principal</span>
+        </div>
+        <div class="table-function">
+          <strong>Función:</strong> Respuesta individual a cada pregunta dentro de un intento de quiz. Registra si fue correcta y tiempo usado.
+        </div>
+        <div class="fields-container">
+          <div class="fields-grid">
+            <div class="field-row"><span class="field-name pk">id</span><span class="field-type">UUID</span><span class="field-desc">Identificador único (PK)</span></div>
+            <div class="field-row"><span class="field-name fk">id_respuesta_alumno</span><span class="field-type">UUID</span><span class="field-desc">FK → respuestas_alumno</span></div>
+            <div class="field-row"><span class="field-name fk">id_pregunta</span><span class="field-type">UUID</span><span class="field-desc">FK → preguntas</span></div>
+            <div class="field-row"><span class="field-name">respuesta_alumno</span><span class="field-type">TEXT</span><span class="field-desc">Respuesta dada por el alumno</span></div>
+            <div class="field-row"><span class="field-name">es_correcta</span><span class="field-type">BOOLEAN</span><span class="field-desc">¿Es correcta?</span></div>
+            <div class="field-row"><span class="field-name">tiempo_segundos</span><span class="field-type">INTEGER</span><span class="field-desc">Tiempo para responder</span></div>
+          </div>
+        </div>
+        <div class="relations">
+          <div class="relations-title">Relaciones</div>
+          <div class="relation-item"><span class="relation-arrow">&gt;── 1</span><span class="relation-table">respuestas_alumno</span><span class="relation-type">(N:1)</span></div>
+          <div class="relation-item"><span class="relation-arrow">&gt;── 1</span><span class="relation-table">preguntas</span><span class="relation-type">(N:1)</span></div>
+        </div>
+      </article>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <!-- MÉTRICAS -->
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <section class="category" id="metricas">
+      <div class="category-header">
+        <div class="category-icon metrics">📈</div>
+        <div class="category-title">
+          <h2>Métricas y Feedback</h2>
+          <p>Análisis de resultados, recomendaciones y retroalimentaciones personalizadas</p>
+        </div>
+      </div>
+
+      <!-- metricas_clase -->
+      <article class="table-card">
+        <div class="table-header">
+          <span class="table-name">metricas_clase</span>
+          <span class="table-badge badge-analisis">Análisis</span>
+        </div>
+        <div class="table-function">
+          <strong>Función:</strong> Métricas y estadísticas agregadas generadas a partir de resultados de quizzes. Alimenta dashboards y recomendaciones.
+        </div>
+        <div class="fields-container">
+          <div class="fields-grid">
+            <div class="field-row"><span class="field-name pk">id</span><span class="field-type">UUID</span><span class="field-desc">Identificador único (PK)</span></div>
+            <div class="field-row"><span class="field-name fk">id_clase</span><span class="field-type">UUID</span><span class="field-desc">FK → clases</span></div>
+            <div class="field-row"><span class="field-name">tipo</span><span class="field-type">tipo_quiz</span><span class="field-desc">Tipo de quiz que generó la métrica</span></div>
+            <div class="field-row"><span class="field-name">datos_estadisticos</span><span class="field-type">JSONB</span><span class="field-desc">Promedios, desviaciones, etc.</span></div>
+            <div class="field-row"><span class="field-name">recomendaciones</span><span class="field-type">JSONB</span><span class="field-desc">Recomendaciones generadas por IA</span></div>
+            <div class="field-row"><span class="field-name">fecha_generacion</span><span class="field-type">TIMESTAMPTZ</span><span class="field-desc">Fecha de generación</span></div>
+          </div>
+        </div>
+        <div class="relations">
+          <div class="relations-title">Relaciones</div>
+          <div class="relation-item"><span class="relation-arrow">&gt;── 1</span><span class="relation-table">clases</span><span class="relation-type">(N:1)</span></div>
+        </div>
+      </article>
+
+      <!-- recomendaciones -->
+      <article class="table-card">
+        <div class="table-header">
+          <span class="table-name">recomendaciones</span>
+          <span class="table-badge badge-analisis">Análisis</span>
+        </div>
+        <div class="table-function">
+          <strong>Función:</strong> Sugerencias generadas por IA para mejorar clases futuras basadas en resultados del quiz PRE. Pueden aplicarse a la guía.
+        </div>
+        <div class="fields-container">
+          <div class="fields-grid">
+            <div class="field-row"><span class="field-name pk">id</span><span class="field-type">UUID</span><span class="field-desc">Identificador único (PK)</span></div>
+            <div class="field-row"><span class="field-name fk">id_clase</span><span class="field-type">UUID</span><span class="field-desc">FK → clases</span></div>
+            <div class="field-row"><span class="field-name fk">id_clase_anterior</span><span class="field-type">UUID</span><span class="field-desc">FK → clases (origen)</span></div>
+            <div class="field-row"><span class="field-name">contenido</span><span class="field-type">TEXT</span><span class="field-desc">Contenido de la recomendación</span></div>
+            <div class="field-row"><span class="field-name">aplicada</span><span class="field-type">BOOLEAN</span><span class="field-desc">¿Fue aplicada?</span></div>
+          </div>
+        </div>
+        <div class="relations">
+          <div class="relations-title">Relaciones</div>
+          <div class="relation-item"><span class="relation-arrow">&gt;── 1</span><span class="relation-table">clases</span><span class="relation-type">(N:1)</span></div>
+        </div>
+      </article>
+
+      <!-- retroalimentaciones -->
+      <article class="table-card">
+        <div class="table-header">
+          <span class="table-name">retroalimentaciones</span>
+          <span class="table-badge badge-analisis">Análisis</span>
+        </div>
+        <div class="table-function">
+          <strong>Función:</strong> Feedback personalizado generado por IA para cada alumno o para el grupo completo tras el quiz POST.
+        </div>
+        <div class="fields-container">
+          <div class="fields-grid">
+            <div class="field-row"><span class="field-name pk">id</span><span class="field-type">UUID</span><span class="field-desc">Identificador único (PK)</span></div>
+            <div class="field-row"><span class="field-name fk">id_clase</span><span class="field-type">UUID</span><span class="field-desc">FK → clases</span></div>
+            <div class="field-row"><span class="field-name fk">id_alumno</span><span class="field-type">UUID</span><span class="field-desc">FK → alumnos (NULL si es grupal)</span></div>
+            <div class="field-row"><span class="field-name">tipo</span><span class="field-type">TEXT</span><span class="field-desc">Tipo: individual/grupal</span></div>
+            <div class="field-row"><span class="field-name">contenido</span><span class="field-type">TEXT</span><span class="field-desc">Contenido del feedback</span></div>
+            <div class="field-row"><span class="field-name">fortalezas</span><span class="field-type">JSONB</span><span class="field-desc">Fortalezas identificadas</span></div>
+            <div class="field-row"><span class="field-name">areas_mejora</span><span class="field-type">JSONB</span><span class="field-desc">Áreas de mejora</span></div>
+            <div class="field-row"><span class="field-name">recomendaciones</span><span class="field-type">JSONB</span><span class="field-desc">Recomendaciones personalizadas</span></div>
+          </div>
+        </div>
+        <div class="relations">
+          <div class="relations-title">Relaciones</div>
+          <div class="relation-item"><span class="relation-arrow">&gt;── 1</span><span class="relation-table">clases</span><span class="relation-type">(N:1)</span></div>
+          <div class="relation-item"><span class="relation-arrow">&gt;── 1</span><span class="relation-table">alumnos</span><span class="relation-type">(N:1) opcional</span></div>
+        </div>
+      </article>
+    </section>
+
+    <!-- Diagrama ER simplificado -->
+    <section class="er-diagram">
+      <h3>🔗 Diagrama Entidad-Relación Simplificado</h3>
+      <pre>
+┌─────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│                                           INSTITUCIONES                                                      │
+│                                               │                                                              │
+│               ┌───────────────┬───────────────┼───────────────┬───────────────┐                              │
+│               ▼               ▼               ▼               ▼               ▼                              │
+│      anios_escolares     plan_anual        grupos       config_alertas    profiles                          │
+│               │               │               │               │               │                              │
+│               ▼               ▼               │               │               │                              │
+│      periodos_academicos  materias           │               │               │                              │
+│                               │               │               │               │                              │
+│                               ▼               │               │               │                              │
+│                            temas              │               │               │                              │
+│                               │               │               │               │                              │
+│               ┌───────────────┤               │               │               │                              │
+│               ▼               ▼               ▼               │               │                              │
+│         guias_tema ───────► CLASES ◄─────────┘               │               │                              │
+│                               │                               │               │                              │
+│         ┌─────────────────────┼─────────────────────┐         │               │                              │
+│         ▼                     ▼                     ▼         │               │                              │
+│  guias_clase_versiones    quizzes          metricas_clase    │               │                              │
+│                               │             recomendaciones   │               │                              │
+│                               │             retroalimentaciones│               │                              │
+│                   ┌───────────┴───────────┐                   │               │                              │
+│                   ▼                       ▼                   │               │                              │
+│              preguntas           respuestas_alumno            │               │                              │
+│                   │                       │                   │               │                              │
+│                   └───────────┬───────────┘                   │               │                              │
+│                               ▼                               │               │                              │
+│                       respuestas_detalle                      │               │                              │
+└─────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│                                            USUARIOS                                                          │
+│                                                                                                              │
+│                                           auth.users                                                         │
+│                                               │                                                              │
+│               ┌───────────────┬───────────────┼───────────────┬───────────────┐                              │
+│               ▼               ▼               ▼               ▼               ▼                              │
+│           profiles       user_roles      profesores        alumnos       apoderados                         │
+│                                               │               │               │                              │
+│                               ┌───────────────┤               │               │                              │
+│                               ▼               │               ▼               │                              │
+│                    asignaciones_profesor      │        alumnos_grupo         │                              │
+│                          │    │    │          │            │    │            │                              │
+│                          ▼    ▼    ▼          │            ▼    ▼            │                              │
+│                    materias grupos profesores │       alumnos grupos         │                              │
+│                                               │                               │                              │
+│                                               ▼                               │                              │
+│                               ┌─────► clases ◄───────────────────────────────┘                              │
+│                               │       guias_tema                                                             │
+│                               │       guias_clase_versiones                                                  │
+│                               │                                                                              │
+│                               └─────► respuestas_alumno                                                      │
+│                                       retroalimentaciones                                                    │
+└─────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+
+LEYENDA:
+  ───►  Relación 1:N (uno a muchos)
+  ◄───  Relación N:1 (muchos a uno)
+  ────  Relación 1:1 (uno a uno)
+      </pre>
+    </section>
+
+  </div>
+
+  <footer>
+    EduThink · Modelo de Datos v2 · 23 tablas activas · Generado automáticamente
+  </footer>
+</body>
+</html>
+

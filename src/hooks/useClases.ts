@@ -40,6 +40,27 @@ export interface CreateClaseData {
   numero_sesion?: number;
 }
 
+// Valid transitions for estado_clase
+const VALID_TRANSITIONS: Record<EstadoClase, EstadoClase[]> = {
+  borrador: ['generando_clase', 'borrador'],
+  generando_clase: ['editando_guia', 'borrador'],
+  editando_guia: ['guia_aprobada', 'editando_guia', 'borrador'],
+  guia_aprobada: ['clase_programada', 'editando_guia'],
+  clase_programada: ['en_clase', 'clase_programada'],
+  en_clase: ['completada', 'en_clase'],
+  completada: ['completada'],
+  analizando_resultados: ['completada']
+};
+
+/**
+ * Validates if a state transition is allowed
+ */
+export function isValidEstadoTransition(from: EstadoClase | null, to: EstadoClase): boolean {
+  if (!from) return true; // New clase can start with any estado
+  const allowed = VALID_TRANSITIONS[from] || [];
+  return allowed.includes(to);
+}
+
 export function useClases(filters?: {
   estado?: EstadoClase;
   id_grupo?: string;
@@ -128,6 +149,28 @@ export function useClases(filters?: {
 
   const updateClase = useMutation({
     mutationFn: async ({ id, ...updates }: Partial<ClaseRow> & { id: string }) => {
+      // Validate estado transition if estado is being updated
+      if (updates.estado) {
+        // Get current clase estado
+        const { data: currentClase, error: fetchError } = await supabase
+          .from('clases')
+          .select('estado')
+          .eq('id', id)
+          .single();
+
+        if (fetchError) throw fetchError;
+
+        const currentEstado = currentClase?.estado as EstadoClase | null;
+        const newEstado = updates.estado as EstadoClase;
+
+        if (!isValidEstadoTransition(currentEstado, newEstado)) {
+          throw new Error(
+            `Transición de estado inválida: ${currentEstado} → ${newEstado}. ` +
+            `Estados permitidos desde ${currentEstado}: ${VALID_TRANSITIONS[currentEstado || 'borrador']?.join(', ') || 'ninguno'}`
+          );
+        }
+      }
+
       const { data, error } = await supabase
         .from('clases')
         .update({
