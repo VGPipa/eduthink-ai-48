@@ -40,7 +40,7 @@ export interface GrupoConMetricas {
 export interface AsignacionConMetricas {
   id: string;
   materia: { id: string; nombre: string };
-  grupo: { id: string; nombre: string; grado: string; seccion: string | null };
+  grupo: { id: string; nombre: string; grado: string; seccion: string | null; cantidad_alumnos: number };
   promedio: number;
   totalQuizzes: number;
   asistencia: number;
@@ -210,7 +210,7 @@ export function useAsignacionesProfesor() {
           asignacionesConMetricas.push({
             id: asig.id,
             materia: { id: materia.id, nombre: materia.nombre },
-            grupo: { id: grupo.id, nombre: grupo.nombre, grado: grupo.grado, seccion: grupo.seccion },
+            grupo: { id: grupo.id, nombre: grupo.nombre, grado: grupo.grado, seccion: grupo.seccion, cantidad_alumnos: grupo.cantidad_alumnos || 0 },
             promedio: 0,
             totalQuizzes: 0,
             asistencia: 0,
@@ -231,7 +231,7 @@ export function useAsignacionesProfesor() {
           asignacionesConMetricas.push({
             id: asig.id,
             materia: { id: materia.id, nombre: materia.nombre },
-            grupo: { id: grupo.id, nombre: grupo.nombre, grado: grupo.grado, seccion: grupo.seccion },
+            grupo: { id: grupo.id, nombre: grupo.nombre, grado: grupo.grado, seccion: grupo.seccion, cantidad_alumnos: grupo.cantidad_alumnos || 0 },
             promedio: 0,
             totalQuizzes: 0,
             asistencia: 0,
@@ -252,7 +252,7 @@ export function useAsignacionesProfesor() {
           asignacionesConMetricas.push({
             id: asig.id,
             materia: { id: materia.id, nombre: materia.nombre },
-            grupo: { id: grupo.id, nombre: grupo.nombre, grado: grupo.grado, seccion: grupo.seccion },
+            grupo: { id: grupo.id, nombre: grupo.nombre, grado: grupo.grado, seccion: grupo.seccion, cantidad_alumnos: grupo.cantidad_alumnos || 0 },
             promedio: 0,
             totalQuizzes: 0,
             asistencia: 0,
@@ -283,7 +283,7 @@ export function useAsignacionesProfesor() {
         asignacionesConMetricas.push({
           id: asig.id,
           materia: { id: materia.id, nombre: materia.nombre },
-          grupo: { id: grupo.id, nombre: grupo.nombre, grado: grupo.grado, seccion: grupo.seccion },
+          grupo: { id: grupo.id, nombre: grupo.nombre, grado: grupo.grado, seccion: grupo.seccion, cantidad_alumnos: grupo.cantidad_alumnos || 0 },
           promedio,
           totalQuizzes,
           asistencia,
