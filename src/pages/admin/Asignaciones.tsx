@@ -177,7 +177,7 @@ export default function Asignaciones() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Materia</TableHead>
-                  <TableHead>Grupo</TableHead>
+                  <TableHead>Clase y Sección</TableHead>
                   <TableHead>Año</TableHead>
                   <TableHead className="text-right">Acciones</TableHead>
                 </TableRow>
@@ -188,7 +188,9 @@ export default function Asignaciones() {
                     <TableCell>
                       <Badge variant="secondary">{asignacion.materia?.nombre}</Badge>
                     </TableCell>
-                    <TableCell className="font-medium">{asignacion.grupo?.nombre}</TableCell>
+                    <TableCell className="font-medium">
+                      {asignacion.grupo?.grado} - Sección {asignacion.grupo?.seccion}
+                    </TableCell>
                     <TableCell>{asignacion.anio_escolar}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
