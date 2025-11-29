@@ -7,7 +7,6 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { useProfesor } from '@/hooks/useProfesor';
@@ -44,28 +43,12 @@ const STEPS = [
   { id: 5, title: 'Validar', icon: FileCheck }
 ];
 
-const METODOLOGIAS = [
-  { id: 'socratico', nombre: 'Método Socrático', descripcion: 'Preguntas guiadas para fomentar el razonamiento' },
-  { id: 'casos', nombre: 'Aprendizaje basado en casos', descripcion: 'Análisis de situaciones reales o simuladas' },
-  { id: 'problemas', nombre: 'Aprendizaje basado en problemas', descripcion: 'Resolución de problemas auténticos' },
-  { id: 'colaborativo', nombre: 'Aprendizaje colaborativo', descripcion: 'Trabajo en equipo y discusión grupal' },
-  { id: 'reflexivo', nombre: 'Pensamiento reflexivo', descripcion: 'Metacognición y autoevaluación' }
-];
-
 const RECURSOS = [
   { id: 'proyector', nombre: 'Proyector/Pantalla' },
   { id: 'pizarra', nombre: 'Pizarra' },
   { id: 'libros', nombre: 'Libros de texto' },
   { id: 'dispositivos', nombre: 'Dispositivos electrónicos' },
   { id: 'material', nombre: 'Material manipulativo' },
-  { id: 'otro', nombre: 'Otro' }
-];
-
-const ADAPTACIONES = [
-  { id: 'tdah', nombre: 'TDAH' },
-  { id: 'dislexia', nombre: 'Dislexia' },
-  { id: 'tea', nombre: 'TEA' },
-  { id: 'ninguna', nombre: 'Ninguna' },
   { id: 'otro', nombre: 'Otro' }
 ];
 
@@ -440,10 +423,10 @@ export default function GenerarClase() {
     // Use custom name if provided, otherwise use tema name from DB
     const temaNombre = formData.temaPersonalizado || temaData?.nombre;
     
-    if (!temaNombre || !formData.objetivo || !formData.contexto) {
+    if (!temaNombre || !formData.contexto) {
       toast({
         title: 'Error',
-        description: 'Completa el tema, objetivo y contexto antes de generar la guía',
+        description: 'Completa el tema y contexto antes de generar la guía',
         variant: 'destructive'
       });
       return;
@@ -702,7 +685,7 @@ export default function GenerarClase() {
         // In normal mode, we need temaData from URL params
         const hasTema = temaData?.id ? true : false;
         const temaNombre = isExtraordinaria ? (formData.temaPersonalizado || temaData?.nombre) : temaData?.nombre;
-        return hasTema && temaNombre && formData.objetivo && formData.metodologias.length > 0 && formData.contexto && formData.fecha && grupoData;
+        return hasTema && temaNombre && formData.contexto && formData.fecha && grupoData;
       case 2:
         return guiaGenerada !== null;
       case 3:
@@ -1134,83 +1117,23 @@ export default function GenerarClase() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Objetivo específico de la sesión *</Label>
-                  <Textarea 
-                    placeholder="Describe el objetivo principal que deseas lograr en esta clase..."
-                    value={formData.objetivo}
-                    onChange={(e) => setFormData({...formData, objetivo: e.target.value})}
-                    rows={2}
-                  />
-                </div>
-
-                <div className="space-y-3">
-                  <Label>Metodologías de pensamiento crítico *</Label>
-                  <div className="grid sm:grid-cols-2 gap-3">
-                    {METODOLOGIAS.map((met) => (
-                      <div
-                        key={met.id}
-                        className={`p-3 rounded-lg border-2 cursor-pointer transition-all ${
-                          formData.metodologias.includes(met.id)
-                            ? 'border-primary bg-primary/5'
-                            : 'border-border hover:border-primary/50'
-                        }`}
+                  <Label>Recursos disponibles</Label>
+                  <div className="flex flex-wrap gap-2">
+                    {RECURSOS.map((rec) => (
+                      <Badge
+                        key={rec.id}
+                        variant={formData.recursos.includes(rec.id) ? 'default' : 'outline'}
+                        className="cursor-pointer"
                         onClick={() => {
-                          const newMet = formData.metodologias.includes(met.id)
-                            ? formData.metodologias.filter(m => m !== met.id)
-                            : [...formData.metodologias, met.id];
-                          setFormData({...formData, metodologias: newMet});
+                          const newRec = formData.recursos.includes(rec.id)
+                            ? formData.recursos.filter(r => r !== rec.id)
+                            : [...formData.recursos, rec.id];
+                          setFormData({...formData, recursos: newRec});
                         }}
                       >
-                        <div className="flex items-center gap-2">
-                          <Checkbox checked={formData.metodologias.includes(met.id)} />
-                          <span className="font-medium text-sm">{met.nombre}</span>
-                        </div>
-                        <p className="text-xs text-muted-foreground mt-1 ml-6">{met.descripcion}</p>
-                      </div>
+                        {rec.nombre}
+                      </Badge>
                     ))}
-                  </div>
-                </div>
-
-                <div className="grid md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Recursos disponibles</Label>
-                    <div className="flex flex-wrap gap-2">
-                      {RECURSOS.map((rec) => (
-                        <Badge
-                          key={rec.id}
-                          variant={formData.recursos.includes(rec.id) ? 'default' : 'outline'}
-                          className="cursor-pointer"
-                          onClick={() => {
-                            const newRec = formData.recursos.includes(rec.id)
-                              ? formData.recursos.filter(r => r !== rec.id)
-                              : [...formData.recursos, rec.id];
-                            setFormData({...formData, recursos: newRec});
-                          }}
-                        >
-                          {rec.nombre}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Adaptaciones necesarias</Label>
-                    <div className="flex flex-wrap gap-2">
-                      {ADAPTACIONES.map((adap) => (
-                        <Badge
-                          key={adap.id}
-                          variant={formData.adaptaciones.includes(adap.id) ? 'default' : 'outline'}
-                          className="cursor-pointer"
-                          onClick={() => {
-                            const newAdap = formData.adaptaciones.includes(adap.id)
-                              ? formData.adaptaciones.filter(a => a !== adap.id)
-                              : [...formData.adaptaciones, adap.id];
-                            setFormData({...formData, adaptaciones: newAdap});
-                          }}
-                        >
-                          {adap.nombre}
-                        </Badge>
-                      ))}
-                    </div>
                   </div>
                 </div>
 
