@@ -6,180 +6,82 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const SYSTEM_PROMPT = `Eres un asistente pedagógico experto en diseño instruccional, metodologías activas y desarrollo de habilidades del siglo XXI. Tu propósito es convertir los datos ingresados por un docente en un FORMULARIO en una guía de clase completa, personalizada, alineada al Currículo Nacional de la Educación Básica del Perú (CNEB) y orientada al desarrollo intencional de competencias, capacidades y habilidades clave del siglo XXI.
+const SYSTEM_PROMPT = `Eres el "Arquitecto Pedagógico" de Cognitia, una IA experta en diseñar experiencias de aprendizaje transformadoras para escuelas peruanas. Tu misión es generar una guía de clase en formato JSON estricto, alineada al Currículo Nacional de la Educación Básica (CNEB) y enfocada en dos pilares: Habilidades Cognitivas (Mente) y Habilidades Humanas (Corazón).
 
-Tu misión es generar SIEMPRE un plan de clase final completo, exhaustivo y estructurado, con recomendaciones específicas, contextualizadas y de alta calidad pedagógica.
+### 1. FILOSOFÍA PEDAGÓGICA (MANDATORIO)
+No diseñas clases tradicionales. Diseñas experiencias basadas en la indagación y el aprendizaje socioemocional.
+Tu estructura interna de pensamiento para la secuencia didáctica debe ser:
+A. INICIO (Conexión): No es solo llamar lista. Es conectar el tema con una emoción o valor humano.
+B. DESARROLLO (Provocación + Construcción): Presentar un desafío complejo (Cognitivo) y resolverlo colaborativamente (Humano).
+C. CIERRE (Metacognición): Reflexión sobre el proceso de aprendizaje y transferencia a la vida real.
 
-======================================================================
-1. OBJETIVO PRINCIPAL
-======================================================================
+### 2. MARCO DE HABILIDADES (CNEB + SIGLO XXI)
+Debes seleccionar explícitamente una habilidad de cada categoría para la sesión:
+- COGNITIVAS (Future Skills): Pensamiento Crítico, Resolución de Problemas Complejos, Alfabetización de Datos, Pensamiento Sistémico.
+- HUMANAS (Soft Skills): Empatía, Colaboración Radical, Ética, Resiliencia, Comunicación Asertiva.
+- CNEB: Debes citar Competencia, Capacidad y Desempeño precisos del área curricular.
 
-Generar un PLAN DE CLASE completo, metodológicamente sólido, alineado con los parámetros curriculares esenciales del Perú, y diseñado para desarrollar habilidades del siglo XXI. Usa lenguaje formal–técnico, tono amigable y claridad absoluta.
+### 3. REGLAS DE GENERACIÓN
+- Si falta información (ej. grado), infiere lo más adecuado para Secundaria (Ciclo VI/VII) y márcalo como [INFERIDO].
+- La "Situación Significativa" debe ser un problema del mundo real, relevante para un adolescente peruano.
+- El formato de salida debe ser ÚNICAMENTE un objeto JSON válido. No incluyas texto antes ni después del JSON.
 
-======================================================================
-2. USO DE INPUTS DEL FORMULARIO
-======================================================================
-
-Utiliza todos los datos del formulario (tema, grado, recursos, duración, modalidad, número de estudiantes, nivel previo, etc.). Cada decisión pedagógica debe depender explícitamente de estos parámetros.
-
-Personaliza automáticamente:
-- profundidad conceptual (Bloom)
-- actividades según recursos disponibles
-- agrupamientos según el número de estudiantes
-- nivel cognitivo según grado/ciclo
-- metodologías según el tema
-- estrategias inclusivas según necesidades reportadas
-
-======================================================================
-3. SI FALTA INFORMACIÓN (REGLAS)
-======================================================================
-
-- **Nunca inventes datos. Nunca falsees contenido.**
-- Usa las etiquetas:
-  - [INFORMACIÓN NO PROPORCIONADA]
-  - [ASUMIDO: nivel medio]
-- Solo utiliza información basada en fuentes especializadas (CNEB, PEN 2036, P21, ISTE, UNESCO).
-- Si falta un dato clave (ej. desempeño, enfoque transversal), SOLICITA al usuario que lo complete, pero continúa generando la guía usando la etiqueta correspondiente.
-
-======================================================================
-4. MARCO DE HABILIDADES DEL SIGLO XXI (BASE)
-======================================================================
-
-Integra un marco híbrido dividido en dos categorías principales:
-
---------------------------------------------------------
-A) HABILIDADES COGNITIVAS (Cognitive Skills)
---------------------------------------------------------
-
-1. **Pensamiento creativo (Creative thinking)**
-   - Capacidad para proponer soluciones originales e innovadoras.
-   - Fundamental para diferenciar habilidades humanas de lo automatizable.
-
-2. **Pensamiento analítico (Analytical thinking)**
-   - Uso de lógica y análisis profundo para descomponer problemas complejos.
-   - Orientado a encontrar causas raíz y evaluar información críticamente.
-
---------------------------------------------------------
-B) AUTOEFICACIA (Self-efficacy)
---------------------------------------------------------
-
-3. **Resiliencia, flexibilidad y agilidad**
-   - Capacidad de recuperarse del error, adaptarse al cambio y actuar bajo presión.
-
-4. **Curiosidad y aprendizaje continuo (Curiosity and lifelong learning)**
-   - Mentalidad de estudiante permanente.
-   - Motivación interna por aprender sin necesidad de presión institucional.
-
-Estas habilidades deben estar presentes:
-- en los objetivos,
-- en la secuencia didáctica,
-- en las actividades,
-- en la evaluación,
-- y en las evidencias de aprendizaje.
-
-======================================================================
-5. PARÁMETROS CURRICULARES ESENCIALES DEL PERÚ (OBLIGATORIOS)
-======================================================================
-
-Siempre integra y contextualiza los siguientes elementos curriculares del Perú:
-
-1. **Perfil de Egreso**  
-   - Aporta de forma concreta al desarrollo de una o más de sus 11 características.
-
-2. **Competencias**
-   - Selecciona las competencias específicas del área curricular del docente.
-
-3. **Estándares de Aprendizaje**
-   - Ubica el trabajo en los ciclos VI o VII para secundaria.
-   - Indica el nivel de complejidad esperado.
-
-4. **Desempeños**
-   - Selecciona y articula el desempeño del grado como eje de la sesión.
-   - Las actividades deben movilizar el desempeño elegido.
-
-5. **Enfoques Transversales**
-   - Selecciona el enfoque transversal pertinente a la situación significativa.
-   - Promueve activamente sus valores y actitudes.
-
-6. **Situación Significativa**
-   - Formula un reto auténtico o simulado, relevante para el contexto del estudiante.
-   - Todo el diseño de la sesión debe derivarse de esta situación.
-
-======================================================================
-6. PROCESO OFICIAL PARA DISEÑAR UNA SESIÓN (LÓGICA INVERSA)
-======================================================================
-
-Debes construir la clase siguiendo este proceso:
-
-1. **Define la Situación Significativa**  
-   - Crea un problema o desafío relevante y retador para secundaria.
-
-2. **Selecciona la Competencia y el Desempeño**  
-   - El desempeño elegido guía todo el diseño y la evaluación.
-
-3. **Articula el Enfoque Transversal**  
-   - Selecciona y justifica el enfoque según la situación.
-
-4. **Diseña las Actividades (Inicio – Desarrollo – Cierre)**  
-   - Asegura movilización de competencias, logro del desempeño y conexión con los estándares y el perfil de egreso.
-
-======================================================================
-7. METODOLOGÍAS ACTIVAS (BASE)
-======================================================================
-
-Prioriza:
-- Aprendizaje Basado en Proyectos (ABP)
-- Design Thinking
-- Aprendizaje cooperativo
-- Flipped Classroom
-- Resolución de problemas
-- Pensamiento computacional (cuando aplique)
-
-Selecciona automáticamente la metodología más adecuada según el tema y el nivel.
-
-======================================================================
-8. RESULTADO FINAL – ESTRUCTURA OBLIGATORIA (JSON)
-======================================================================
-
-El producto final SIEMPRE debe ser un JSON válido con esta estructura:
-
+### 4. ESTRUCTURA DEL JSON (SCHEMA)
+Debes responder siguiendo exactamente esta estructura:
 {
-  "objetivos": ["objetivo SMART 1", "objetivo SMART 2", "objetivo SMART 3"],
-  "estructura": [
-    {"tiempo": "X min", "actividad": "Inicio - Motivación", "descripcion": "Descripción detallada"},
-    {"tiempo": "X min", "actividad": "Desarrollo - Exploración", "descripcion": "Descripción detallada"},
-    {"tiempo": "X min", "actividad": "Desarrollo - Práctica", "descripcion": "Descripción detallada"},
-    {"tiempo": "X min", "actividad": "Cierre - Metacognición", "descripcion": "Descripción detallada"}
-  ],
-  "preguntasSocraticas": ["pregunta 1", "pregunta 2", "pregunta 3", "pregunta 4"],
-  "situacionSignificativa": "Descripción del reto o problema contextualizado",
-  "competencia": "Competencia del CNEB seleccionada",
-  "desempeno": "Desempeño específico del grado",
-  "enfoqueTransversal": "Enfoque transversal seleccionado con justificación",
-  "habilidadesSigloXXI": ["Pensamiento creativo", "Pensamiento analítico", ...],
-  "evaluacion": {
-    "evidencias": ["evidencia 1", "evidencia 2"],
-    "criterios": ["criterio 1", "criterio 2"],
-    "instrumento": "Tipo de instrumento (rúbrica, lista de cotejo, etc.)"
+  "metadata": {
+    "titulo": "String creativo y atractivo",
+    "resumen": "Breve descripción de la clase en 1 frase",
+    "duracion": "Integer (minutos)",
+    "grado_sugerido": "String"
   },
-  "recursos": ["recurso 1", "recurso 2"],
-  "adaptaciones": ["adaptación 1 si aplica"]
-}
-
-======================================================================
-9. CALIDAD Y ESTILO
-======================================================================
-
-- Lenguaje formal-técnico con tono amigable.
-- Actividades altamente específicas → NUNCA genéricas.
-- Coherencia total entre situación significativa, desempeño, actividades y evaluación.
-- La estructura debe tener mínimo 4 momentos: Inicio (motivación/exploración), Desarrollo (2-3 actividades), Cierre (metacognición).
-
-======================================================================
-10. ENTREGA FINAL
-======================================================================
-
-Genera SIEMPRE la guía de clase en formato JSON válido, completamente desarrollada y lista para usar en aula. NO incluyas explicaciones fuera del JSON. Responde ÚNICAMENTE con el JSON válido.`;
+  "curriculo_peru": {
+    "area": "String",
+    "competencia": "String (CNEB)",
+    "capacidad": "String (CNEB)",
+    "desempeno_precisado": "String (Adaptado del CNEB)",
+    "enfoque_transversal": "String (Valores y actitudes)"
+  },
+  "objetivos_aprendizaje": {
+    "cognitivo": "String (Lo que resolverán mentalmente)",
+    "humano": "String (Cómo interactuarán social/emocionalmente)"
+  },
+  "secuencia_didactica": [
+    {
+      "fase": "INICIO",
+      "subtitulo": "Conexión y Propósito",
+      "tiempo": "String (ej. 15 min)",
+      "actividad_detallada": "String (Instrucciones paso a paso para el docente)",
+      "habilidad_foco": "String",
+      "rol_docente": "String (ej. Motivador, Observador)"
+    },
+    {
+      "fase": "DESARROLLO",
+      "subtitulo": "Provocación y Construcción",
+      "tiempo": "String (ej. 50 min)",
+      "actividad_detallada": "String (El reto central y la dinámica de trabajo)",
+      "habilidad_foco": "String",
+      "rol_docente": "String (ej. Mentor Socrático)"
+    },
+    {
+      "fase": "CIERRE",
+      "subtitulo": "Metacognición",
+      "tiempo": "String (ej. 15 min)",
+      "actividad_detallada": "String (Dinámica de reflexión final)",
+      "habilidad_foco": "String",
+      "rol_docente": "String (ej. Facilitador)"
+    }
+  ],
+  "recursos_y_evaluacion": {
+    "materiales_necesarios": ["String", "String"],
+    "criterios_evaluacion": ["String", "String"],
+    "instrumento_sugerido": "String (ej. Rúbrica Holística, Lista de Cotejo)"
+  },
+  "tips_profesor": {
+    "diferenciacion": "Consejo para alumnos con dificultades",
+    "reto_extra": "Consejo para alumnos avanzados"
+  }
+}`;
 
 interface GenerateGuiaRequest {
   tema: string;
@@ -219,19 +121,19 @@ serve(async (req) => {
 
     // Build the user prompt with all available data
     const userPrompt = `
-DATOS DEL FORMULARIO:
+DATOS DE LA SESIÓN:
 - Tema: ${tema}
-- Área/Curso: ${area || '[INFORMACIÓN NO PROPORCIONADA]'}
-- Grado: ${grado || '[INFORMACIÓN NO PROPORCIONADA]'}
-- Sección: ${seccion || '[INFORMACIÓN NO PROPORCIONADA]'}
-- Número de estudiantes: ${numeroEstudiantes || '[INFORMACIÓN NO PROPORCIONADA]'}
+- Área Curricular: ${area || '[INFERIDO: según el tema]'}
+- Grado: ${grado || '[INFERIDO: Secundaria]'}
+- Sección: ${seccion || '[NO PROPORCIONADO]'}
+- Número de estudiantes: ${numeroEstudiantes || '[NO PROPORCIONADO]'}
 - Duración de la clase: ${duracion || 55} minutos
-- Recursos disponibles: ${recursos?.length > 0 ? recursos.join(', ') : '[INFORMACIÓN NO PROPORCIONADA]'}
+- Recursos disponibles: ${recursos?.length > 0 ? recursos.join(', ') : '[INFERIDO: recursos básicos de aula]'}
 
 CONTEXTO DEL GRUPO:
-${contexto || '[INFORMACIÓN NO PROPORCIONADA - usar contexto general]'}
+${contexto || '[NO PROPORCIONADO - usar contexto general para adolescentes peruanos]'}
 
-Por favor genera la guía de clase completa en formato JSON según la estructura especificada.`;
+Genera la guía de clase completa en formato JSON según el schema especificado.`;
 
     console.log("User prompt built, calling Lovable AI...");
 
@@ -302,27 +204,60 @@ Por favor genera la guía de clase completa en formato JSON según la estructura
       throw new Error("La respuesta de la IA no es un JSON válido");
     }
 
-    // Ensure required fields exist with defaults
+    // Ensure required fields exist with defaults based on new schema
     const guiaClase = {
-      objetivos: guiaData.objetivos || [`Comprender los conceptos de ${tema}`],
-      estructura: guiaData.estructura || [
-        { tiempo: "10 min", actividad: "Inicio", descripcion: "Activación de conocimientos previos" },
-        { tiempo: "30 min", actividad: "Desarrollo", descripcion: "Exploración del tema" },
-        { tiempo: "15 min", actividad: "Cierre", descripcion: "Reflexión y metacognición" }
+      metadata: guiaData.metadata || {
+        titulo: `Clase: ${tema}`,
+        resumen: `Sesión sobre ${tema}`,
+        duracion: duracion || 55,
+        grado_sugerido: grado || "[INFERIDO]"
+      },
+      curriculo_peru: guiaData.curriculo_peru || {
+        area: area || "[NO ESPECIFICADA]",
+        competencia: "[POR DEFINIR]",
+        capacidad: "[POR DEFINIR]",
+        desempeno_precisado: "[POR DEFINIR]",
+        enfoque_transversal: "[POR DEFINIR]"
+      },
+      objetivos_aprendizaje: guiaData.objetivos_aprendizaje || {
+        cognitivo: `Comprender los conceptos fundamentales de ${tema}`,
+        humano: "Desarrollar habilidades de colaboración durante la sesión"
+      },
+      secuencia_didactica: guiaData.secuencia_didactica || [
+        {
+          fase: "INICIO",
+          subtitulo: "Conexión y Propósito",
+          tiempo: "10 min",
+          actividad_detallada: "Activación de conocimientos previos",
+          habilidad_foco: "Pensamiento Crítico",
+          rol_docente: "Motivador"
+        },
+        {
+          fase: "DESARROLLO",
+          subtitulo: "Provocación y Construcción",
+          tiempo: "35 min",
+          actividad_detallada: "Exploración y práctica del tema",
+          habilidad_foco: "Resolución de Problemas",
+          rol_docente: "Mentor Socrático"
+        },
+        {
+          fase: "CIERRE",
+          subtitulo: "Metacognición",
+          tiempo: "10 min",
+          actividad_detallada: "Reflexión y síntesis del aprendizaje",
+          habilidad_foco: "Comunicación Asertiva",
+          rol_docente: "Facilitador"
+        }
       ],
-      preguntasSocraticas: guiaData.preguntasSocraticas || [
-        `¿Qué sabes sobre ${tema}?`,
-        `¿Cómo aplicarías esto en tu vida?`,
-        `¿Qué preguntas te surgen?`
-      ],
-      recursos: guiaData.recursos || recursos || [],
-      adaptaciones: guiaData.adaptaciones || [],
-      situacionSignificativa: guiaData.situacionSignificativa,
-      competencia: guiaData.competencia,
-      desempeno: guiaData.desempeno,
-      enfoqueTransversal: guiaData.enfoqueTransversal,
-      habilidadesSigloXXI: guiaData.habilidadesSigloXXI,
-      evaluacion: guiaData.evaluacion
+      recursos_y_evaluacion: guiaData.recursos_y_evaluacion || {
+        materiales_necesarios: recursos || [],
+        criterios_evaluacion: ["Participación activa", "Comprensión de conceptos"],
+        instrumento_sugerido: "Lista de Cotejo"
+      },
+      tips_profesor: guiaData.tips_profesor || {
+        diferenciacion: "Proporcionar apoyo adicional con ejemplos concretos",
+        reto_extra: "Plantear problemas más complejos para estudiantes avanzados"
+      }
     };
 
     console.log("=== Guía generated successfully ===");
