@@ -39,7 +39,7 @@ export interface GrupoConMetricas {
 
 // Hook para obtener los grupos/salones asignados al profesor
 export function useGruposProfesor() {
-  const { data: profesor } = useProfesor();
+  const { profesor } = useProfesor();
 
   return useQuery({
     queryKey: ['grupos-profesor', profesor?.id],
@@ -85,7 +85,7 @@ export function useGruposProfesor() {
 
 // Hook para obtener las materias de un grupo específico
 export function useMateriasGrupo(grupoId: string | null) {
-  const { data: profesor } = useProfesor();
+  const { profesor } = useProfesor();
 
   return useQuery({
     queryKey: ['materias-grupo', grupoId, profesor?.id],
@@ -140,7 +140,7 @@ export function useTemasMateria(materiaId: string | null) {
 
 // Hook para obtener las clases/sesiones de un tema
 export function useClasesTema(temaId: string | null, grupoId: string | null) {
-  const { data: profesor } = useProfesor();
+  const { profesor } = useProfesor();
 
   return useQuery({
     queryKey: ['clases-tema', temaId, grupoId, profesor?.id],

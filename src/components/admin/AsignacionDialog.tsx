@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -58,8 +58,15 @@ interface AsignacionDialogProps {
 export function AsignacionDialog({ open, onOpenChange, onSuccess, editData }: AsignacionDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
-  const { profesores, isLoading: loadingProfesores } = useProfesores();
+  const { profesores, isLoading: loadingProfesores, refetch: refetchProfesores } = useProfesores();
   const { materias, isLoading: loadingMaterias } = useMaterias();
+
+  // Refetch data when dialog opens
+  useEffect(() => {
+    if (open) {
+      refetchProfesores();
+    }
+  }, [open, refetchProfesores]);
 
   const form = useForm<AsignacionFormData>({
     resolver: zodResolver(asignacionSchema),

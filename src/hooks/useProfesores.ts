@@ -15,8 +15,10 @@ export interface ProfesorWithProfile {
 }
 
 export function useProfesores() {
-  const { data: profesores = [], isLoading, error } = useQuery({
+  const { data: profesores = [], isLoading, error, refetch } = useQuery({
     queryKey: ['profesores'],
+    staleTime: 0, // Datos siempre se consideran obsoletos
+    gcTime: 0, // No cachear
     queryFn: async () => {
       // Primero obtenemos los profesores
       const { data: profesoresData, error: profesoresError } = await supabase
@@ -60,5 +62,6 @@ export function useProfesores() {
     profesores,
     isLoading,
     error,
+    refetch,
   };
 }
