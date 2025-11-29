@@ -338,7 +338,7 @@ export default function MisSalones() {
             </div>
 
             <div>
-              <label className="text-sm text-muted-foreground mb-1.5 block">Clase / Sesión</label>
+              <label className="text-sm text-muted-foreground mb-1.5 block">Clase</label>
               <Select 
                 value={selectedClase} 
                 onValueChange={setSelectedClase}
@@ -351,7 +351,7 @@ export default function MisSalones() {
                   <SelectItem value="todos">Todas las clases</SelectItem>
                   {clases?.map((clase) => (
                     <SelectItem key={clase.id} value={clase.id}>
-                      Sesión {clase.numero_sesion || '?'}
+                      Clase {clase.numero_sesion || '?'}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -499,7 +499,7 @@ export default function MisSalones() {
                 <Lightbulb className="w-4 h-4 text-amber-500" />
                 <span className="font-medium">Recomendaciones</span>
               </div>
-              <p className="text-sm text-muted-foreground mb-4">Acciones sugeridas para preparar la sesión</p>
+              <p className="text-sm text-muted-foreground mb-4">Acciones sugeridas para preparar la clase</p>
               {recomendacionPre ? (
                 <div className="p-4 bg-muted/30 rounded-lg border-l-4 border-amber-500">
                   <p className="text-sm font-medium mb-1">{recomendacionPre.titulo}</p>
