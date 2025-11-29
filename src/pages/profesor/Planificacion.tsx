@@ -167,7 +167,7 @@ export default function Planificacion() {
     setSelectedTema(tema);
     setProgramarSesionDialogOpen(true);
     // Set default grupo from asignaciones for this curso
-    const asignacion = asignaciones.find(a => a.id_curso === tema.cursoId);
+    const asignacion = asignaciones.find(a => a.id_materia === tema.cursoId);
     if (asignacion?.grupo) {
       setProgramarSesionForm(prev => ({
         ...prev,

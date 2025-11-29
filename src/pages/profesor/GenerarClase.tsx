@@ -196,7 +196,7 @@ export default function GenerarClase() {
           setCursoData(curso);
 
           // Find grupo from asignaciones
-          const asignacion = asignaciones.find(a => a.id_curso === cursoId);
+          const asignacion = asignaciones.find(a => a.id_materia === cursoId);
           if (asignacion?.grupo) {
             setGrupoData(asignacion.grupo);
           }
