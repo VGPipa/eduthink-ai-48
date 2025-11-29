@@ -397,27 +397,68 @@ export function useTemasMateria(materiaId: string | null) {
   });
 }
 
-// Hook para obtener las clases/sesiones de un tema
+// Hook para obtener las clases/sesiones de un tema desde guias_tema.estructura_sesiones
 export function useClasesTema(temaId: string | null, grupoId: string | null) {
   const { profesor } = useProfesor();
 
   return useQuery({
     queryKey: ['clases-tema', temaId, grupoId, profesor?.id],
     queryFn: async () => {
-      if (!temaId || !grupoId || !profesor?.id) return [];
+      if (!temaId || !profesor?.id) return [];
 
+      // Obtener estructura_sesiones de guias_tema
+      const { data: guiaTema, error: guiaError } = await supabase
+        .from('guias_tema')
+        .select('id, estructura_sesiones, total_sesiones')
+        .eq('id_tema', temaId)
+        .eq('id_profesor', profesor.id)
+        .maybeSingle();
+
+      if (guiaError) throw guiaError;
+
+      // Si existe guia_tema con estructura_sesiones, usarla
+      if (guiaTema?.estructura_sesiones && Array.isArray(guiaTema.estructura_sesiones)) {
+        const sesiones = guiaTema.estructura_sesiones as Array<{ numero?: number; nombre?: string }>;
+        
+        // También obtener clases existentes para mapear IDs
+        const { data: clasesExistentes } = await supabase
+          .from('clases')
+          .select('id, numero_sesion, fecha_programada, estado')
+          .eq('id_tema', temaId)
+          .eq('id_profesor', profesor.id)
+          .order('numero_sesion');
+
+        return sesiones.map((sesion, index) => {
+          const numeroSesion = sesion.numero || index + 1;
+          const claseExistente = clasesExistentes?.find(c => c.numero_sesion === numeroSesion);
+          
+          return {
+            id: claseExistente?.id || `virtual-${numeroSesion}`,
+            numero_sesion: numeroSesion,
+            fecha_programada: claseExistente?.fecha_programada || null,
+            estado: claseExistente?.estado || 'borrador',
+            nombre: sesion.nombre || `Clase ${numeroSesion}`,
+            es_virtual: !claseExistente
+          };
+        });
+      }
+
+      // Fallback: si no hay guia_tema, obtener clases directamente
       const { data, error } = await supabase
         .from('clases')
         .select('id, numero_sesion, fecha_programada, estado')
         .eq('id_tema', temaId)
-        .eq('id_grupo', grupoId)
         .eq('id_profesor', profesor.id)
         .order('numero_sesion');
 
       if (error) throw error;
-      return data || [];
+      return (data || []).map(c => ({
+        ...c,
+        nombre: `Clase ${c.numero_sesion || 1}`,
+        es_virtual: false
+      }));
     },
-    enabled: !!temaId && !!grupoId && !!profesor?.id,
+    enabled: !!temaId && !!profesor?.id,
   });
 }
 
