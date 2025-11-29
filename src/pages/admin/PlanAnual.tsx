@@ -166,41 +166,32 @@ export default function PlanAnual() {
               )}
 
               <div className="flex gap-2">
-                {plan.estado === 'pendiente' ? (
-                  <Button variant="gradient" className="flex-1" onClick={() => handleEditPlan(plan)}>
-                    <Plus className="w-4 h-4 mr-2" />
-                    Crear Plan
-                  </Button>
-                ) : (
-                  <>
-                    <Button 
-                      variant="outline" 
-                      size="icon"
-                      onClick={() => navigate(`/admin/plan-anual/${plan.id}`)}
-                    >
-                      <Eye className="w-4 h-4" />
-                    </Button>
-                    <Button variant="outline" size="icon" onClick={() => handleEditPlan(plan)}>
-                      <Edit className="w-4 h-4" />
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      size="icon"
-                      onClick={() => duplicatePlan.mutate(plan.id)}
-                      disabled={duplicatePlan.isPending}
-                    >
-                      <Copy className="w-4 h-4" />
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      size="icon" 
-                      className="text-destructive hover:text-destructive"
-                      onClick={() => handleDeleteClick(plan.id)}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </>
-                )}
+                <Button 
+                  variant="outline" 
+                  size="icon"
+                  onClick={() => navigate(`/admin/plan-anual/${plan.id}`)}
+                >
+                  <Eye className="w-4 h-4" />
+                </Button>
+                <Button variant="outline" size="icon" onClick={() => handleEditPlan(plan)}>
+                  <Edit className="w-4 h-4" />
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="icon"
+                  onClick={() => duplicatePlan.mutate(plan.id)}
+                  disabled={duplicatePlan.isPending}
+                >
+                  <Copy className="w-4 h-4" />
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="icon" 
+                  className="text-destructive hover:text-destructive"
+                  onClick={() => handleDeleteClick(plan.id)}
+                >
+                  <Trash2 className="w-4 h-4" />
+                </Button>
               </div>
             </CardContent>
           </Card>
