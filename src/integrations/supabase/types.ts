@@ -811,42 +811,29 @@ export type Database = {
       }
       recomendaciones: {
         Row: {
-          aplicada: boolean | null
           contenido: string | null
           created_at: string
           id: string
-          id_clase: string
-          id_clase_anterior: string | null
+          id_quiz: string
         }
         Insert: {
-          aplicada?: boolean | null
           contenido?: string | null
           created_at?: string
           id?: string
-          id_clase: string
-          id_clase_anterior?: string | null
+          id_quiz: string
         }
         Update: {
-          aplicada?: boolean | null
           contenido?: string | null
           created_at?: string
           id?: string
-          id_clase?: string
-          id_clase_anterior?: string | null
+          id_quiz?: string
         }
         Relationships: [
           {
-            foreignKeyName: "recomendaciones_id_clase_anterior_fkey"
-            columns: ["id_clase_anterior"]
+            foreignKeyName: "recomendaciones_id_quiz_fkey"
+            columns: ["id_quiz"]
             isOneToOne: false
-            referencedRelation: "clases"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "recomendaciones_id_clase_fkey"
-            columns: ["id_clase"]
-            isOneToOne: false
-            referencedRelation: "clases"
+            referencedRelation: "quizzes"
             referencedColumns: ["id"]
           },
         ]

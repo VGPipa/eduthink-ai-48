@@ -801,38 +801,48 @@ export function useMetricasPOST(grupoId: string | null, filtros?: { materiaId?: 
 }
 
 // Hook para obtener recomendaciones de un salón/clase
-export function useRecomendacionesSalon(grupoId: string | null, filtros?: { claseId?: string }) {
+export function useRecomendacionesSalon(grupoId: string | null, filtros?: { quizId?: string }) {
   return useQuery({
     queryKey: ['recomendaciones-salon', grupoId, filtros],
     queryFn: async (): Promise<RecomendacionSalon[]> => {
       if (!grupoId) return [];
 
       // Obtener clases del grupo
-      let clasesQuery = supabase
+      const { data: clases } = await supabase
         .from('clases')
         .select('id')
         .eq('id_grupo', grupoId);
 
-      if (filtros?.claseId) {
-        clasesQuery = clasesQuery.eq('id', filtros.claseId);
-      }
-
-      const { data: clases } = await clasesQuery;
       const claseIds = clases?.map(c => c.id) || [];
 
       if (claseIds.length === 0) return [];
 
+      // Obtener quizzes de esas clases
+      let quizzesQuery = supabase
+        .from('quizzes')
+        .select('id')
+        .in('id_clase', claseIds);
+
+      if (filtros?.quizId) {
+        quizzesQuery = quizzesQuery.eq('id', filtros.quizId);
+      }
+
+      const { data: quizzes } = await quizzesQuery;
+      const quizIds = quizzes?.map(q => q.id) || [];
+
+      if (quizIds.length === 0) return [];
+
       // Obtener recomendaciones
       const { data: recomendaciones } = await supabase
         .from('recomendaciones')
-        .select('id, contenido, aplicada')
-        .in('id_clase', claseIds)
+        .select('id, contenido')
+        .in('id_quiz', quizIds)
         .order('created_at', { ascending: false })
         .limit(5);
 
       return recomendaciones?.map(r => ({
         id: r.id,
-        tipo: r.aplicada ? 'practica' as const : 'refuerzo' as const,
+        tipo: 'refuerzo' as const,
         titulo: r.contenido?.split('.')[0]?.replace('[DEMO]', '').trim() || 'Recomendación',
         descripcion: r.contenido?.replace('[DEMO]', '').trim() || '',
       })) || [];

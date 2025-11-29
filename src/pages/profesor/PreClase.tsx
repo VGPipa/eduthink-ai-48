@@ -6,11 +6,9 @@ import { Badge } from '@/components/ui/badge';
 import { useClases } from '@/hooks/useClases';
 import { useQuizzes } from '@/hooks/useQuizzes';
 import { useRecomendaciones } from '@/hooks/useRecomendaciones';
-import { useGuiasClase } from '@/hooks/useGuias';
 import { supabase } from '@/integrations/supabase/client';
-import type { Json } from '@/integrations/supabase/types';
 import { processQuizResponses } from '@/lib/ai/generate';
-import { Loader2, ChevronLeft, Send, Brain, CheckCircle2, AlertCircle, Users } from 'lucide-react';
+import { Loader2, ChevronLeft, Send, Brain, CheckCircle2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
@@ -27,11 +25,8 @@ export default function PreClase() {
   const { quizzes: quizzesPre, publishQuiz } = useQuizzes(selectedClaseId, 'previo');
   const quizPre = quizzesPre[0];
   
-  // Get recomendaciones for selected clase
-  const { recomendaciones, createRecomendacion, aplicarRecomendacion } = useRecomendaciones(selectedClaseId);
-  
-  // Get guias for selected clase
-  const { createGuiaVersion } = useGuiasClase(selectedClaseId);
+  // Get recomendaciones for selected quiz
+  const { recomendaciones, createRecomendacion } = useRecomendaciones(quizPre?.id);
 
   // Get respuestas for quiz PRE
   const [respuestas, setRespuestas] = useState<any[]>([]);
@@ -159,9 +154,8 @@ export default function PreClase() {
       // Save recomendaciones to DB
       for (const rec of resultado.recomendaciones) {
         await createRecomendacion.mutateAsync({
-          id_clase: selectedClaseId!,
-          contenido: rec.contenido,
-          aplicada: false
+          id_quiz: quizPre.id,
+          contenido: rec.contenido
         });
       }
 
@@ -181,53 +175,6 @@ export default function PreClase() {
     }
   };
 
-  const handleAplicarRecomendacion = async (recomendacionId: string) => {
-    if (!selectedClaseId || !quizPre) return;
-
-    try {
-      // Mark recomendacion as applied
-      await aplicarRecomendacion.mutateAsync({
-        id: recomendacionId,
-        id_clase: selectedClaseId
-      });
-
-      // Get current guia version
-      const { data: clase } = await supabase
-        .from('clases')
-        .select('id_guia_version_actual')
-        .eq('id', selectedClaseId)
-        .single();
-
-      if (clase?.id_guia_version_actual) {
-        const { data: guiaActual } = await supabase
-          .from('guias_clase_versiones')
-          .select('*')
-          .eq('id', clase.id_guia_version_actual)
-          .single();
-
-        if (guiaActual) {
-          // Create new version with recommendations applied
-          await createGuiaVersion.mutateAsync({
-            id_clase: selectedClaseId,
-            objetivos: guiaActual.objetivos,
-            estructura: guiaActual.estructura,
-            contenido: guiaActual.contenido,
-            preguntas_socraticas: guiaActual.preguntas_socraticas,
-            generada_ia: true,
-            estado: 'borrador'
-          });
-        }
-      }
-
-      toast({ title: 'Recomendación aplicada', description: 'Nueva versión de guía creada' });
-    } catch (error: any) {
-      toast({
-        title: 'Error',
-        description: 'Error al aplicar recomendación: ' + error.message,
-        variant: 'destructive'
-      });
-    }
-  };
 
   // Load respuestas when quiz is selected and published
   useEffect(() => {
@@ -420,30 +367,9 @@ export default function PreClase() {
                         {recomendaciones.map((rec) => (
                           <div
                             key={rec.id}
-                            className={`p-4 rounded-lg border ${
-                              rec.aplicada ? 'bg-success/10 border-success/20' : 'bg-muted/50'
-                            }`}
+                            className="p-4 rounded-lg border bg-muted/50"
                           >
-                            <div className="flex items-start justify-between mb-2">
-                              <div className="flex-1">
-                                <p className="text-sm">{rec.contenido}</p>
-                              </div>
-                              {rec.aplicada ? (
-                                <Badge variant="default" className="ml-2">
-                                  <CheckCircle2 className="w-3 h-3 mr-1" />
-                                  Aplicada
-                                </Badge>
-                              ) : (
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => handleAplicarRecomendacion(rec.id)}
-                                  className="ml-2"
-                                >
-                                  Aplicar
-                                </Button>
-                              )}
-                            </div>
+                            <p className="text-sm">{rec.contenido}</p>
                           </div>
                         ))}
                       </div>
