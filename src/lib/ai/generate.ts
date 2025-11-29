@@ -38,11 +38,7 @@ export interface GuiaClaseData {
 export interface GenerateGuiaClaseInput {
   tema: string;
   contexto: string;
-  metodologias: string[];
-  objetivo: string;
   recursos?: string[];
-  adaptaciones?: string[];
-  // Additional context data
   grado?: string;
   seccion?: string;
   numeroEstudiantes?: number;
@@ -101,21 +97,15 @@ export interface ProcessQuizResponseData {
  * 
  * @param tema - Topic name
  * @param contexto - Context about the class/group
- * @param metodologias - Teaching methodologies to use
- * @param objetivo - Specific objective for this session
  * @param recursos - Available resources
- * @param adaptaciones - Special adaptations needed
- * @param additionalData - Optional additional context (grado, seccion, etc.)
+ * @param opciones - Optional additional context (grado, seccion, etc.)
  * @returns Generated guide data aligned with CNEB
  */
 export async function generateGuiaClase(
   tema: string,
   contexto: string,
-  metodologias: string[],
-  objetivo: string,
-  recursos?: string[],
-  adaptaciones?: string[],
-  additionalData?: {
+  recursos: string[],
+  opciones?: {
     grado?: string;
     seccion?: string;
     numeroEstudiantes?: number;
@@ -128,15 +118,12 @@ export async function generateGuiaClase(
       body: {
         tema,
         contexto,
-        metodologias,
-        objetivo,
         recursos: recursos || [],
-        adaptaciones: adaptaciones || [],
-        grado: additionalData?.grado,
-        seccion: additionalData?.seccion,
-        numeroEstudiantes: additionalData?.numeroEstudiantes,
-        duracion: additionalData?.duracion,
-        area: additionalData?.area
+        grado: opciones?.grado,
+        seccion: opciones?.seccion,
+        numeroEstudiantes: opciones?.numeroEstudiantes,
+        duracion: opciones?.duracion,
+        area: opciones?.area
       }
     });
 
@@ -145,81 +132,18 @@ export async function generateGuiaClase(
       throw new Error(error.message || 'Error al generar la guía');
     }
 
+    // Check if the response contains an error
+    if (data?.error) {
+      throw new Error(data.error);
+    }
+
     return data as GuiaClaseData;
   } catch (error) {
     console.error('Error in generateGuiaClase:', error);
-    // Fallback to mock data if Edge Function fails
-    return generateGuiaClaseMock(tema, contexto, metodologias, objetivo, recursos, adaptaciones);
+    throw error; // Re-throw to let UI handle the error
   }
 }
 
-/**
- * Fallback mock implementation for when Edge Function is unavailable
- */
-function generateGuiaClaseMock(
-  tema: string,
-  contexto: string,
-  metodologias: string[],
-  objetivo: string,
-  recursos?: string[],
-  adaptaciones?: string[]
-): GuiaClaseData {
-  const objetivos = [
-    objetivo || `Comprender los conceptos fundamentales de ${tema}`,
-    `Aplicar conocimientos de ${tema} en situaciones prácticas`,
-    'Desarrollar pensamiento crítico mediante análisis y reflexión'
-  ];
-
-  const estructura = [
-    {
-      tiempo: '10 min',
-      actividad: 'Inicio - Motivación',
-      descripcion: `Activación de conocimientos previos sobre ${tema} mediante preguntas socráticas y presentación de la situación significativa`
-    },
-    {
-      tiempo: '25 min',
-      actividad: 'Desarrollo - Exploración',
-      descripcion: `Explicación de conceptos clave de ${tema} con ejemplos prácticos y trabajo guiado`
-    },
-    {
-      tiempo: '15 min',
-      actividad: 'Desarrollo - Práctica',
-      descripcion: metodologias.includes('colaborativo') 
-        ? `Resolución de ejercicios en grupos pequeños sobre ${tema}`
-        : `Resolución de ejercicios individuales sobre ${tema}`
-    },
-    {
-      tiempo: '5 min',
-      actividad: 'Cierre - Metacognición',
-      descripcion: 'Reflexión metacognitiva, preguntas de verificación y conexión con la próxima sesión'
-    }
-  ];
-
-  const preguntasSocraticas = [
-    `¿Qué patrones observas en los ejemplos de ${tema}?`,
-    `¿Cómo podrías verificar si tu respuesta es correcta?`,
-    `¿En qué situaciones de la vida real podrías aplicar este conocimiento sobre ${tema}?`,
-    `¿Qué preguntas te surgen después de trabajar con ${tema}?`
-  ];
-
-  return {
-    objetivos,
-    estructura,
-    preguntasSocraticas,
-    recursos: recursos || [],
-    adaptaciones: adaptaciones || [],
-    situacionSignificativa: `[MOCK] Reto relacionado con ${tema} que conecta con la vida del estudiante`,
-    competencia: '[MOCK] Competencia del área curricular',
-    desempeno: '[MOCK] Desempeño específico del grado',
-    enfoqueTransversal: 'Enfoque de búsqueda de la excelencia',
-    habilidadesSigloXXI: ['Pensamiento crítico', 'Creatividad', 'Colaboración'],
-    evaluacion: {
-      evidencias: ['Participación activa', 'Resolución de ejercicios', 'Reflexión escrita'],
-      criterios: ['Identifica conceptos clave', 'Aplica procedimientos', 'Argumenta sus respuestas'],
-      instrumento: 'Lista de cotejo'
-    }
-  };
-}
 
 /**
  * Generates quiz questions (PRE or POST) using AI

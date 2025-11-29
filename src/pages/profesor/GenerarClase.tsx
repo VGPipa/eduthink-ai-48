@@ -88,10 +88,7 @@ export default function GenerarClase() {
   const [formData, setFormData] = useState({
     fecha: '',
     duracion: 55,
-    objetivo: '',
-    metodologias: [] as string[],
     recursos: [] as string[],
-    adaptaciones: [] as string[],
     contexto: '',
     temaPersonalizado: '' // For extraordinaria mode
   });
@@ -343,10 +340,7 @@ export default function GenerarClase() {
     setFormData({
       fecha: new Date().toISOString().split('T')[0],
       duracion: 55,
-      objetivo: '',
-      metodologias: [],
       recursos: [],
-      adaptaciones: [],
       contexto: '',
       temaPersonalizado: ''
     });
@@ -412,7 +406,6 @@ export default function GenerarClase() {
       fecha_programada: formData.fecha || new Date().toISOString().split('T')[0],
       duracion_minutos: formData.duracion,
       contexto: formData.contexto,
-      metodologia: formData.metodologias.join(', '),
     });
 
     setClaseData(nuevaClase);
@@ -460,17 +453,13 @@ export default function GenerarClase() {
         id: clase.id,
         estado: 'generando_clase',
         contexto: formData.contexto,
-        metodologia: formData.metodologias.join(', ')
       });
 
       // Generate guide with AI, passing additional context data
       const guia = await generateGuiaClase(
         temaNombre,
         formData.contexto,
-        formData.metodologias,
-        formData.objetivo,
         formData.recursos,
-        formData.adaptaciones,
         {
           grado: grupoData?.grado,
           seccion: grupoData?.seccion,
