@@ -98,7 +98,7 @@ export default function ApoderadoDashboard() {
     <div className="space-y-6 animate-fade-in">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold">¡Hola, {user?.nombre}!</h1>
+        <h1 className="text-2xl font-bold">¡Hola!</h1>
         <p className="text-muted-foreground">
           Aquí puedes seguir el progreso educativo de tus hijos
         </p>

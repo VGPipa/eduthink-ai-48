@@ -1,112 +1,97 @@
-import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
-import { User, UserRole, AuthContextType, SignupData } from '@/types/auth';
+import React, { createContext, useContext, useEffect, useState } from 'react';
+import { User, Session } from '@supabase/supabase-js';
+import { supabase } from '@/integrations/supabase/client';
+
+interface AuthContextType {
+  user: User | null;
+  session: Session | null;
+  signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
+  signUp: (email: string, password: string) => Promise<{ error: Error | null }>;
+  signOut: () => Promise<void>;
+  loading: boolean;
+  isLoading: boolean;
+  logout: () => Promise<void>;
+}
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Mock data for demo
-const MOCK_USERS: Record<string, User & { password: string }> = {
-  'admin@eduthink.com': {
-    id: '1',
-    email: 'admin@eduthink.com',
-    nombre: 'Carlos',
-    apellido: 'Administrador',
-    rol: 'admin',
-    password: 'admin123'
-  },
-  'profesor@eduthink.com': {
-    id: '2',
-    email: 'profesor@eduthink.com',
-    nombre: 'María',
-    apellido: 'García',
-    rol: 'profesor',
-    password: 'profesor123'
-  },
-  'alumno@eduthink.com': {
-    id: '3',
-    email: 'alumno@eduthink.com',
-    nombre: 'Juan',
-    apellido: 'Pérez',
-    rol: 'alumno',
-    password: 'alumno123'
-  },
-  'apoderado@eduthink.com': {
-    id: '4',
-    email: 'apoderado@eduthink.com',
-    nombre: 'Ana',
-    apellido: 'Martínez',
-    rol: 'apoderado',
-    password: 'apoderado123'
-  }
-};
-
-export function AuthProvider({ children }: { children: React.ReactNode }) {
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [session, setSession] = useState<Session | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check for stored user session
-    const storedUser = localStorage.getItem('eduthink_user');
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-    }
-    setIsLoading(false);
+    // Set up auth state listener FIRST
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        setSession(session);
+        setUser(session?.user ?? null);
+        setLoading(false);
+      }
+    );
+
+    // THEN check for existing session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+      setLoading(false);
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
-  const login = useCallback(async (email: string, password: string) => {
-    setIsLoading(true);
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 800));
-    
-    const mockUser = MOCK_USERS[email];
-    if (mockUser && mockUser.password === password) {
-      const { password: _, ...userData } = mockUser;
-      setUser(userData);
-      localStorage.setItem('eduthink_user', JSON.stringify(userData));
-    } else {
-      throw new Error('Credenciales inválidas');
+  const signIn = async (email: string, password: string) => {
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      return { error };
+    } catch (error) {
+      return { error: error as Error };
     }
-    setIsLoading(false);
-  }, []);
+  };
 
-  const signup = useCallback(async (data: SignupData) => {
-    setIsLoading(true);
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 800));
-    
-    if (MOCK_USERS[data.email]) {
-      setIsLoading(false);
-      throw new Error('El correo ya está registrado');
+  const signUp = async (email: string, password: string) => {
+    try {
+      const redirectUrl = `${window.location.origin}/`;
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: redirectUrl,
+        },
+      });
+      return { error };
+    } catch (error) {
+      return { error: error as Error };
     }
-    
-    const newUser: User = {
-      id: Date.now().toString(),
-      email: data.email,
-      nombre: data.nombre,
-      apellido: data.apellido,
-      rol: data.rol
-    };
-    
-    setUser(newUser);
-    localStorage.setItem('eduthink_user', JSON.stringify(newUser));
-    setIsLoading(false);
-  }, []);
+  };
 
-  const logout = useCallback(() => {
-    setUser(null);
-    localStorage.removeItem('eduthink_user');
-  }, []);
+  const signOut = async () => {
+    await supabase.auth.signOut();
+  };
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, login, signup, logout }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      session, 
+      signIn, 
+      signUp, 
+      signOut, 
+      loading,
+      isLoading: loading,
+      logout: signOut
+    }}>
       {children}
     </AuthContext.Provider>
   );
-}
+};
 
-export function useAuth() {
+export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
-}
+};

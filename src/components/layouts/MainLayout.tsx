@@ -54,7 +54,8 @@ export function MainLayout() {
 
   if (!user) return null;
 
-  const navigation = NAVIGATION[user.rol];
+  // For now, use admin navigation until roles are properly set up
+  const navigation = NAVIGATION['admin'];
 
   const handleLogout = () => {
     logout();
@@ -110,11 +111,11 @@ export function MainLayout() {
         <div className="p-4 border-t border-sidebar-border">
           <div className="flex items-center gap-3 mb-4">
             <div className="w-10 h-10 rounded-full gradient-bg flex items-center justify-center text-primary-foreground font-semibold">
-              {user.nombre[0]}{user.apellido[0]}
+              {user.email?.[0].toUpperCase()}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium truncate">{user.nombre} {user.apellido}</p>
-              <p className="text-xs text-muted-foreground capitalize">{user.rol}</p>
+              <p className="text-sm font-medium truncate">{user.email}</p>
+              <p className="text-xs text-muted-foreground">Usuario</p>
             </div>
           </div>
           <Button 
