@@ -108,7 +108,7 @@ export default function ProfesorDashboard() {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold">¡Hola, {user?.nombre}!</h1>
+          <h1 className="text-2xl font-bold">¡Hola!</h1>
           <p className="text-muted-foreground">
             Aquí tienes un resumen de tu actividad docente
           </p>
