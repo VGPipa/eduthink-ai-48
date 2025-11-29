@@ -1,31 +1,31 @@
 import { useState } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { useUserRole, AppRole } from '@/hooks/useUserRole';
 import { Logo } from '@/components/Logo';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import {
   LayoutDashboard,
-  BookOpen,
   Users,
   Settings,
   BarChart3,
   CalendarDays,
-  GraduationCap,
   Sparkles,
   LogOut,
   Menu,
   X,
-  UserCircle,
   School,
-  ClipboardList
+  ClipboardList,
+  Loader2
 } from 'lucide-react';
 
-const NAVIGATION = {
+const NAVIGATION: Record<AppRole, Array<{ to: string; icon: typeof LayoutDashboard; label: string }>> = {
   admin: [
     { to: '/admin/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
     { to: '/admin/plan-anual', icon: CalendarDays, label: 'Plan Anual' },
     { to: '/admin/asignaciones', icon: ClipboardList, label: 'Asignaciones' },
+    { to: '/admin/usuarios', icon: Users, label: 'Usuarios' },
     { to: '/admin/configuracion', icon: Settings, label: 'Configuración' }
   ],
   profesor: [
@@ -49,13 +49,22 @@ const NAVIGATION = {
 
 export function MainLayout() {
   const { user, logout } = useAuth();
+  const { primaryRole, roleLabel, isLoading: roleLoading } = useUserRole();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   if (!user) return null;
 
-  // For now, use admin navigation until roles are properly set up
-  const navigation = NAVIGATION['admin'];
+  if (roleLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  // Use role-based navigation, fallback to admin if no role
+  const navigation = primaryRole ? NAVIGATION[primaryRole] : NAVIGATION['admin'];
 
   const handleLogout = () => {
     logout();
@@ -115,7 +124,7 @@ export function MainLayout() {
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium truncate">{user.email}</p>
-              <p className="text-xs text-muted-foreground">Usuario</p>
+              <p className="text-xs text-muted-foreground">{roleLabel}</p>
             </div>
           </div>
           <Button 
