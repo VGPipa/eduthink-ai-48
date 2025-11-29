@@ -10,6 +10,8 @@ export interface PlanAnual {
   descripcion: string | null;
   created_at: string;
   created_by: string;
+  id_institucion: string | null;
+  plan_base: boolean;
 }
 
 export interface PlanWithStats extends PlanAnual {
@@ -75,13 +77,21 @@ export function usePlanes(anio?: string) {
   });
 
   const createPlan = useMutation({
-    mutationFn: async (plan: Omit<PlanAnual, 'id' | 'created_at' | 'created_by'>) => {
+    mutationFn: async (plan: { grado: string; anio: string; descripcion?: string; estado: 'activo' | 'borrador' | 'pendiente' }) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('No user found');
 
       const { data, error } = await supabase
         .from('planes_anuales')
-        .insert([{ ...plan, created_by: user.id }])
+        .insert([{ 
+          grado: plan.grado,
+          anio: plan.anio,
+          descripcion: plan.descripcion || null,
+          estado: plan.estado,
+          created_by: user.id,
+          id_institucion: '00000000-0000-0000-0000-000000000001', // Demo institution
+          plan_base: false
+        }])
         .select()
         .single();
 
