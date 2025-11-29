@@ -6,55 +6,46 @@ import type { Database } from '@/integrations/supabase/types';
 type RecomendacionRow = Database['public']['Tables']['recomendaciones']['Row'];
 
 export interface Recomendacion extends RecomendacionRow {
-  clase?: {
+  quiz?: {
     id: string;
-    tema?: {
-      nombre: string;
-    };
+    tipo: string;
+    titulo: string;
   };
 }
 
 export interface CreateRecomendacionData {
-  id_clase: string;
-  id_clase_anterior?: string;
+  id_quiz: string;
   contenido: string;
-  aplicada?: boolean;
 }
 
-export function useRecomendaciones(claseId?: string) {
+export function useRecomendaciones(quizId?: string) {
   const queryClient = useQueryClient();
 
   const { data: recomendaciones = [], isLoading, error } = useQuery({
-    queryKey: ['recomendaciones', claseId],
+    queryKey: ['recomendaciones', quizId],
     queryFn: async () => {
-      if (!claseId) return [];
+      if (!quizId) return [];
 
       const { data, error } = await supabase
         .from('recomendaciones')
         .select(`
           *,
-          clase:clases!recomendaciones_id_clase_fkey(
-            id,
-            tema:temas_plan(nombre)
-          )
+          quiz:quizzes(id, tipo, titulo)
         `)
-        .eq('id_clase', claseId)
+        .eq('id_quiz', quizId)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
       return (data || []) as Recomendacion[];
     },
-    enabled: !!claseId,
+    enabled: !!quizId,
   });
 
   const createRecomendacion = useMutation({
     mutationFn: async (data: CreateRecomendacionData) => {
       const { data: recomendacion, error } = await supabase
         .from('recomendaciones')
-        .insert([{
-          ...data,
-          aplicada: data.aplicada || false,
-        }])
+        .insert([data])
         .select()
         .single();
 
@@ -62,34 +53,11 @@ export function useRecomendaciones(claseId?: string) {
       return recomendacion as Recomendacion;
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['recomendaciones', variables.id_clase] });
+      queryClient.invalidateQueries({ queryKey: ['recomendaciones', variables.id_quiz] });
       toast.success('Recomendación creada');
     },
     onError: (error: any) => {
       toast.error('Error al crear la recomendación: ' + error.message);
-    },
-  });
-
-  const aplicarRecomendacion = useMutation({
-    mutationFn: async ({ id, id_clase }: { id: string; id_clase: string }) => {
-      // Mark as applied
-      const { data, error } = await supabase
-        .from('recomendaciones')
-        .update({ aplicada: true })
-        .eq('id', id)
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data as Recomendacion;
-    },
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['recomendaciones', variables.id_clase] });
-      queryClient.invalidateQueries({ queryKey: ['clases'] });
-      toast.success('Recomendación aplicada');
-    },
-    onError: (error: any) => {
-      toast.error('Error al aplicar la recomendación: ' + error.message);
     },
   });
 
@@ -98,7 +66,5 @@ export function useRecomendaciones(claseId?: string) {
     isLoading,
     error,
     createRecomendacion,
-    aplicarRecomendacion,
   };
 }
-
