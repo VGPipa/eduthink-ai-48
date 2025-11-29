@@ -562,6 +562,54 @@ export type Database = {
         }
         Relationships: []
       }
+      nota_alumno: {
+        Row: {
+          created_at: string
+          estado: Database["public"]["Enums"]["estado_respuesta"] | null
+          fecha_envio: string | null
+          fecha_inicio: string | null
+          id: string
+          id_alumno: string
+          id_quiz: string
+          puntaje_total: number | null
+        }
+        Insert: {
+          created_at?: string
+          estado?: Database["public"]["Enums"]["estado_respuesta"] | null
+          fecha_envio?: string | null
+          fecha_inicio?: string | null
+          id?: string
+          id_alumno: string
+          id_quiz: string
+          puntaje_total?: number | null
+        }
+        Update: {
+          created_at?: string
+          estado?: Database["public"]["Enums"]["estado_respuesta"] | null
+          fecha_envio?: string | null
+          fecha_inicio?: string | null
+          id?: string
+          id_alumno?: string
+          id_quiz?: string
+          puntaje_total?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "nota_alumno_id_alumno_fkey"
+            columns: ["id_alumno"]
+            isOneToOne: false
+            referencedRelation: "alumnos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nota_alumno_id_quiz_fkey"
+            columns: ["id_quiz"]
+            isOneToOne: false
+            referencedRelation: "quizzes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       periodos_academicos: {
         Row: {
           activo: boolean | null
@@ -838,92 +886,44 @@ export type Database = {
           },
         ]
       }
-      respuestas_alumno: {
-        Row: {
-          created_at: string
-          estado: Database["public"]["Enums"]["estado_respuesta"] | null
-          fecha_envio: string | null
-          fecha_inicio: string | null
-          id: string
-          id_alumno: string
-          id_quiz: string
-          puntaje_total: number | null
-        }
-        Insert: {
-          created_at?: string
-          estado?: Database["public"]["Enums"]["estado_respuesta"] | null
-          fecha_envio?: string | null
-          fecha_inicio?: string | null
-          id?: string
-          id_alumno: string
-          id_quiz: string
-          puntaje_total?: number | null
-        }
-        Update: {
-          created_at?: string
-          estado?: Database["public"]["Enums"]["estado_respuesta"] | null
-          fecha_envio?: string | null
-          fecha_inicio?: string | null
-          id?: string
-          id_alumno?: string
-          id_quiz?: string
-          puntaje_total?: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "respuestas_alumno_id_alumno_fkey"
-            columns: ["id_alumno"]
-            isOneToOne: false
-            referencedRelation: "alumnos"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "respuestas_alumno_id_quiz_fkey"
-            columns: ["id_quiz"]
-            isOneToOne: false
-            referencedRelation: "quizzes"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       respuestas_detalle: {
         Row: {
           es_correcta: boolean | null
           id: string
+          id_nota_alumno: string
           id_pregunta: string
-          id_respuesta_alumno: string
           respuesta_alumno: string | null
           tiempo_segundos: number | null
         }
         Insert: {
           es_correcta?: boolean | null
           id?: string
+          id_nota_alumno: string
           id_pregunta: string
-          id_respuesta_alumno: string
           respuesta_alumno?: string | null
           tiempo_segundos?: number | null
         }
         Update: {
           es_correcta?: boolean | null
           id?: string
+          id_nota_alumno?: string
           id_pregunta?: string
-          id_respuesta_alumno?: string
           respuesta_alumno?: string | null
           tiempo_segundos?: number | null
         }
         Relationships: [
           {
+            foreignKeyName: "respuestas_detalle_id_nota_alumno_fkey"
+            columns: ["id_nota_alumno"]
+            isOneToOne: false
+            referencedRelation: "nota_alumno"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "respuestas_detalle_id_pregunta_fkey"
             columns: ["id_pregunta"]
             isOneToOne: false
             referencedRelation: "preguntas"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "respuestas_detalle_id_respuesta_alumno_fkey"
-            columns: ["id_respuesta_alumno"]
-            isOneToOne: false
-            referencedRelation: "respuestas_alumno"
             referencedColumns: ["id"]
           },
         ]

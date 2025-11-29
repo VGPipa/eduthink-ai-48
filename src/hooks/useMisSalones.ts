@@ -111,9 +111,9 @@ export function useMetricasGlobalesProfesor() {
         return { promedioGeneral: 0, totalAlumnos, quizzesCompletados: 0, participacion: 0 };
       }
 
-      // Obtener respuestas de los alumnos
+      // Obtener notas de los alumnos
       const { data: respuestas } = await supabase
-        .from('respuestas_alumno')
+        .from('nota_alumno')
         .select('id_alumno, puntaje_total, estado')
         .in('id_quiz', quizIds)
         .in('id_alumno', alumnoIds);
@@ -260,9 +260,9 @@ export function useAsignacionesProfesor() {
           continue;
         }
 
-        // Obtener respuestas de los alumnos
+        // Obtener notas de los alumnos
         const { data: respuestas } = await supabase
-          .from('respuestas_alumno')
+          .from('nota_alumno')
           .select('id_alumno, puntaje_total, estado')
           .in('id_quiz', quizIds)
           .in('id_alumno', alumnoIds);
@@ -514,9 +514,9 @@ export function useResumenSalon(grupoId: string | null, filtros?: { materiaId?: 
         return { participacion: 0, alumnosRequierenRefuerzo: 0, porcentajeRefuerzo: 0, desempeno: 0 };
       }
 
-      // Obtener respuestas de los alumnos del grupo
+      // Obtener notas de los alumnos del grupo
       const { data: respuestas } = await supabase
-        .from('respuestas_alumno')
+        .from('nota_alumno')
         .select('id_alumno, puntaje_total, estado')
         .in('id_quiz', quizIds)
         .in('id_alumno', alumnoIds);
@@ -616,9 +616,9 @@ export function useMetricasPRE(grupoId: string | null, filtros?: { materiaId?: s
         return { participacion: 0, nivelPreparacion: 0, conceptosRefuerzo: [] };
       }
 
-      // Obtener respuestas PRE
+      // Obtener notas PRE
       const { data: respuestasPre } = await supabase
-        .from('respuestas_alumno')
+        .from('nota_alumno')
         .select('id, id_alumno, puntaje_total, estado')
         .in('id_quiz', quizPreIds)
         .in('id_alumno', alumnoIds);
@@ -647,7 +647,7 @@ export function useMetricasPRE(grupoId: string | null, filtros?: { materiaId?: s
             concepto
           )
         `)
-        .in('id_respuesta_alumno', respuestaIds);
+        .in('id_nota_alumno', respuestaIds);
 
       // Agrupar por concepto
       const conceptoStats = new Map<string, { correctas: number; total: number }>();
@@ -738,9 +738,9 @@ export function useMetricasPOST(grupoId: string | null, filtros?: { materiaId?: 
         return { participacion: 0, nivelDesempeno: 0, alumnosRefuerzo: [] };
       }
 
-      // Obtener respuestas POST
+      // Obtener notas POST
       const { data: respuestasPost } = await supabase
-        .from('respuestas_alumno')
+        .from('nota_alumno')
         .select('id_alumno, puntaje_total, estado')
         .in('id_quiz', quizPostIds)
         .in('id_alumno', alumnoIds);
