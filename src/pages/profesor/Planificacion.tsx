@@ -22,7 +22,6 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Checkbox } from '@/components/ui/checkbox';
 import { StatCard } from '@/components/dashboard/StatCard';
 import { useTemasProfesor } from '@/hooks/useTemasProfesor';
 import { useProfesor } from '@/hooks/useProfesor';
@@ -57,14 +56,6 @@ const estadoConfig: Record<string, { label: string; variant: 'default' | 'second
   completado: { label: 'Completado', variant: 'default' }
 };
 
-const METODOLOGIAS = [
-  { id: 'socratico', nombre: 'Método Socrático' },
-  { id: 'casos', nombre: 'Aprendizaje basado en casos' },
-  { id: 'problemas', nombre: 'Aprendizaje basado en problemas' },
-  { id: 'colaborativo', nombre: 'Aprendizaje colaborativo' },
-  { id: 'reflexivo', nombre: 'Pensamiento reflexivo' }
-];
-
 export default function Planificacion() {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -78,8 +69,7 @@ export default function Planificacion() {
   const [selectedTema, setSelectedTema] = useState<{ id: string; nombre: string; cursoId: string } | null>(null);
   const [iniciarTemaForm, setIniciarTemaForm] = useState({
     totalSesiones: 4,
-    contextoGrupo: '',
-    metodologias: [] as string[]
+    contextoGrupo: ''
   });
   const [programarSesionForm, setProgramarSesionForm] = useState({
     grupoId: '',
@@ -121,19 +111,17 @@ export default function Planificacion() {
         id_profesor: profesorId,
         total_sesiones: iniciarTemaForm.totalSesiones,
         contexto_grupo: iniciarTemaForm.contextoGrupo,
-        metodologias: iniciarTemaForm.metodologias,
         estructura_sesiones: estructuraSesiones,
         contenido: {
           total_sesiones: iniciarTemaForm.totalSesiones,
-          contexto_grupo: iniciarTemaForm.contextoGrupo,
-          metodologias: iniciarTemaForm.metodologias
+          contexto_grupo: iniciarTemaForm.contextoGrupo
         }
       });
 
       toast({ title: 'Tema iniciado', description: 'Guía maestra creada exitosamente' });
       setIniciarTemaDialogOpen(false);
       setSelectedTema(null);
-      setIniciarTemaForm({ totalSesiones: 4, contextoGrupo: '', metodologias: [] });
+      setIniciarTemaForm({ totalSesiones: 4, contextoGrupo: '' });
     } catch (error: any) {
       toast({
         title: 'Error',
@@ -418,31 +406,6 @@ export default function Planificacion() {
                 onChange={(e) => setIniciarTemaForm({ ...iniciarTemaForm, contextoGrupo: e.target.value })}
                 rows={4}
               />
-            </div>
-
-            <div className="space-y-2">
-              <Label>Metodologías preferidas</Label>
-              <div className="grid sm:grid-cols-2 gap-2">
-                {METODOLOGIAS.map((met) => (
-                  <div
-                    key={met.id}
-                    className={`flex items-center space-x-2 p-2 rounded-lg border cursor-pointer transition-colors ${
-                      iniciarTemaForm.metodologias.includes(met.id)
-                        ? 'border-primary bg-primary/5'
-                        : 'border-border hover:border-primary/50'
-                    }`}
-                    onClick={() => {
-                      const newMet = iniciarTemaForm.metodologias.includes(met.id)
-                        ? iniciarTemaForm.metodologias.filter(m => m !== met.id)
-                        : [...iniciarTemaForm.metodologias, met.id];
-                      setIniciarTemaForm({ ...iniciarTemaForm, metodologias: newMet });
-                    }}
-                  >
-                    <Checkbox checked={iniciarTemaForm.metodologias.includes(met.id)} />
-                    <span className="text-sm">{met.nombre}</span>
-                  </div>
-                ))}
-              </div>
             </div>
           </div>
           <DialogFooter>
