@@ -57,9 +57,9 @@ export default function GenerarClase() {
   const [searchParams] = useSearchParams();
   const { toast } = useToast();
   const { profesorId } = useProfesor();
-  const { asignaciones, grupos, cursos } = useAsignaciones('2024');
+  const { asignaciones, grupos, cursos } = useAsignaciones('2025');
   const { clases, isLoading: clasesLoading, deleteClase } = useClases();
-  const { cursosConTemas } = useTemasProfesor('2024');
+  const { cursosConTemas } = useTemasProfesor('2025');
   
   const temaId = searchParams.get('tema');
   const materiaId = searchParams.get('materia');

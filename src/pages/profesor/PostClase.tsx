@@ -187,11 +187,10 @@ export default function PostClase() {
       });
 
       // Save metricas_clase
-      const promedio = respuestas.length > 0
+      const respuestasConPuntaje = respuestas.filter(r => r.puntaje_total !== null);
+      const promedio = respuestasConPuntaje.length > 0
         ? Math.round(
-            respuestas
-              .filter(r => r.puntaje_total !== null)
-              .reduce((sum, r) => sum + (r.puntaje_total || 0), 0) / respuestas.length
+            respuestasConPuntaje.reduce((sum, r) => sum + (r.puntaje_total || 0), 0) / respuestasConPuntaje.length
           )
         : 0;
 

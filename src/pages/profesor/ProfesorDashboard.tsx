@@ -41,7 +41,7 @@ export default function ProfesorDashboard() {
   
   // Get real data
   const { clases, isLoading: clasesLoading } = useClases();
-  const { asignaciones, cursos: materias, grupos } = useAsignaciones('2024');
+  const { asignaciones, cursos, grupos } = useAsignaciones('2025');
   
   // Calculate stats
   const stats = useMemo(() => {
@@ -61,11 +61,11 @@ export default function ProfesorDashboard() {
     
     return {
       clasesEstaSemana,
-      cursosAsignados: materias.length,
+      cursosAsignados: cursos.length,
       totalEstudiantes,
       promedioGeneral: 0 // TODO: Calculate from quiz results
     };
-  }, [clases, materias, grupos]);
+  }, [clases, cursos, grupos]);
   
   // Filter classes by state
   const clasesEnPreparacion = useMemo(() => {

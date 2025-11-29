@@ -38,7 +38,7 @@ export interface CursoConTemas {
 }
 
 export function useTemasProfesor(anioEscolar?: string) {
-  const { cursos: materias, grupos, asignaciones, isLoading: asignacionesLoading } = useAsignaciones(anioEscolar);
+  const { cursos, grupos, asignaciones, isLoading: asignacionesLoading } = useAsignaciones(anioEscolar);
   // Get all clases (we'll filter by grupoIds after fetching)
   const { clases: allClases, isLoading: clasesLoading } = useClases();
   
@@ -47,32 +47,32 @@ export function useTemasProfesor(anioEscolar?: string) {
   const clases = allClases.filter(c => grupoIds.includes(c.id_grupo));
 
   const { data: cursosConTemas = [], isLoading, error } = useQuery({
-    queryKey: ['temas-profesor', materias.map(m => m?.id).filter(Boolean), anioEscolar],
+    queryKey: ['temas-profesor', cursos.map(c => c?.id).filter(Boolean), anioEscolar],
     queryFn: async () => {
-      if (!materias || materias.length === 0) return [];
+      if (!cursos || cursos.length === 0) return [];
 
-      const materiaIds = materias.map(m => m?.id).filter(Boolean) as string[];
+      const cursoIds = cursos.map(c => c?.id).filter(Boolean) as string[];
 
-      // Get all temas for assigned materias
+      // Get all temas for assigned cursos
       const { data: temas, error: temasError } = await supabase
         .from('temas_plan')
         .select('*')
-        .in('curso_plan_id', materiaIds)
+        .in('curso_plan_id', cursoIds)
         .order('bimestre', { ascending: true, nullsFirst: true })
         .order('orden', { ascending: true });
 
       if (temasError) throw temasError;
 
-      // Group temas by materia and calculate progress
+      // Group temas by curso and calculate progress
       const cursosMap = new Map<string, CursoConTemas>();
 
-      materias.forEach((materia) => {
-        if (!materia) return;
+      cursos.forEach((curso) => {
+        if (!curso) return;
 
-        const temasMateria = (temas || []).filter(t => t.curso_plan_id === materia.id);
+        const temasCurso = (temas || []).filter(t => t.curso_plan_id === curso.id);
 
         // Calculate progress for each tema
-        const temasConProgreso: TemaConProgreso[] = temasMateria.map((tema) => {
+        const temasConProgreso: TemaConProgreso[] = temasCurso.map((tema) => {
           // Find clases for this tema
           const clasesTema = clases.filter(c => c.id_tema === tema.id);
 
@@ -107,9 +107,9 @@ export function useTemasProfesor(anioEscolar?: string) {
             progreso,
             sesiones,
             materia: {
-              id: materia.id,
-              nombre: materia.nombre,
-              horas_semanales: materia.horas_semanales,
+              id: curso.id,
+              nombre: curso.nombre,
+              horas_semanales: curso.horas_semanales,
             },
           } as TemaConProgreso;
         });
@@ -121,15 +121,15 @@ export function useTemasProfesor(anioEscolar?: string) {
           ? Math.round((temasCompletados / totalTemas) * 100)
           : 0;
 
-        // Find grupo for this materia (from asignaciones)
-        // Get the first asignacion for this materia to find its grupo
-        const asignacionMateria = asignaciones.find(a => a.id_materia === materia.id);
-        const grupo = asignacionMateria?.grupo;
+        // Find grupo for this curso (from asignaciones)
+        // Get the first asignacion for this curso to find its grupo
+        const asignacionCurso = asignaciones.find(a => a.id_curso === curso.id);
+        const grupo = asignacionCurso?.grupo;
 
-        cursosMap.set(materia.id, {
-          id: materia.id,
-          nombre: materia.nombre,
-          horas_semanales: materia.horas_semanales,
+        cursosMap.set(curso.id, {
+          id: curso.id,
+          nombre: curso.nombre,
+          horas_semanales: curso.horas_semanales,
           progreso: progresoCurso,
           temas: temasConProgreso,
           grupo: grupo || undefined,
@@ -138,7 +138,7 @@ export function useTemasProfesor(anioEscolar?: string) {
 
       return Array.from(cursosMap.values());
     },
-    enabled: !asignacionesLoading && materias.length > 0,
+    enabled: !asignacionesLoading && cursos.length > 0,
   });
 
   // Helper: Get temas grouped by bimestre

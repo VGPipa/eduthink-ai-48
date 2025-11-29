@@ -69,8 +69,8 @@ export default function Planificacion() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { profesorId } = useProfesor();
-  const { asignaciones, grupos } = useAsignaciones('2024');
-  const { cursosConTemas, isLoading, stats, getTemasByBimestre } = useTemasProfesor('2024');
+  const { asignaciones, grupos } = useAsignaciones('2025');
+  const { cursosConTemas, isLoading, stats, getTemasByBimestre } = useTemasProfesor('2025');
   const { createClase } = useClases();
   const [selectedCurso, setSelectedCurso] = useState<string | null>(null);
   const [iniciarTemaDialogOpen, setIniciarTemaDialogOpen] = useState(false);

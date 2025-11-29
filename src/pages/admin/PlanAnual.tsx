@@ -27,7 +27,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 
-const ANIOS_ESCOLARES = ['2024', '2025', '2026'];
+const ANIOS_ESCOLARES = ['2025', '2026', '2027'];
 
 const GRADOS = [
   '1ro Primaria',
@@ -40,7 +40,7 @@ const GRADOS = [
 
 export default function PlanAnual() {
   const navigate = useNavigate();
-  const [selectedAnio, setSelectedAnio] = useState('2024');
+  const [selectedAnio, setSelectedAnio] = useState('2025');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingPlan, setEditingPlan] = useState<any>(null);
   const [selectedGrado, setSelectedGrado] = useState<string | null>(null);
