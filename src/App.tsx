@@ -4,6 +4,8 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import { useUserRole } from "@/hooks/useUserRole";
+import { Loader2 } from "lucide-react";
 
 // Pages
 import Auth from "./pages/Auth";
@@ -18,6 +20,7 @@ import PlanAnual from "./pages/admin/PlanAnual";
 import PlanAnualDetalle from "./pages/admin/PlanAnualDetalle";
 import Asignaciones from "./pages/admin/Asignaciones";
 import Configuracion from "./pages/admin/Configuracion";
+import Usuarios from "./pages/admin/Usuarios";
 
 // Profesor pages
 import ProfesorDashboard from "./pages/profesor/ProfesorDashboard";
@@ -44,7 +47,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="animate-pulse text-primary">Cargando...</div>
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     );
   }
@@ -57,8 +60,25 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 }
 
 function RoleRedirect() {
-  // For now, redirect all authenticated users to admin dashboard
-  return <Navigate to="/admin/dashboard" replace />;
+  const { primaryRole, isLoading } = useUserRole();
+  
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+  
+  const dashboardRoutes = {
+    admin: '/admin/dashboard',
+    profesor: '/profesor/dashboard',
+    alumno: '/alumno/dashboard',
+    apoderado: '/apoderado/dashboard',
+  };
+  
+  const redirectTo = primaryRole ? dashboardRoutes[primaryRole] : '/admin/dashboard';
+  return <Navigate to={redirectTo} replace />;
 }
 
 function AppRoutes() {
@@ -79,6 +99,7 @@ function AppRoutes() {
         <Route path="/admin/plan-anual" element={<PlanAnual />} />
         <Route path="/admin/plan-anual/:id" element={<PlanAnualDetalle />} />
         <Route path="/admin/asignaciones" element={<Asignaciones />} />
+        <Route path="/admin/usuarios" element={<Usuarios />} />
         <Route path="/admin/configuracion" element={<Configuracion />} />
         
         {/* Profesor routes */}
