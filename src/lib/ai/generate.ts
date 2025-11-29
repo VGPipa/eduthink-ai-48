@@ -7,9 +7,10 @@
  * - Processing quiz responses and generating recommendations
  * - Generating personalized feedback (retroalimentaciones)
  * 
- * Currently uses mock implementations, but structured to easily integrate
- * with real AI APIs (OpenAI, Anthropic, etc.)
+ * Uses Supabase Edge Functions with OpenAI for real AI generation.
  */
+
+import { supabase } from '@/integrations/supabase/client';
 
 export interface GuiaClaseData {
   objetivos: string[];
@@ -21,6 +22,32 @@ export interface GuiaClaseData {
   preguntasSocraticas: string[];
   recursos?: string[];
   adaptaciones?: string[];
+  // Additional CNEB data from AI
+  situacionSignificativa?: string;
+  competencia?: string;
+  desempeno?: string;
+  enfoqueTransversal?: string;
+  habilidadesSigloXXI?: string[];
+  evaluacion?: {
+    evidencias: string[];
+    criterios: string[];
+    instrumento: string;
+  };
+}
+
+export interface GenerateGuiaClaseInput {
+  tema: string;
+  contexto: string;
+  metodologias: string[];
+  objetivo: string;
+  recursos?: string[];
+  adaptaciones?: string[];
+  // Additional context data
+  grado?: string;
+  seccion?: string;
+  numeroEstudiantes?: number;
+  duracion?: number;
+  area?: string;
 }
 
 export interface QuizQuestion {
@@ -70,7 +97,7 @@ export interface ProcessQuizResponseData {
 }
 
 /**
- * Generates a class guide using AI
+ * Generates a class guide using AI via Supabase Edge Function
  * 
  * @param tema - Topic name
  * @param contexto - Context about the class/group
@@ -78,7 +105,8 @@ export interface ProcessQuizResponseData {
  * @param objetivo - Specific objective for this session
  * @param recursos - Available resources
  * @param adaptaciones - Special adaptations needed
- * @returns Generated guide data
+ * @param additionalData - Optional additional context (grado, seccion, etc.)
+ * @returns Generated guide data aligned with CNEB
  */
 export async function generateGuiaClase(
   tema: string,
@@ -86,13 +114,56 @@ export async function generateGuiaClase(
   metodologias: string[],
   objetivo: string,
   recursos?: string[],
-  adaptaciones?: string[]
+  adaptaciones?: string[],
+  additionalData?: {
+    grado?: string;
+    seccion?: string;
+    numeroEstudiantes?: number;
+    duracion?: number;
+    area?: string;
+  }
 ): Promise<GuiaClaseData> {
-  // TODO: Replace with actual AI API call
-  // For now, return mock data based on inputs
-  
-  await new Promise(resolve => setTimeout(resolve, 1500)); // Simulate API delay
+  try {
+    const { data, error } = await supabase.functions.invoke('generate-guia-clase', {
+      body: {
+        tema,
+        contexto,
+        metodologias,
+        objetivo,
+        recursos: recursos || [],
+        adaptaciones: adaptaciones || [],
+        grado: additionalData?.grado,
+        seccion: additionalData?.seccion,
+        numeroEstudiantes: additionalData?.numeroEstudiantes,
+        duracion: additionalData?.duracion,
+        area: additionalData?.area
+      }
+    });
 
+    if (error) {
+      console.error('Error calling generate-guia-clase:', error);
+      throw new Error(error.message || 'Error al generar la guía');
+    }
+
+    return data as GuiaClaseData;
+  } catch (error) {
+    console.error('Error in generateGuiaClase:', error);
+    // Fallback to mock data if Edge Function fails
+    return generateGuiaClaseMock(tema, contexto, metodologias, objetivo, recursos, adaptaciones);
+  }
+}
+
+/**
+ * Fallback mock implementation for when Edge Function is unavailable
+ */
+function generateGuiaClaseMock(
+  tema: string,
+  contexto: string,
+  metodologias: string[],
+  objetivo: string,
+  recursos?: string[],
+  adaptaciones?: string[]
+): GuiaClaseData {
   const objetivos = [
     objetivo || `Comprender los conceptos fundamentales de ${tema}`,
     `Aplicar conocimientos de ${tema} en situaciones prácticas`,
@@ -102,25 +173,25 @@ export async function generateGuiaClase(
   const estructura = [
     {
       tiempo: '10 min',
-      actividad: 'Introducción',
-      descripcion: `Activación de conocimientos previos sobre ${tema} mediante preguntas socráticas`
+      actividad: 'Inicio - Motivación',
+      descripcion: `Activación de conocimientos previos sobre ${tema} mediante preguntas socráticas y presentación de la situación significativa`
     },
     {
-      tiempo: '20 min',
-      actividad: 'Desarrollo conceptual',
-      descripcion: `Explicación de conceptos clave de ${tema} con ejemplos prácticos`
+      tiempo: '25 min',
+      actividad: 'Desarrollo - Exploración',
+      descripcion: `Explicación de conceptos clave de ${tema} con ejemplos prácticos y trabajo guiado`
     },
     {
-      tiempo: '20 min',
-      actividad: 'Práctica guiada',
+      tiempo: '15 min',
+      actividad: 'Desarrollo - Práctica',
       descripcion: metodologias.includes('colaborativo') 
         ? `Resolución de ejercicios en grupos pequeños sobre ${tema}`
         : `Resolución de ejercicios individuales sobre ${tema}`
     },
     {
       tiempo: '5 min',
-      actividad: 'Cierre',
-      descripcion: 'Reflexión metacognitiva y preguntas de verificación'
+      actividad: 'Cierre - Metacognición',
+      descripcion: 'Reflexión metacognitiva, preguntas de verificación y conexión con la próxima sesión'
     }
   ];
 
@@ -136,7 +207,17 @@ export async function generateGuiaClase(
     estructura,
     preguntasSocraticas,
     recursos: recursos || [],
-    adaptaciones: adaptaciones || []
+    adaptaciones: adaptaciones || [],
+    situacionSignificativa: `[MOCK] Reto relacionado con ${tema} que conecta con la vida del estudiante`,
+    competencia: '[MOCK] Competencia del área curricular',
+    desempeno: '[MOCK] Desempeño específico del grado',
+    enfoqueTransversal: 'Enfoque de búsqueda de la excelencia',
+    habilidadesSigloXXI: ['Pensamiento crítico', 'Creatividad', 'Colaboración'],
+    evaluacion: {
+      evidencias: ['Participación activa', 'Resolución de ejercicios', 'Reflexión escrita'],
+      criterios: ['Identifica conceptos clave', 'Aplica procedimientos', 'Argumenta sus respuestas'],
+      instrumento: 'Lista de cotejo'
+    }
   };
 }
 

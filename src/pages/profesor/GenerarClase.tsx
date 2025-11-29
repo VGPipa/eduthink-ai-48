@@ -463,19 +463,26 @@ export default function GenerarClase() {
         metodologia: formData.metodologias.join(', ')
       });
 
-      // Generate guide with AI
+      // Generate guide with AI, passing additional context data
       const guia = await generateGuiaClase(
         temaNombre,
         formData.contexto,
         formData.metodologias,
         formData.objetivo,
         formData.recursos,
-        formData.adaptaciones
+        formData.adaptaciones,
+        {
+          grado: grupoData?.grado,
+          seccion: grupoData?.seccion,
+          numeroEstudiantes: grupoData?.cantidad_alumnos,
+          duracion: formData.duracion,
+          area: cursoData?.nombre
+        }
       );
 
       setGuiaGenerada(guia);
 
-      // Save to DB
+      // Save to DB with extended content
       const guiaVersion = await createGuiaVersion.mutateAsync({
         id_clase: clase.id,
         objetivos: guia.objetivos.join('\n'),
@@ -484,7 +491,14 @@ export default function GenerarClase() {
           objetivos: guia.objetivos,
           estructura: guia.estructura,
           recursos: guia.recursos,
-          adaptaciones: guia.adaptaciones
+          adaptaciones: guia.adaptaciones,
+          // Extended CNEB data
+          situacionSignificativa: guia.situacionSignificativa,
+          competencia: guia.competencia,
+          desempeno: guia.desempeno,
+          enfoqueTransversal: guia.enfoqueTransversal,
+          habilidadesSigloXXI: guia.habilidadesSigloXXI,
+          evaluacion: guia.evaluacion
         },
         preguntas_socraticas: guia.preguntasSocraticas,
         generada_ia: true,
