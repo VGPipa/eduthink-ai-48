@@ -699,6 +699,7 @@ export type Database = {
         Row: {
           concepto: string | null
           created_at: string
+          feedback_acierto: string | null
           id: string
           id_quiz: string
           justificacion: string | null
@@ -711,6 +712,7 @@ export type Database = {
         Insert: {
           concepto?: string | null
           created_at?: string
+          feedback_acierto?: string | null
           id?: string
           id_quiz: string
           justificacion?: string | null
@@ -723,6 +725,7 @@ export type Database = {
         Update: {
           concepto?: string | null
           created_at?: string
+          feedback_acierto?: string | null
           id?: string
           id_quiz?: string
           justificacion?: string | null
@@ -814,6 +817,7 @@ export type Database = {
         Row: {
           created_at: string
           estado: Database["public"]["Enums"]["estado_quiz"] | null
+          estimulo_aprendizaje: Json | null
           fecha_disponible: string | null
           fecha_limite: string | null
           id: string
@@ -826,6 +830,7 @@ export type Database = {
         Insert: {
           created_at?: string
           estado?: Database["public"]["Enums"]["estado_quiz"] | null
+          estimulo_aprendizaje?: Json | null
           fecha_disponible?: string | null
           fecha_limite?: string | null
           id?: string
@@ -838,6 +843,7 @@ export type Database = {
         Update: {
           created_at?: string
           estado?: Database["public"]["Enums"]["estado_quiz"] | null
+          estimulo_aprendizaje?: Json | null
           fecha_disponible?: string | null
           fecha_limite?: string | null
           id?: string

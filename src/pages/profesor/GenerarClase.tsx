@@ -16,7 +16,7 @@ import { useGuiasClase } from '@/hooks/useGuias';
 import { useQuizzes } from '@/hooks/useQuizzes';
 import { useTemasProfesor } from '@/hooks/useTemasProfesor';
 import { supabase } from '@/integrations/supabase/client';
-import { generateGuiaClase, generateQuiz, type GuiaClaseData, type QuizData } from '@/lib/ai/generate';
+import { generateGuiaClase, generateQuiz, generateQuizPre, type GuiaClaseData, type QuizData, type QuizPreData } from '@/lib/ai/generate';
 import {
   Sparkles,
   ChevronLeft,
@@ -39,7 +39,9 @@ import {
   Clock,
   Lightbulb,
   User,
-  Rocket
+  Rocket,
+  ImageIcon,
+  Eye
 } from 'lucide-react';
 
 const STEPS = [
@@ -102,7 +104,7 @@ export default function GenerarClase() {
 
   // Generated content
   const [guiaGenerada, setGuiaGenerada] = useState<GuiaClaseData | null>(null);
-  const [quizPreData, setQuizPreData] = useState<QuizData | null>(null);
+  const [quizPreData, setQuizPreData] = useState<QuizPreData | null>(null);
   const [quizPostData, setQuizPostData] = useState<QuizData | null>(null);
   
   // Hooks for DB operations
@@ -534,31 +536,53 @@ export default function GenerarClase() {
     try {
       const clase = claseData || await ensureClase();
 
-      // Generate quiz with AI
-      const quiz = await generateQuiz('previo', temaNombre, 'intermedio', 5);
+      // Extract info from guia for better quiz generation
+      const guiaInfo = guiaGenerada ? {
+        objetivo_cognitivo: guiaGenerada.objetivos_aprendizaje.cognitivo,
+        objetivo_humano: guiaGenerada.objetivos_aprendizaje.humano,
+        desempeno_cneb: guiaGenerada.curriculo_peru.desempeno_precisado,
+        actividad_inicio: guiaGenerada.secuencia_didactica.find(s => s.fase === 'INICIO')?.actividad_detallada
+      } : undefined;
+
+      // Generate quiz with AI using new edge function
+      const quiz = await generateQuizPre({
+        tema: temaNombre,
+        contexto: formData.contexto,
+        grado: grupoData?.grado,
+        area: cursoData?.nombre,
+        guia_clase: guiaInfo
+      });
+      
       setQuizPreData(quiz);
 
-      // Save quiz to DB
+      // Save quiz to DB with estimulo_aprendizaje
       const quizCreated = await createQuiz.mutateAsync({
         id_clase: clase.id,
         tipo: 'previo',
-        titulo: quiz.titulo,
-        instrucciones: quiz.instrucciones,
-        tiempo_limite: 20,
-        estado: 'borrador'
+        titulo: `Micro-Learning: ${quiz.estimulo_aprendizaje.titulo}`,
+        instrucciones: `Lee atentamente el siguiente contenido y responde las preguntas de comprensión. Tiempo estimado de lectura: ${quiz.estimulo_aprendizaje.tiempo_lectura_estimado}`,
+        tiempo_limite: 15,
+        estado: 'borrador',
+        estimulo_aprendizaje: quiz.estimulo_aprendizaje
       });
 
-      // Save questions directly to DB
-      const preguntasToInsert = quiz.preguntas.map(p => ({
-        id_quiz: quizCreated.id,
-        texto_pregunta: p.texto,
-        concepto: p.concepto,
-        tipo: 'opcion_multiple' as const,
-        opciones: p.opciones || [],
-        respuesta_correcta: p.respuesta_correcta,
-        justificacion: p.justificacion,
-        orden: p.orden
-      }));
+      // Save questions with new structure
+      const preguntasToInsert = quiz.quiz_comprension.map((p, index) => {
+        // Find the correct option text
+        const opcionCorrecta = p.opciones.find(o => o.es_correcta)?.texto || '';
+        
+        return {
+          id_quiz: quizCreated.id,
+          texto_pregunta: p.pregunta,
+          concepto: p.concepto,
+          tipo: 'opcion_multiple' as const,
+          opciones: p.opciones,
+          respuesta_correcta: opcionCorrecta,
+          justificacion: p.feedback_error,
+          feedback_acierto: p.feedback_acierto,
+          orden: index + 1
+        };
+      });
 
       const { error: preguntasError } = await supabase
         .from('preguntas')
@@ -566,7 +590,7 @@ export default function GenerarClase() {
 
       if (preguntasError) throw preguntasError;
 
-      toast({ title: 'Quiz PRE generado', description: `${quiz.preguntas.length} preguntas diagnósticas listas` });
+      toast({ title: 'Quiz PRE generado', description: `Micro-Learning con ${quiz.quiz_comprension.length} preguntas de comprensión` });
     } catch (error: any) {
       toast({
         title: 'Error',
@@ -574,7 +598,7 @@ export default function GenerarClase() {
         variant: 'destructive'
       });
     } finally {
-    setIsGenerating(false);
+      setIsGenerating(false);
     }
   };
 
@@ -1364,9 +1388,9 @@ export default function GenerarClase() {
             <div className="space-y-6">
               <div className="text-center py-4">
                 <ClipboardList className="w-12 h-12 text-info mx-auto mb-4" />
-                <h2 className="text-lg font-semibold mb-2">Evaluación Diagnóstica (PRE)</h2>
+                <h2 className="text-lg font-semibold mb-2">Micro-Learning (PRE)</h2>
                 <p className="text-muted-foreground mb-6">
-                  Quiz corto para evaluar conocimientos previos (máx. 3 preguntas)
+                  Estímulo de aprendizaje + 3 preguntas de comprensión
                 </p>
                   {!quizPreData && (
                   <Button variant="gradient" size="lg" onClick={handleGenerarQuizPre} disabled={isGenerating}>
@@ -1378,7 +1402,7 @@ export default function GenerarClase() {
                     ) : (
                       <>
                         <Sparkles className="w-5 h-5" />
-                        Generar Quiz PRE
+                        Generar Micro-Learning
                       </>
                     )}
                   </Button>
@@ -1386,23 +1410,100 @@ export default function GenerarClase() {
               </div>
 
                 {quizPreData && (
-                <div className="space-y-4 animate-fade-in">
+                <div className="space-y-6 animate-fade-in">
+                  {/* Success Banner */}
                   <div className="p-4 rounded-lg bg-success/10 border border-success/20">
                     <div className="flex items-center gap-2 text-success">
                       <CheckCircle2 className="w-5 h-5" />
-                        <span className="font-medium">Quiz PRE generado ({quizPreData.preguntas.length} preguntas)</span>
+                      <span className="font-medium">Micro-Learning generado ({quizPreData.quiz_comprension.length} preguntas)</span>
                     </div>
                   </div>
 
-                    {quizPreData.preguntas.map((pregunta, i) => (
-                    <div key={i} className="p-4 rounded-lg border">
-                      <div className="flex items-center gap-2 mb-2">
-                        <Badge variant="outline" className="text-xs">{pregunta.tipo}</Badge>
-                        <span className="text-sm text-muted-foreground">Pregunta {i + 1}</span>
-                      </div>
-                      <p className="font-medium">{pregunta.texto}</p>
+                  {/* Estímulo de Aprendizaje */}
+                  <div className="p-6 rounded-xl bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-200">
+                    <div className="flex items-center gap-2 mb-4">
+                      <Eye className="w-5 h-5 text-blue-600" />
+                      <h3 className="font-bold text-blue-900">Estímulo de Aprendizaje</h3>
+                      <Badge variant="secondary" className="ml-auto flex items-center gap-1">
+                        <Clock className="w-3 h-3" />
+                        {quizPreData.estimulo_aprendizaje.tiempo_lectura_estimado}
+                      </Badge>
                     </div>
-                  ))}
+                    
+                    <h4 className="text-xl font-semibold text-blue-800 mb-3">
+                      {quizPreData.estimulo_aprendizaje.titulo}
+                    </h4>
+                    
+                    <p className="text-blue-900/80 leading-relaxed mb-4">
+                      {quizPreData.estimulo_aprendizaje.texto_contenido}
+                    </p>
+                    
+                    {/* Visual description placeholder */}
+                    <div className="p-4 rounded-lg bg-white/60 border border-blue-200">
+                      <div className="flex items-center gap-2 text-blue-600 mb-2">
+                        <ImageIcon className="w-4 h-4" />
+                        <span className="text-sm font-medium">Descripción Visual (para generar imagen)</span>
+                      </div>
+                      <p className="text-sm text-blue-800/70 italic">
+                        {quizPreData.estimulo_aprendizaje.descripcion_visual}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Preguntas de Comprensión */}
+                  <div>
+                    <h4 className="font-semibold mb-4 flex items-center gap-2">
+                      <ClipboardList className="w-4 h-4 text-primary" />
+                      Preguntas de Comprensión
+                    </h4>
+                    <div className="space-y-4">
+                      {quizPreData.quiz_comprension.map((pregunta, i) => (
+                        <div key={i} className="p-4 rounded-lg border bg-card">
+                          <div className="flex items-center gap-2 mb-3">
+                            <span className="w-6 h-6 rounded-full bg-primary/10 text-primary text-sm font-bold flex items-center justify-center">
+                              {i + 1}
+                            </span>
+                            <Badge variant="outline" className="text-xs">{pregunta.concepto}</Badge>
+                          </div>
+                          
+                          <p className="font-medium mb-3">{pregunta.pregunta}</p>
+                          
+                          <div className="space-y-2 mb-4">
+                            {pregunta.opciones.map((opcion, j) => (
+                              <div 
+                                key={j} 
+                                className={`p-2 rounded-lg text-sm flex items-center gap-2 ${
+                                  opcion.es_correcta 
+                                    ? 'bg-success/10 border border-success/30 text-success' 
+                                    : 'bg-muted/50 border border-muted'
+                                }`}
+                              >
+                                {opcion.es_correcta && <CheckCircle2 className="w-4 h-4" />}
+                                <span>{opcion.texto}</span>
+                              </div>
+                            ))}
+                          </div>
+                          
+                          <div className="grid md:grid-cols-2 gap-3">
+                            <div className="p-3 rounded-lg bg-success/5 border border-success/20">
+                              <span className="text-xs font-medium text-success flex items-center gap-1 mb-1">
+                                <CheckCircle2 className="w-3 h-3" />
+                                Feedback Acierto
+                              </span>
+                              <p className="text-sm text-success/80">{pregunta.feedback_acierto}</p>
+                            </div>
+                            <div className="p-3 rounded-lg bg-destructive/5 border border-destructive/20">
+                              <span className="text-xs font-medium text-destructive flex items-center gap-1 mb-1">
+                                <Info className="w-3 h-3" />
+                                Feedback Error
+                              </span>
+                              <p className="text-sm text-destructive/80">{pregunta.feedback_error}</p>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 </div>
               )}
             </div>
