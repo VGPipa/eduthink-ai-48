@@ -171,13 +171,21 @@ export function AsignacionDialog({ open, onOpenChange, onSuccess, editData }: As
                           <SelectValue placeholder="Selecciona un profesor" />
                         </SelectTrigger>
                       </FormControl>
-                      <SelectContent>
-                        {profesores.map((profesor) => (
-                          <SelectItem key={profesor.id} value={profesor.id}>
-                            {profesor.profile?.nombre} {profesor.profile?.apellido}
-                            {profesor.especialidad && ` - ${profesor.especialidad}`}
-                          </SelectItem>
-                        ))}
+                      <SelectContent className="bg-background z-50">
+                        {profesores.length === 0 ? (
+                          <div className="px-2 py-3 text-sm text-muted-foreground text-center">
+                            No hay profesores disponibles
+                          </div>
+                        ) : (
+                          profesores.map((profesor) => (
+                            <SelectItem key={profesor.id} value={profesor.id}>
+                              {profesor.profile?.nombre && profesor.profile?.apellido 
+                                ? `${profesor.profile.nombre} ${profesor.profile.apellido}`
+                                : profesor.profile?.email || 'Profesor sin nombre'}
+                              {profesor.especialidad && ` - ${profesor.especialidad}`}
+                            </SelectItem>
+                          ))
+                        )}
                       </SelectContent>
                     </Select>
                     <FormMessage />
