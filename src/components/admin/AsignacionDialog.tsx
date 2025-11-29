@@ -34,8 +34,8 @@ import { Loader2 } from 'lucide-react';
 
 const asignacionSchema = z.object({
   id_profesor: z.string().min(1, 'Selecciona un profesor'),
-  id_materia: z.string().min(1, 'Selecciona una materia'),
-  grado: z.string().min(1, 'Selecciona una clase'),
+  id_materia: z.string().min(1, 'Selecciona un curso'),
+  grado: z.string().min(1, 'Selecciona un grado'),
   seccion: z.string().min(1, 'Selecciona una sección'),
   anio_escolar: z.string().min(1, 'Selecciona un año escolar'),
 });
@@ -180,7 +180,7 @@ export function AsignacionDialog({ open, onOpenChange, onSuccess, editData }: As
           <DialogDescription>
             {editData 
               ? 'Actualiza los datos de la asignación'
-              : 'Asigna un profesor a una materia y grupo'}
+              : 'Asigna un profesor a un curso y grupo'}
           </DialogDescription>
         </DialogHeader>
 
@@ -230,17 +230,17 @@ export function AsignacionDialog({ open, onOpenChange, onSuccess, editData }: As
                 name="id_materia"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Materia</FormLabel>
+                    <FormLabel>Curso</FormLabel>
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Selecciona una materia" />
+                          <SelectValue placeholder="Selecciona un curso" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {materias.map((materia) => (
-                          <SelectItem key={materia.id} value={materia.id}>
-                            {materia.nombre}
+                        {materias.map((curso) => (
+                          <SelectItem key={curso.id} value={curso.id}>
+                            {curso.nombre}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -256,7 +256,7 @@ export function AsignacionDialog({ open, onOpenChange, onSuccess, editData }: As
                   name="grado"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Clase</FormLabel>
+                      <FormLabel>Grado</FormLabel>
                       <Select onValueChange={field.onChange} defaultValue={field.value}>
                         <FormControl>
                           <SelectTrigger>
@@ -289,13 +289,13 @@ export function AsignacionDialog({ open, onOpenChange, onSuccess, editData }: As
                       >
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder={gradoSeleccionado ? "Selecciona" : "Primero selecciona una clase"} />
+                            <SelectValue placeholder={gradoSeleccionado ? "Selecciona" : "Primero selecciona un grado"} />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent className="bg-background z-50">
                           {seccionesFiltradas.length === 0 ? (
                             <div className="px-2 py-3 text-sm text-muted-foreground text-center">
-                              No hay secciones disponibles para esta clase
+                              No hay secciones disponibles para este grado
                             </div>
                           ) : (
                             seccionesFiltradas.map((seccion) => (

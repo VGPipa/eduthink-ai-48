@@ -5,11 +5,11 @@ import { useProfesor } from './useProfesor';
 export interface Asignacion {
   id: string;
   id_profesor: string;
-  id_materia: string;
+  id_materia: string; // Se mantiene el nombre del campo de BD
   id_grupo: string;
   anio_escolar: string;
   created_at: string;
-  // Joined data
+  // Joined data - Estandarizado: curso (no materia)
   grupo?: {
     id: string;
     nombre: string;
@@ -17,7 +17,7 @@ export interface Asignacion {
     seccion: string | null;
     cantidad_alumnos: number | null;
   };
-  materia?: {
+  curso?: {
     id: string;
     nombre: string;
     horas_semanales: number | null;
@@ -37,7 +37,7 @@ export function useAsignaciones(anioEscolar?: string) {
         .select(`
           *,
           grupo:grupos(id, nombre, grado, seccion, cantidad_alumnos),
-          materia:cursos_plan(id, nombre, horas_semanales)
+          curso:cursos_plan(id, nombre, horas_semanales)
         `)
         .eq('id_profesor', profesorId);
 
@@ -52,7 +52,7 @@ export function useAsignaciones(anioEscolar?: string) {
       return (data || []).map((item: any) => ({
         ...item,
         grupo: Array.isArray(item.grupo) ? item.grupo[0] : item.grupo,
-        materia: Array.isArray(item.materia) ? item.materia[0] : item.materia,
+        curso: Array.isArray(item.curso) ? item.curso[0] : item.curso,
       })) as Asignacion[];
     },
     enabled: !!profesorId,
@@ -65,31 +65,30 @@ export function useAsignaciones(anioEscolar?: string) {
       g && index === self.findIndex(gr => gr?.id === g.id)
     ) as Asignacion['grupo'][];
 
-  // Helper: Get unique materias
-  const materias = asignaciones
-    .map(a => a.materia)
-    .filter((m, index, self) => 
-      m && index === self.findIndex(mat => mat?.id === m.id)
-    ) as Asignacion['materia'][];
+  // Helper: Get unique cursos (estandarizado)
+  const cursos = asignaciones
+    .map(a => a.curso)
+    .filter((c, index, self) => 
+      c && index === self.findIndex(cur => cur?.id === c.id)
+    ) as Asignacion['curso'][];
 
   // Helper: Get asignaciones for a specific grupo
   const getAsignacionesByGrupo = (grupoId: string) => {
     return asignaciones.filter(a => a.id_grupo === grupoId);
   };
 
-  // Helper: Get asignaciones for a specific materia
-  const getAsignacionesByMateria = (materiaId: string) => {
-    return asignaciones.filter(a => a.id_materia === materiaId);
+  // Helper: Get asignaciones for a specific curso
+  const getAsignacionesByCurso = (cursoId: string) => {
+    return asignaciones.filter(a => a.id_materia === cursoId);
   };
 
   return {
     asignaciones,
     grupos,
-    materias,
+    cursos,
     isLoading,
     error,
     getAsignacionesByGrupo,
-    getAsignacionesByMateria,
+    getAsignacionesByCurso,
   };
 }
-

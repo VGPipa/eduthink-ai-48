@@ -184,7 +184,7 @@ export default function Planificacion() {
         numero_sesion: programarSesionForm.numeroSesion,
       });
 
-      toast({ title: 'Sesión programada', description: 'Clase creada en borrador' });
+      toast({ title: 'Clase programada', description: 'Clase creada en borrador' });
       setProgramarSesionDialogOpen(false);
       setSelectedTema(null);
       setProgramarSesionForm({ grupoId: '', numeroSesion: 1, fechaProgramada: '', duracion: 55, contexto: '' });
@@ -194,7 +194,7 @@ export default function Planificacion() {
     } catch (error: any) {
       toast({
         title: 'Error',
-        description: 'Error al programar la sesión: ' + error.message,
+        description: 'Error al programar la clase: ' + error.message,
         variant: 'destructive'
       });
     }
@@ -214,13 +214,13 @@ export default function Planificacion() {
         <div>
           <h1 className="text-2xl font-bold">Planificación Académica 2024</h1>
           <p className="text-muted-foreground">
-            Gestiona tus materias, temas y sesiones de clase
+            Gestiona tus cursos, temas y clases
           </p>
         </div>
         <Card>
           <CardContent className="p-12 text-center">
             <p className="text-muted-foreground">
-              No tienes materias asignadas. Contacta al administrador para obtener asignaciones.
+              No tienes cursos asignados. Contacta al administrador para obtener asignaciones.
             </p>
           </CardContent>
         </Card>
@@ -257,7 +257,7 @@ export default function Planificacion() {
           variant="gradient"
         />
         <StatCard
-          title="Materias asignadas"
+          title="Cursos asignados"
           value={stats.materiasAsignadas}
           icon={Calendar}
         />
@@ -469,18 +469,18 @@ export default function Planificacion() {
         </DialogContent>
       </Dialog>
 
-      {/* Dialog Programar Sesión */}
+      {/* Dialog Programar Clase */}
       <Dialog open={programarSesionDialogOpen} onOpenChange={setProgramarSesionDialogOpen}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Programar Sesión: {selectedTema?.nombre}</DialogTitle>
+            <DialogTitle>Programar Clase: {selectedTema?.nombre}</DialogTitle>
             <DialogDescription>
-              Crea una nueva sesión de clase en borrador para este tema
+              Crea una nueva clase en borrador para este tema
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label>Grupo (Salón) *</Label>
+              <Label>Grupo *</Label>
               <Select
                 value={programarSesionForm.grupoId}
                 onValueChange={(value) => setProgramarSesionForm({ ...programarSesionForm, grupoId: value })}
@@ -500,7 +500,7 @@ export default function Planificacion() {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Número de sesión *</Label>
+                <Label>Número de clase *</Label>
                 <Input
                   type="number"
                   min="1"
@@ -532,7 +532,7 @@ export default function Planificacion() {
             <div className="space-y-2">
               <Label>Contexto específico (opcional)</Label>
               <Textarea
-                placeholder="Contexto específico para esta sesión..."
+                placeholder="Contexto específico para esta clase..."
                 value={programarSesionForm.contexto}
                 onChange={(e) => setProgramarSesionForm({ ...programarSesionForm, contexto: e.target.value })}
                 rows={3}
@@ -555,7 +555,7 @@ export default function Planificacion() {
               ) : (
                 <>
                   <Calendar className="w-4 h-4 mr-2" />
-                  Programar Sesión
+                  Programar Clase
                 </>
               )}
             </Button>

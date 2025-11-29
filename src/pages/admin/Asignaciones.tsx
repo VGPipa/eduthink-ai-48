@@ -53,18 +53,18 @@ export default function Asignaciones() {
   const { asignaciones, isLoading } = useAdminAsignaciones(anioActivo?.anio_escolar);
 
   // Calculate stats from the full dataset
-  const uniqueMaterias = new Set(asignaciones.map(a => a.materia?.id).filter(Boolean)).size;
+  const uniqueCursos = new Set(asignaciones.map(a => a.curso?.id).filter(Boolean)).size;
   const uniqueGrupos = new Set(asignaciones.map(a => a.grupo?.id).filter(Boolean)).size;
 
   const filteredAsignaciones = asignaciones.filter(a => {
-    const materiaNombre = a.materia?.nombre || '';
+    const cursoNombre = a.curso?.nombre || '';
     const grupoNombre = a.grupo?.nombre || '';
     const profesorNombre = a.profesor?.profile ?
       `${a.profesor.profile.nombre} ${a.profesor.profile.apellido}` : '';
 
     const searchLower = searchQuery.toLowerCase();
     return (
-      materiaNombre.toLowerCase().includes(searchLower) ||
+      cursoNombre.toLowerCase().includes(searchLower) ||
       grupoNombre.toLowerCase().includes(searchLower) ||
       profesorNombre.toLowerCase().includes(searchLower)
     );
@@ -122,8 +122,8 @@ export default function Asignaciones() {
 
   const stats = {
     totalAsignaciones: asignaciones.length,
-    cursosCubiertos: uniqueMaterias,
-    salonesCubiertos: uniqueGrupos,
+    cursosCubiertos: uniqueCursos,
+    gruposCubiertos: uniqueGrupos,
   };
 
   return (
@@ -133,7 +133,7 @@ export default function Asignaciones() {
         <div>
           <h1 className="text-2xl font-bold">Gestión de Asignaciones</h1>
           <p className="text-muted-foreground">
-            Asigna profesores a cursos y salones
+            Asigna profesores a cursos y grupos
           </p>
         </div>
         <Button variant="gradient" onClick={handleNewAsignacion}>
@@ -155,8 +155,8 @@ export default function Asignaciones() {
           icon={BookOpen}
         />
         <StatCard
-          title="Salones cubiertos"
-          value={stats.salonesCubiertos}
+          title="Grupos cubiertos"
+          value={stats.gruposCubiertos}
           icon={GraduationCap}
           variant="gradient"
         />
@@ -169,8 +169,8 @@ export default function Asignaciones() {
             <CardTitle>Asignaciones Actuales</CardTitle>
             <div className="relative w-full md:w-64">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                placeholder="Buscar por materia, grupo o profesor..."
+                <Input
+                placeholder="Buscar por curso, grupo o profesor..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-9"
@@ -192,8 +192,8 @@ export default function Asignaciones() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Profesor</TableHead>
-                  <TableHead>Materia</TableHead>
-                  <TableHead>Clase</TableHead>
+                  <TableHead>Curso</TableHead>
+                  <TableHead>Grado</TableHead>
                   <TableHead>Sección</TableHead>
                   <TableHead>Año</TableHead>
                   <TableHead className="text-right">Acciones</TableHead>
@@ -213,7 +213,7 @@ export default function Asignaciones() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge variant="secondary">{asignacion.materia?.nombre}</Badge>
+                      <Badge variant="secondary">{asignacion.curso?.nombre}</Badge>
                     </TableCell>
                     <TableCell className="font-medium">
                       {asignacion.grupo?.grado}

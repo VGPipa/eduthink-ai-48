@@ -4,18 +4,18 @@ import { supabase } from '@/integrations/supabase/client';
 export interface AdminAsignacion {
     id: string;
     id_profesor: string;
-    id_materia: string;
+    id_materia: string; // Se mantiene el nombre del campo de BD
     id_grupo: string;
     anio_escolar: string;
     created_at: string;
-    // Joined data
+    // Joined data - Estandarizado: curso (no materia)
     grupo?: {
         id: string;
         nombre: string;
         grado: string;
         seccion: string | null;
     };
-    materia?: {
+    curso?: {
         id: string;
         nombre: string;
         horas_semanales: number | null;
@@ -40,7 +40,7 @@ export function useAdminAsignaciones(anioEscolar?: string) {
                 .select(`
           *,
           grupo:grupos(id, nombre, grado, seccion),
-          materia:cursos_plan(id, nombre, horas_semanales),
+          curso:cursos_plan(id, nombre, horas_semanales),
           profesor:profesores(id, user_id)
         `);
             const { data: rawData, error } = await query;
@@ -73,7 +73,7 @@ export function useAdminAsignaciones(anioEscolar?: string) {
             return rawData.map((item: any) => ({
                 ...item,
                 grupo: Array.isArray(item.grupo) ? item.grupo[0] : item.grupo,
-                materia: Array.isArray(item.materia) ? item.materia[0] : item.materia,
+                curso: Array.isArray(item.curso) ? item.curso[0] : item.curso,
                 profesor: item.profesor ? {
                     ...item.profesor,
                     profile: item.profesor.user_id ? profilesMap.get(item.profesor.user_id) : null

@@ -57,7 +57,7 @@ export default function GenerarClase() {
   const [searchParams] = useSearchParams();
   const { toast } = useToast();
   const { profesorId } = useProfesor();
-  const { asignaciones, grupos, materias } = useAsignaciones('2024');
+  const { asignaciones, grupos, cursos } = useAsignaciones('2024');
   const { clases, isLoading: clasesLoading, deleteClase } = useClases();
   const { cursosConTemas } = useTemasProfesor('2024');
   
@@ -71,7 +71,7 @@ export default function GenerarClase() {
   
   // Selection filters
   const [filtroTema, setFiltroTema] = useState<string>('todos');
-  const [filtroSalon, setFiltroSalon] = useState<string>('todos');
+  const [filtroGrupo, setFiltroGrupo] = useState<string>('todos');
   
   // Wizard state
   const [currentStep, setCurrentStep] = useState(1);
@@ -138,12 +138,12 @@ export default function GenerarClase() {
     if (filtroTema !== 'todos') {
       filtered = filtered.filter(s => s.id_tema === filtroTema);
     }
-    if (filtroSalon !== 'todos') {
-      filtered = filtered.filter(s => s.id_grupo === filtroSalon);
+    if (filtroGrupo !== 'todos') {
+      filtered = filtered.filter(s => s.id_grupo === filtroGrupo);
     }
     
     return filtered;
-  }, [sesionesPendientes, sesionSugerida, filtroTema, filtroSalon]);
+  }, [sesionesPendientes, sesionSugerida, filtroTema, filtroGrupo]);
 
   // Get all unique temas from sesiones for filter
   const temasDisponibles = useMemo(() => {
@@ -156,16 +156,16 @@ export default function GenerarClase() {
     return Array.from(temasMap.values());
   }, [sesionesPendientes]);
 
-  // Get all unique salones from sesiones for filter
-  const salonesDisponibles = useMemo(() => {
-    const salonesMap = new Map<string, { id: string; nombre: string }>();
+  // Get all unique grupos from clases for filter
+  const gruposDisponibles = useMemo(() => {
+    const gruposMap = new Map<string, { id: string; nombre: string }>();
     sesionesPendientes.forEach(s => {
-      if (s.grupo && !salonesMap.has(s.grupo.id)) {
+      if (s.grupo && !gruposMap.has(s.grupo.id)) {
         const nombre = s.grupo.nombre || `${s.grupo.grado}° ${s.grupo.seccion || ''}`.trim();
-        salonesMap.set(s.grupo.id, { id: s.grupo.id, nombre });
+        gruposMap.set(s.grupo.id, { id: s.grupo.id, nombre });
       }
     });
-    return Array.from(salonesMap.values());
+    return Array.from(gruposMap.values());
   }, [sesionesPendientes]);
   
   // Load initial data based on URL params
@@ -732,10 +732,10 @@ export default function GenerarClase() {
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
             <BookOpen className="w-6 h-6 text-primary" />
-            Seleccionar Sesión para Generar Clase
+            Seleccionar Clase para Generar
           </h1>
           <p className="text-muted-foreground">
-            Elige una sesión programada o crea una clase extraordinaria.
+            Elige una clase programada o crea una clase extraordinaria.
           </p>
         </div>
 
@@ -792,30 +792,30 @@ export default function GenerarClase() {
             </Select>
           </div>
           <div className="space-y-2">
-            <Label>Filtrar por Salón</Label>
-            <Select value={filtroSalon} onValueChange={setFiltroSalon}>
+            <Label>Filtrar por Grupo</Label>
+            <Select value={filtroGrupo} onValueChange={setFiltroGrupo}>
               <SelectTrigger>
-                <SelectValue placeholder="Todos los salones" />
+                <SelectValue placeholder="Todos los grupos" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="todos">Todos los salones</SelectItem>
-                {salonesDisponibles.map(salon => (
-                  <SelectItem key={salon.id} value={salon.id}>{salon.nombre}</SelectItem>
+                <SelectItem value="todos">Todos los grupos</SelectItem>
+                {gruposDisponibles.map(grupo => (
+                  <SelectItem key={grupo.id} value={grupo.id}>{grupo.nombre}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
         </div>
 
-        {/* Siguiente Sesión Sugerida */}
+        {/* Siguiente Clase Sugerida */}
         {sesionSugerida && (
           <Card className="border-orange-300 bg-orange-50">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-orange-600 font-medium">Siguiente Sesión Sugerida</p>
+                  <p className="text-sm text-orange-600 font-medium">Siguiente Clase Sugerida</p>
                   <p className="font-semibold">
-                    {sesionSugerida.tema?.nombre || 'Sin tema'} - Sesión {sesionSugerida.numero_sesion || 1}
+                    {sesionSugerida.tema?.nombre || 'Sin tema'} - Clase {sesionSugerida.numero_sesion || 1}
                   </p>
                   <div className="flex items-center gap-3 mt-1 text-sm text-muted-foreground">
                     <Badge variant="outline">{getEstadoLabel(sesionSugerida.estado)}</Badge>
@@ -837,7 +837,7 @@ export default function GenerarClase() {
           </Card>
         )}
 
-        {/* Lista de Sesiones */}
+        {/* Lista de Clases */}
         {sesionesFiltradas.length > 0 && (
           <div className="space-y-3">
             {sesionesFiltradas.map((sesion) => (
@@ -847,7 +847,7 @@ export default function GenerarClase() {
                     <div>
                       <div className="flex items-center gap-2">
                         <span className="text-sm text-muted-foreground">
-                          Sesión {sesion.numero_sesion || 1}
+                          Clase {sesion.numero_sesion || 1}
                         </span>
                         <span className="font-semibold">{sesion.tema?.nombre || 'Sin tema'}</span>
                         <Badge variant="secondary">{getEstadoLabel(sesion.estado)}</Badge>
@@ -882,7 +882,7 @@ export default function GenerarClase() {
             <CardContent className="p-8 text-center">
               <BookOpen className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
               <p className="text-muted-foreground">
-                No hay sesiones pendientes. Crea una clase extraordinaria o programa sesiones desde Planificación.
+                No hay clases pendientes. Crea una clase extraordinaria o programa clases desde Planificación.
               </p>
             </CardContent>
           </Card>
@@ -1012,16 +1012,16 @@ export default function GenerarClase() {
                         <Select 
                           value={materiaData?.id || ''} 
                           onValueChange={(value) => {
-                            const materia = materias.find(m => m?.id === value);
-                            setMateriaData(materia);
+                            const curso = cursos.find(c => c?.id === value);
+                            setMateriaData(curso);
                           }}
                         >
                           <SelectTrigger>
                             <SelectValue placeholder="Selecciona un curso" />
                           </SelectTrigger>
                           <SelectContent>
-                            {materias.filter(Boolean).map(m => (
-                              <SelectItem key={m!.id} value={m!.id}>{m!.nombre}</SelectItem>
+                            {cursos.filter(Boolean).map(c => (
+                              <SelectItem key={c!.id} value={c!.id}>{c!.nombre}</SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
@@ -1075,9 +1075,9 @@ export default function GenerarClase() {
                       </div>
                     )}
 
-                    {/* Salón */}
+                    {/* Grupo */}
                     <div className="space-y-2">
-                      <Label>Salón {isExtraordinaria && '*'}</Label>
+                      <Label>Grupo {isExtraordinaria && '*'}</Label>
                       {isExtraordinaria ? (
                         <Select 
                           value={grupoData?.id || ''} 
@@ -1087,7 +1087,7 @@ export default function GenerarClase() {
                           }}
                         >
                           <SelectTrigger>
-                            <SelectValue placeholder="Selecciona un salón" />
+                            <SelectValue placeholder="Selecciona un grupo" />
                           </SelectTrigger>
                           <SelectContent>
                             {grupos.filter(Boolean).map(g => (
