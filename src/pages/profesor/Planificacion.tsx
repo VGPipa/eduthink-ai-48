@@ -37,6 +37,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Loader2 } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 import {
   BookOpen,
   Target,
@@ -181,8 +182,6 @@ export default function Planificacion() {
         duracion_minutos: programarSesionForm.duracion,
         contexto: programarSesionForm.contexto,
         numero_sesion: programarSesionForm.numeroSesion,
-        id_guia_tema: guiaTema?.id || null,
-        estado: 'borrador'
       });
 
       toast({ title: 'Sesión programada', description: 'Clase creada en borrador' });

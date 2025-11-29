@@ -434,7 +434,7 @@ export default function PostClase() {
                               <Card key={retro.id} className="mb-3">
                                 <CardContent className="p-4">
                                   <p className="text-sm mb-3">{retro.contenido}</p>
-                                  {retro.fortalezas && retro.fortalezas.length > 0 && (
+                                  {retro.fortalezas && Array.isArray(retro.fortalezas) && retro.fortalezas.length > 0 && (
                                     <div className="mb-2">
                                       <p className="text-xs font-medium text-success mb-1">Fortalezas:</p>
                                       <ul className="text-xs text-muted-foreground list-disc list-inside">
@@ -444,7 +444,7 @@ export default function PostClase() {
                                       </ul>
                                     </div>
                                   )}
-                                  {retro.areas_mejora && retro.areas_mejora.length > 0 && (
+                                  {retro.areas_mejora && Array.isArray(retro.areas_mejora) && retro.areas_mejora.length > 0 && (
                                     <div className="mb-2">
                                       <p className="text-xs font-medium text-warning mb-1">Áreas de mejora:</p>
                                       <ul className="text-xs text-muted-foreground list-disc list-inside">
