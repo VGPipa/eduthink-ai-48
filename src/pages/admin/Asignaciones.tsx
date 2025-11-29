@@ -61,7 +61,8 @@ export default function Asignaciones() {
       id: asignacion.id,
       id_profesor: asignacion.id_profesor,
       id_materia: asignacion.id_materia,
-      id_grupo: asignacion.id_grupo,
+      grado: asignacion.grupo?.grado || '',
+      seccion: asignacion.grupo?.seccion || '',
       anio_escolar: asignacion.anio_escolar,
     });
     setDialogOpen(true);
@@ -177,7 +178,8 @@ export default function Asignaciones() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Materia</TableHead>
-                  <TableHead>Clase y Sección</TableHead>
+                  <TableHead>Clase</TableHead>
+                  <TableHead>Sección</TableHead>
                   <TableHead>Año</TableHead>
                   <TableHead className="text-right">Acciones</TableHead>
                 </TableRow>
@@ -189,7 +191,10 @@ export default function Asignaciones() {
                       <Badge variant="secondary">{asignacion.materia?.nombre}</Badge>
                     </TableCell>
                     <TableCell className="font-medium">
-                      {asignacion.grupo?.grado} - Sección {asignacion.grupo?.seccion}
+                      {asignacion.grupo?.grado}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline">Sección {asignacion.grupo?.seccion}</Badge>
                     </TableCell>
                     <TableCell>{asignacion.anio_escolar}</TableCell>
                     <TableCell className="text-right">

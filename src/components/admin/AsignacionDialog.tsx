@@ -36,7 +36,8 @@ import { Loader2 } from 'lucide-react';
 const asignacionSchema = z.object({
   id_profesor: z.string().min(1, 'Selecciona un profesor'),
   id_materia: z.string().min(1, 'Selecciona una materia'),
-  id_grupo: z.string().min(1, 'Selecciona un grupo'),
+  grado: z.string().min(1, 'Selecciona una clase'),
+  seccion: z.string().min(1, 'Selecciona una sección'),
   anio_escolar: z.string().min(1, 'Selecciona un año escolar'),
 });
 
@@ -50,7 +51,8 @@ interface AsignacionDialogProps {
     id: string;
     id_profesor: string;
     id_materia: string;
-    id_grupo: string;
+    grado: string;
+    seccion: string;
     anio_escolar: string;
   } | null;
 }
@@ -68,7 +70,8 @@ export function AsignacionDialog({ open, onOpenChange, onSuccess, editData }: As
     defaultValues: editData || {
       id_profesor: '',
       id_materia: '',
-      id_grupo: '',
+      grado: '',
+      seccion: '',
       anio_escolar: anioActivo?.anio_escolar || '',
     },
   });
@@ -76,13 +79,23 @@ export function AsignacionDialog({ open, onOpenChange, onSuccess, editData }: As
   const onSubmit = async (data: AsignacionFormData) => {
     setIsSubmitting(true);
     try {
+      // Buscar el grupo que coincide con grado y sección
+      const { data: grupoData, error: grupoError } = await supabase
+        .from('grupos')
+        .select('id')
+        .eq('grado', data.grado)
+        .eq('seccion', data.seccion)
+        .single();
+
+      if (grupoError) throw new Error('No se encontró el grupo seleccionado');
+
       if (editData) {
         const { error } = await supabase
           .from('asignaciones_profesor')
           .update({
             id_profesor: data.id_profesor,
             id_materia: data.id_materia,
-            id_grupo: data.id_grupo,
+            id_grupo: grupoData.id,
             anio_escolar: data.anio_escolar,
           })
           .eq('id', editData.id);
@@ -99,7 +112,7 @@ export function AsignacionDialog({ open, onOpenChange, onSuccess, editData }: As
           .insert({
             id_profesor: data.id_profesor,
             id_materia: data.id_materia,
-            id_grupo: data.id_grupo,
+            id_grupo: grupoData.id,
             anio_escolar: data.anio_escolar,
           });
 
@@ -197,30 +210,55 @@ export function AsignacionDialog({ open, onOpenChange, onSuccess, editData }: As
                 )}
               />
 
-              <FormField
-                control={form.control}
-                name="id_grupo"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Clase y Sección</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecciona clase y sección" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {grupos.map((grupo) => (
-                          <SelectItem key={grupo.id} value={grupo.id}>
-                            {grupo.grado} - Sección {grupo.seccion}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="grado"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Clase</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecciona" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent className="bg-background z-50">
+                          <SelectItem value="1° Primaria">1° Primaria</SelectItem>
+                          <SelectItem value="2° Primaria">2° Primaria</SelectItem>
+                          <SelectItem value="3° Primaria">3° Primaria</SelectItem>
+                          <SelectItem value="4° Primaria">4° Primaria</SelectItem>
+                          <SelectItem value="5° Primaria">5° Primaria</SelectItem>
+                          <SelectItem value="6° Primaria">6° Primaria</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="seccion"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Sección</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecciona" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent className="bg-background z-50">
+                          <SelectItem value="A">Sección A</SelectItem>
+                          <SelectItem value="B">Sección B</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
 
               <FormField
                 control={form.control}
