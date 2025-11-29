@@ -12,16 +12,16 @@ import {
 } from 'lucide-react';
 
 const MOCK_PENDIENTES = [
-  { id: '1', titulo: 'Quiz PRE - Ecuaciones', materia: 'Matemáticas', tipo: 'pre', tiempoLimite: 10, preguntas: 3 },
-  { id: '2', titulo: 'Quiz POST - Revolución Industrial', materia: 'Historia', tipo: 'post', tiempoLimite: 15, preguntas: 5 },
-  { id: '3', titulo: 'Quiz PRE - Ecosistemas', materia: 'Ciencias', tipo: 'pre', tiempoLimite: 10, preguntas: 3 }
+  { id: '1', titulo: 'Quiz PRE - Ecuaciones', curso: 'Matemáticas', tipo: 'pre', tiempoLimite: 10, preguntas: 3 },
+  { id: '2', titulo: 'Quiz POST - Revolución Industrial', curso: 'Historia', tipo: 'post', tiempoLimite: 15, preguntas: 5 },
+  { id: '3', titulo: 'Quiz PRE - Ecosistemas', curso: 'Ciencias', tipo: 'pre', tiempoLimite: 10, preguntas: 3 }
 ];
 
 const MOCK_COMPLETADOS = [
-  { id: '4', titulo: 'Quiz POST - Fracciones', materia: 'Matemáticas', tipo: 'post', puntaje: 85, fecha: '2024-01-18' },
-  { id: '5', titulo: 'Quiz PRE - Verbos irregulares', materia: 'Lenguaje', tipo: 'pre', puntaje: 90, fecha: '2024-01-17' },
-  { id: '6', titulo: 'Quiz POST - El ciclo del agua', materia: 'Ciencias', tipo: 'post', puntaje: 78, fecha: '2024-01-15' },
-  { id: '7', titulo: 'Quiz PRE - Números decimales', materia: 'Matemáticas', tipo: 'pre', puntaje: 92, fecha: '2024-01-12' }
+  { id: '4', titulo: 'Quiz POST - Fracciones', curso: 'Matemáticas', tipo: 'post', puntaje: 85, fecha: '2024-01-18' },
+  { id: '5', titulo: 'Quiz PRE - Verbos irregulares', curso: 'Lenguaje', tipo: 'pre', puntaje: 90, fecha: '2024-01-17' },
+  { id: '6', titulo: 'Quiz POST - El ciclo del agua', curso: 'Ciencias', tipo: 'post', puntaje: 78, fecha: '2024-01-15' },
+  { id: '7', titulo: 'Quiz PRE - Números decimales', curso: 'Matemáticas', tipo: 'pre', puntaje: 92, fecha: '2024-01-12' }
 ];
 
 export default function Evaluaciones() {
@@ -59,7 +59,7 @@ export default function Evaluaciones() {
                     </div>
                     <div>
                       <h3 className="font-semibold text-lg">{quiz.titulo}</h3>
-                      <p className="text-muted-foreground">{quiz.materia}</p>
+                      <p className="text-muted-foreground">{quiz.curso}</p>
                       <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
                         <div className="flex items-center gap-1">
                           <Clock className="w-4 h-4" />
@@ -103,7 +103,7 @@ export default function Evaluaciones() {
                     </div>
                     <div>
                       <h3 className="font-semibold">{quiz.titulo}</h3>
-                      <p className="text-sm text-muted-foreground">{quiz.materia}</p>
+                      <p className="text-sm text-muted-foreground">{quiz.curso}</p>
                       <p className="text-xs text-muted-foreground mt-1">
                         Completado el {new Date(quiz.fecha).toLocaleDateString('es-ES', { day: 'numeric', month: 'long' })}
                       </p>

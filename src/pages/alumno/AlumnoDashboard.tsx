@@ -23,16 +23,16 @@ const MOCK_STATS = {
 };
 
 const MOCK_QUIZZES_PENDIENTES = [
-  { id: '1', titulo: 'Quiz PRE - Ecuaciones', materia: 'Matemáticas', tipo: 'pre', tiempoLimite: 10 },
-  { id: '2', titulo: 'Quiz POST - Revolución Industrial', materia: 'Historia', tipo: 'post', tiempoLimite: 15 },
-  { id: '3', titulo: 'Quiz PRE - Ecosistemas', materia: 'Ciencias', tipo: 'pre', tiempoLimite: 10 }
+  { id: '1', titulo: 'Quiz PRE - Ecuaciones', curso: 'Matemáticas', tipo: 'pre', tiempoLimite: 10 },
+  { id: '2', titulo: 'Quiz POST - Revolución Industrial', curso: 'Historia', tipo: 'post', tiempoLimite: 15 },
+  { id: '3', titulo: 'Quiz PRE - Ecosistemas', curso: 'Ciencias', tipo: 'pre', tiempoLimite: 10 }
 ];
 
 const MOCK_RETROALIMENTACIONES = [
   {
     id: '1',
     clase: 'Fracciones equivalentes',
-    materia: 'Matemáticas',
+    curso: 'Matemáticas',
     fortalezas: ['Comprensión conceptual sólida', 'Aplicación correcta de fórmulas'],
     areas_mejora: ['Velocidad de resolución'],
     puntaje: 85
@@ -40,18 +40,18 @@ const MOCK_RETROALIMENTACIONES = [
   {
     id: '2',
     clase: 'Verbos irregulares',
-    materia: 'Lenguaje',
+    curso: 'Lenguaje',
     fortalezas: ['Excelente vocabulario', 'Uso correcto de tiempos verbales'],
     areas_mejora: ['Ortografía en algunos casos'],
     puntaje: 78
   }
 ];
 
-const MOCK_PROGRESO_MATERIAS = [
-  { materia: 'Matemáticas', progreso: 75, promedio: 82 },
-  { materia: 'Lenguaje', progreso: 68, promedio: 78 },
-  { materia: 'Ciencias', progreso: 82, promedio: 88 },
-  { materia: 'Historia', progreso: 55, promedio: 72 }
+const MOCK_PROGRESO_CURSOS = [
+  { curso: 'Matemáticas', progreso: 75, promedio: 82 },
+  { curso: 'Lenguaje', progreso: 68, promedio: 78 },
+  { curso: 'Ciencias', progreso: 82, promedio: 88 },
+  { curso: 'Historia', progreso: 55, promedio: 72 }
 ];
 
 export default function AlumnoDashboard() {
@@ -126,7 +126,7 @@ export default function AlumnoDashboard() {
                     </div>
                     <div>
                       <h4 className="font-medium">{quiz.titulo}</h4>
-                      <p className="text-sm text-muted-foreground">{quiz.materia}</p>
+                      <p className="text-sm text-muted-foreground">{quiz.curso}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
@@ -155,7 +155,7 @@ export default function AlumnoDashboard() {
                   <div className="flex items-start justify-between">
                     <div>
                       <h4 className="font-medium">{feedback.clase}</h4>
-                      <p className="text-sm text-muted-foreground">{feedback.materia}</p>
+                      <p className="text-sm text-muted-foreground">{feedback.curso}</p>
                     </div>
                     <Badge variant={feedback.puntaje >= 80 ? 'default' : 'secondary'}>
                       {feedback.puntaje}%
@@ -195,16 +195,16 @@ export default function AlumnoDashboard() {
         <div className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>Mi Progreso por Materia</CardTitle>
+              <CardTitle>Mi Progreso por Curso</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {MOCK_PROGRESO_MATERIAS.map((materia) => (
-                <div key={materia.materia} className="space-y-2">
+              {MOCK_PROGRESO_CURSOS.map((curso) => (
+                <div key={curso.curso} className="space-y-2">
                   <div className="flex justify-between text-sm">
-                    <span className="font-medium">{materia.materia}</span>
-                    <span className="text-muted-foreground">{materia.promedio}%</span>
+                    <span className="font-medium">{curso.curso}</span>
+                    <span className="text-muted-foreground">{curso.promedio}%</span>
                   </div>
-                  <Progress value={materia.progreso} className="h-2" />
+                  <Progress value={curso.progreso} className="h-2" />
                 </div>
               ))}
             </CardContent>

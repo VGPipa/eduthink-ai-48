@@ -18,7 +18,7 @@ const MOCK_STATS = {
   posicionClase: 4
 };
 
-const MOCK_MATERIAS = [
+const MOCK_CURSOS = [
   { nombre: 'Matemáticas', promedio: 85, temas: 12, completados: 8, tendencia: 'up' },
   { nombre: 'Lenguaje', promedio: 78, temas: 10, completados: 6, tendencia: 'up' },
   { nombre: 'Ciencias', promedio: 88, temas: 8, completados: 7, tendencia: 'stable' },
@@ -76,39 +76,39 @@ export default function Progreso() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <BookOpen className="w-5 h-5 text-primary" />
-                Progreso por Materia
+                Progreso por Curso
               </CardTitle>
               <CardDescription>Tu avance en cada asignatura</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              {MOCK_MATERIAS.map((materia) => (
-                <div key={materia.nombre} className="space-y-3">
+              {MOCK_CURSOS.map((curso) => (
+                <div key={curso.nombre} className="space-y-3">
                   <div className="flex items-center justify-between">
                     <div>
-                      <h4 className="font-semibold">{materia.nombre}</h4>
+                      <h4 className="font-semibold">{curso.nombre}</h4>
                       <p className="text-sm text-muted-foreground">
-                        {materia.completados} de {materia.temas} temas completados
+                        {curso.completados} de {curso.temas} temas completados
                       </p>
                     </div>
                     <div className="text-right">
                       <span className={`text-xl font-bold ${
-                        materia.promedio >= 80 ? 'text-success' : 
-                        materia.promedio >= 60 ? 'text-warning' : 'text-destructive'
+                        curso.promedio >= 80 ? 'text-success' : 
+                        curso.promedio >= 60 ? 'text-warning' : 'text-destructive'
                       }`}>
-                        {materia.promedio}%
+                        {curso.promedio}%
                       </span>
                       <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                        {materia.tendencia === 'up' && <TrendingUp className="w-3 h-3 text-success" />}
-                        {materia.tendencia === 'down' && <TrendingUp className="w-3 h-3 text-destructive rotate-180" />}
-                        {materia.tendencia === 'stable' && <span className="w-3 h-3 bg-muted-foreground rounded-full inline-block" />}
+                        {curso.tendencia === 'up' && <TrendingUp className="w-3 h-3 text-success" />}
+                        {curso.tendencia === 'down' && <TrendingUp className="w-3 h-3 text-destructive rotate-180" />}
+                        {curso.tendencia === 'stable' && <span className="w-3 h-3 bg-muted-foreground rounded-full inline-block" />}
                         <span>
-                          {materia.tendencia === 'up' ? 'Mejorando' : 
-                           materia.tendencia === 'down' ? 'Bajando' : 'Estable'}
+                          {curso.tendencia === 'up' ? 'Mejorando' : 
+                           curso.tendencia === 'down' ? 'Bajando' : 'Estable'}
                         </span>
                       </div>
                     </div>
                   </div>
-                  <Progress value={(materia.completados / materia.temas) * 100} className="h-3" />
+                  <Progress value={(curso.completados / curso.temas) * 100} className="h-3" />
                 </div>
               ))}
             </CardContent>

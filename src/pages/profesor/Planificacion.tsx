@@ -31,12 +31,12 @@ const MOCK_STATS = {
   materiasAsignadas: 4
 };
 
-const MOCK_MATERIAS = [
+const MOCK_CURSOS = [
   {
     id: '1',
     nombre: 'Matemáticas',
     grado: '3ro',
-    grupo: 'A',
+    salon: 'A',
     seccion: 'Primaria',
     horasSemanales: 6,
     progreso: 42,
@@ -83,7 +83,7 @@ const MOCK_MATERIAS = [
     id: '2',
     nombre: 'Lenguaje',
     grado: '3ro',
-    grupo: 'A',
+    salon: 'A',
     seccion: 'Primaria',
     horasSemanales: 5,
     progreso: 35,
@@ -122,9 +122,9 @@ const estadoConfig: Record<string, { label: string; variant: 'default' | 'second
 
 export default function Planificacion() {
   const navigate = useNavigate();
-  const [selectedMateria, setSelectedMateria] = useState(MOCK_MATERIAS[0].id);
+  const [selectedCurso, setSelectedCurso] = useState(MOCK_CURSOS[0].id);
 
-  const materiaActual = MOCK_MATERIAS.find(m => m.id === selectedMateria);
+  const cursoActual = MOCK_CURSOS.find(c => c.id === selectedCurso);
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -174,28 +174,28 @@ export default function Planificacion() {
         </CardContent>
       </Card>
 
-      {/* Materias tabs */}
-      <Tabs value={selectedMateria} onValueChange={setSelectedMateria}>
+      {/* Cursos tabs */}
+      <Tabs value={selectedCurso} onValueChange={setSelectedCurso}>
         <TabsList className="w-full flex-wrap h-auto gap-2 bg-transparent p-0">
-          {MOCK_MATERIAS.map((materia) => (
+          {MOCK_CURSOS.map((curso) => (
             <TabsTrigger
-              key={materia.id}
-              value={materia.id}
+              key={curso.id}
+              value={curso.id}
               className="data-[state=active]:gradient-bg data-[state=active]:text-primary-foreground border flex-col items-start h-auto p-3 min-w-[200px]"
             >
-              <span className="font-semibold">{materia.nombre}</span>
+              <span className="font-semibold">{curso.nombre}</span>
               <span className="text-xs opacity-80">
-                {materia.grado} {materia.grupo} • {materia.horasSemanales}h/sem
+                {curso.grado} {curso.salon} • {curso.horasSemanales}h/sem
               </span>
-              <Progress value={materia.progreso} className="h-1 mt-2 w-full" />
+              <Progress value={curso.progreso} className="h-1 mt-2 w-full" />
             </TabsTrigger>
           ))}
         </TabsList>
 
-        {MOCK_MATERIAS.map((materia) => (
-          <TabsContent key={materia.id} value={materia.id} className="mt-6">
+        {MOCK_CURSOS.map((curso) => (
+          <TabsContent key={curso.id} value={curso.id} className="mt-6">
             <Accordion type="multiple" className="space-y-4" defaultValue={['bim-2']}>
-              {materia.bimestres.map((bimestre) => (
+              {curso.bimestres.map((bimestre) => (
                 <AccordionItem
                   key={`bim-${bimestre.numero}`}
                   value={`bim-${bimestre.numero}`}

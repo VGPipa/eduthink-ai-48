@@ -23,7 +23,7 @@ import {
 // Mock data
 const MOCK_STATS = {
   clasesEstaSemana: 12,
-  materiasAsignadas: 4,
+  cursosAsignados: 4,
   totalEstudiantes: 128,
   promedioGeneral: 78
 };
@@ -32,8 +32,8 @@ const MOCK_CLASES_EN_PREPARACION = [
   {
     id: '1',
     tema: 'Ecuaciones de segundo grado',
-    materia: 'Matemáticas',
-    grupo: '3ro A',
+    curso: 'Matemáticas',
+    salon: '3ro A',
     fecha: '2024-01-20',
     estado: 'sin_guia',
     categoria: 'guia_pendiente'
@@ -41,8 +41,8 @@ const MOCK_CLASES_EN_PREPARACION = [
   {
     id: '2',
     tema: 'La Revolución Industrial',
-    materia: 'Historia',
-    grupo: '4to B',
+    curso: 'Historia',
+    salon: '4to B',
     fecha: '2024-01-21',
     estado: 'editando_guia',
     categoria: 'evaluacion_pre_pendiente'
@@ -50,8 +50,8 @@ const MOCK_CLASES_EN_PREPARACION = [
   {
     id: '3',
     tema: 'El ciclo del agua',
-    materia: 'Ciencias',
-    grupo: '2do A',
+    curso: 'Ciencias',
+    salon: '2do A',
     fecha: '2024-01-22',
     estado: 'quiz_pre_enviado',
     categoria: 'evaluacion_post_pendiente'
@@ -60,15 +60,15 @@ const MOCK_CLASES_EN_PREPARACION = [
 
 const MOCK_CLASES_PROGRAMADAS = {
   hoy: [
-    { id: '4', tema: 'Fracciones equivalentes', materia: 'Matemáticas', grupo: '2do B', hora: '08:00' },
-    { id: '5', tema: 'Verbos irregulares', materia: 'Lenguaje', grupo: '3ro A', hora: '10:30' }
+    { id: '4', tema: 'Fracciones equivalentes', curso: 'Matemáticas', salon: '2do B', hora: '08:00' },
+    { id: '5', tema: 'Verbos irregulares', curso: 'Lenguaje', salon: '3ro A', hora: '10:30' }
   ],
   manana: [
-    { id: '6', tema: 'Ecosistemas', materia: 'Ciencias', grupo: '4to A', hora: '09:00' }
+    { id: '6', tema: 'Ecosistemas', curso: 'Ciencias', salon: '4to A', hora: '09:00' }
   ],
   estaSemana: [
-    { id: '7', tema: 'Geometría básica', materia: 'Matemáticas', grupo: '1ro C', fecha: '2024-01-24' },
-    { id: '8', tema: 'Comprensión lectora', materia: 'Lenguaje', grupo: '2do A', fecha: '2024-01-25' }
+    { id: '7', tema: 'Geometría básica', curso: 'Matemáticas', salon: '1ro C', fecha: '2024-01-24' },
+    { id: '8', tema: 'Comprensión lectora', curso: 'Lenguaje', salon: '2do A', fecha: '2024-01-25' }
   ]
 };
 
@@ -83,7 +83,7 @@ const MOCK_RECOMENDACIONES = [
   {
     id: '2',
     titulo: 'Excelente comprensión',
-    descripcion: 'El grupo 2do B demostró dominio sólido en fracciones. Considera avanzar más rápido.',
+    descripcion: 'El salón 2do B demostró dominio sólido en fracciones. Considera avanzar más rápido.',
     clase: 'Fracciones equivalentes',
     prioridad: 'media'
   }
@@ -133,8 +133,8 @@ export default function ProfesorDashboard() {
           trend={{ value: 8, positive: true }}
         />
         <StatCard
-          title="Materias asignadas"
-          value={MOCK_STATS.materiasAsignadas}
+          title="Cursos asignados"
+          value={MOCK_STATS.cursosAsignados}
           icon={BookOpen}
         />
         <StatCard
@@ -179,7 +179,7 @@ export default function ProfesorDashboard() {
                           </Badge>
                         </div>
                         <p className="text-sm text-muted-foreground">
-                          {clase.materia} • {clase.grupo}
+                          {clase.curso} • {clase.salon}
                         </p>
                         <div className="flex items-center gap-2 mt-2 text-sm text-muted-foreground">
                           <Calendar className="w-4 h-4" />
@@ -214,7 +214,7 @@ export default function ProfesorDashboard() {
                           <div>
                             <h4 className="font-medium">{clase.tema}</h4>
                             <p className="text-sm text-muted-foreground">
-                              {clase.materia} • {clase.grupo} • {clase.hora}
+                              {clase.curso} • {clase.salon} • {clase.hora}
                             </p>
                           </div>
                         </div>
@@ -239,7 +239,7 @@ export default function ProfesorDashboard() {
                           <div>
                             <h4 className="font-medium">{clase.tema}</h4>
                             <p className="text-sm text-muted-foreground">
-                              {clase.materia} • {clase.grupo} • {clase.hora}
+                              {clase.curso} • {clase.salon} • {clase.hora}
                             </p>
                           </div>
                         </div>
@@ -264,7 +264,7 @@ export default function ProfesorDashboard() {
                           <div>
                             <h4 className="font-medium">{clase.tema}</h4>
                             <p className="text-sm text-muted-foreground">
-                              {clase.materia} • {clase.grupo} • {new Date(clase.fecha).toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric' })}
+                              {clase.curso} • {clase.salon} • {new Date(clase.fecha).toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric' })}
                             </p>
                           </div>
                         </div>
