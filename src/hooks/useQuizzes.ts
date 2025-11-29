@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import type { Database } from '@/integrations/supabase/types';
+import type { Database, Json } from '@/integrations/supabase/types';
 
 type QuizRow = Database['public']['Tables']['quizzes']['Row'];
 type PreguntaRow = Database['public']['Tables']['preguntas']['Row'];
@@ -25,6 +25,13 @@ export interface Pregunta extends PreguntaRow {
   };
 }
 
+export interface EstimuloAprendizaje {
+  titulo: string;
+  texto_contenido: string;
+  descripcion_visual: string;
+  tiempo_lectura_estimado: string;
+}
+
 export interface CreateQuizData {
   id_clase: string;
   tipo: TipoQuiz;
@@ -34,6 +41,7 @@ export interface CreateQuizData {
   fecha_disponible?: string;
   fecha_limite?: string;
   estado?: EstadoQuiz;
+  estimulo_aprendizaje?: EstimuloAprendizaje;
 }
 
 export interface CreatePreguntaData {
@@ -45,6 +53,7 @@ export interface CreatePreguntaData {
   justificacion?: string;
   concepto?: string;
   orden?: number;
+  feedback_acierto?: string;
 }
 
 export function useQuizzes(claseId?: string, tipo?: TipoQuiz) {
@@ -83,8 +92,15 @@ export function useQuizzes(claseId?: string, tipo?: TipoQuiz) {
       const { data: quiz, error } = await supabase
         .from('quizzes')
         .insert([{
-          ...data,
+          id_clase: data.id_clase,
+          tipo: data.tipo,
+          titulo: data.titulo,
+          instrucciones: data.instrucciones,
+          tiempo_limite: data.tiempo_limite,
+          fecha_disponible: data.fecha_disponible,
+          fecha_limite: data.fecha_limite,
           estado: data.estado || 'borrador',
+          estimulo_aprendizaje: data.estimulo_aprendizaje as unknown as Json,
         }])
         .select()
         .single();

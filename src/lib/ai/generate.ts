@@ -77,6 +77,40 @@ export interface QuizData {
   preguntas: QuizQuestion[];
 }
 
+// New Pre-Quiz with Learning Stimulus
+export interface EstimuloAprendizaje {
+  titulo: string;
+  texto_contenido: string;
+  descripcion_visual: string;
+  tiempo_lectura_estimado: string;
+}
+
+export interface QuizPrePregunta {
+  pregunta: string;
+  concepto: string;
+  opciones: Array<{ texto: string; es_correcta: boolean }>;
+  feedback_acierto: string;
+  feedback_error: string;
+}
+
+export interface QuizPreData {
+  estimulo_aprendizaje: EstimuloAprendizaje;
+  quiz_comprension: QuizPrePregunta[];
+}
+
+export interface GenerateQuizPreInput {
+  tema: string;
+  contexto: string;
+  grado?: string;
+  area?: string;
+  guia_clase?: {
+    objetivo_cognitivo?: string;
+    objetivo_humano?: string;
+    desempeno_cneb?: string;
+    actividad_inicio?: string;
+  };
+}
+
 export interface RecomendacionData {
   contenido: string;
   tipo: 'refuerzo' | 'adaptacion' | 'metodologia';
@@ -161,7 +195,35 @@ export async function generateGuiaClase(
 
 
 /**
- * Generates quiz questions (PRE or POST) using AI
+ * Generates PRE quiz with learning stimulus using AI via Edge Function
+ * 
+ * @param input - Input data including tema, contexto, and guia_clase info
+ * @returns Generated pre-quiz data with stimulus and questions
+ */
+export async function generateQuizPre(input: GenerateQuizPreInput): Promise<QuizPreData> {
+  try {
+    const { data, error } = await supabase.functions.invoke('generate-quiz-pre', {
+      body: input
+    });
+
+    if (error) {
+      console.error('Error calling generate-quiz-pre:', error);
+      throw new Error(error.message || 'Error al generar el quiz PRE');
+    }
+
+    if (data?.error) {
+      throw new Error(data.error);
+    }
+
+    return data as QuizPreData;
+  } catch (error) {
+    console.error('Error in generateQuizPre:', error);
+    throw error;
+  }
+}
+
+/**
+ * Generates quiz questions (POST only now - PRE uses generateQuizPre)
  * 
  * @param tipo - 'previo' or 'post'
  * @param tema - Topic name
@@ -175,7 +237,7 @@ export async function generateQuiz(
   nivel: string = 'intermedio',
   cantidad: number = tipo === 'previo' ? 5 : 10
 ): Promise<QuizData> {
-  // TODO: Replace with actual AI API call
+  // TODO: Replace with actual AI API call for POST quiz
   
   await new Promise(resolve => setTimeout(resolve, 1500)); // Simulate API delay
 
@@ -189,71 +251,20 @@ export async function generateQuiz(
 
   const preguntas: QuizQuestion[] = [];
 
-  if (tipo === 'previo') {
-    // PRE quiz: Focus on prior knowledge
-    preguntas.push(
-      {
-        tipo: 'conocimiento',
-        texto: `¿Cuál es la definición básica de ${tema}?`,
-        concepto: tema,
-        opciones: ['Opción A', 'Opción B', 'Opción C', 'Opción D'],
-        respuesta_correcta: 'Opción B',
-        justificacion: `La definición correcta de ${tema} es fundamental para comprender el tema.`,
-        orden: 1
-      },
-      {
-        tipo: 'conocimiento',
-        texto: `¿Qué elementos caracterizan a ${tema}?`,
-        concepto: tema,
-        opciones: ['Opción A', 'Opción B', 'Opción C', 'Opción D'],
-        respuesta_correcta: 'Opción C',
-        justificacion: `Los elementos característicos son esenciales para identificar ${tema}.`,
-        orden: 2
-      },
-      {
-        tipo: 'razonamiento',
-        texto: `Si no conoces ${tema}, ¿qué podrías inferir sobre su importancia?`,
-        concepto: tema,
-        opciones: ['Opción A', 'Opción B', 'Opción C', 'Opción D'],
-        respuesta_correcta: 'Opción A',
-        justificacion: `El razonamiento sobre la importancia ayuda a contextualizar el aprendizaje.`,
-        orden: 3
-      },
-      {
-        tipo: 'conocimiento',
-        texto: `¿Qué relación tiene ${tema} con otros conceptos que ya conoces?`,
-        concepto: tema,
-        opciones: ['Opción A', 'Opción B', 'Opción C', 'Opción D'],
-        respuesta_correcta: 'Opción B',
-        justificacion: `Establecer conexiones facilita el aprendizaje significativo.`,
-        orden: 4
-      },
-      {
-        tipo: 'razonamiento',
-        texto: `¿Qué preguntas te surgen sobre ${tema} antes de estudiarlo?`,
-        concepto: tema,
-        opciones: ['Opción A', 'Opción B', 'Opción C', 'Opción D'],
-        respuesta_correcta: 'Opción D',
-        justificacion: `La curiosidad es fundamental para el aprendizaje activo.`,
-        orden: 5
-      }
-    );
-  } else {
-    // POST quiz: Focus on application and analysis
-    for (let i = 1; i <= cantidad; i++) {
-      const tipos = ['aplicacion', 'analisis', 'razonamiento', 'evaluacion'] as const;
-      const tipoPregunta = tipos[(i - 1) % tipos.length];
-      
-      preguntas.push({
-        tipo: tipoPregunta,
-        texto: `Pregunta ${i} sobre ${tema}: Aplica los conceptos aprendidos para resolver este problema.`,
-        concepto: tema,
-        opciones: ['Opción A', 'Opción B', 'Opción C', 'Opción D'],
-        respuesta_correcta: 'Opción B',
-        justificacion: `Esta respuesta demuestra comprensión adecuada de ${tema}.`,
-        orden: i
-      });
-    }
+  // POST quiz: Focus on application and analysis
+  for (let i = 1; i <= cantidad; i++) {
+    const tipos = ['aplicacion', 'analisis', 'razonamiento', 'evaluacion'] as const;
+    const tipoPregunta = tipos[(i - 1) % tipos.length];
+    
+    preguntas.push({
+      tipo: tipoPregunta,
+      texto: `Pregunta ${i} sobre ${tema}: Aplica los conceptos aprendidos para resolver este problema.`,
+      concepto: tema,
+      opciones: ['Opción A', 'Opción B', 'Opción C', 'Opción D'],
+      respuesta_correcta: 'Opción B',
+      justificacion: `Esta respuesta demuestra comprensión adecuada de ${tema}.`,
+      orden: i
+    });
   }
 
   return {
