@@ -46,6 +46,107 @@ export interface AsignacionConMetricas {
   asistencia: number;
 }
 
+export interface MetricasGlobales {
+  promedioGeneral: number;
+  totalAlumnos: number;
+  quizzesCompletados: number;
+  participacion: number;
+}
+
+// Hook para obtener métricas globales del profesor
+export function useMetricasGlobalesProfesor() {
+  const { profesor } = useProfesor();
+
+  return useQuery({
+    queryKey: ['metricas-globales-profesor', profesor?.id],
+    queryFn: async (): Promise<MetricasGlobales> => {
+      if (!profesor?.id) {
+        return { promedioGeneral: 0, totalAlumnos: 0, quizzesCompletados: 0, participacion: 0 };
+      }
+
+      // Obtener todas las asignaciones del profesor
+      const { data: asignaciones, error } = await supabase
+        .from('asignaciones_profesor')
+        .select('id_grupo')
+        .eq('id_profesor', profesor.id);
+
+      if (error) throw error;
+      if (!asignaciones || asignaciones.length === 0) {
+        return { promedioGeneral: 0, totalAlumnos: 0, quizzesCompletados: 0, participacion: 0 };
+      }
+
+      const grupoIds = [...new Set(asignaciones.map(a => a.id_grupo))];
+
+      // Obtener alumnos únicos de todos los grupos
+      const { data: alumnosGrupo } = await supabase
+        .from('alumnos_grupo')
+        .select('id_alumno')
+        .in('id_grupo', grupoIds);
+
+      const alumnosUnicos = new Set(alumnosGrupo?.map(a => a.id_alumno) || []);
+      const totalAlumnos = alumnosUnicos.size;
+      const alumnoIds = Array.from(alumnosUnicos);
+
+      // Obtener todas las clases del profesor
+      const { data: clases } = await supabase
+        .from('clases')
+        .select('id')
+        .eq('id_profesor', profesor.id);
+
+      const claseIds = clases?.map(c => c.id) || [];
+
+      if (claseIds.length === 0 || totalAlumnos === 0) {
+        return { promedioGeneral: 0, totalAlumnos, quizzesCompletados: 0, participacion: 0 };
+      }
+
+      // Obtener todos los quizzes de las clases
+      const { data: quizzes } = await supabase
+        .from('quizzes')
+        .select('id')
+        .in('id_clase', claseIds);
+
+      const quizIds = quizzes?.map(q => q.id) || [];
+
+      if (quizIds.length === 0) {
+        return { promedioGeneral: 0, totalAlumnos, quizzesCompletados: 0, participacion: 0 };
+      }
+
+      // Obtener respuestas de los alumnos
+      const { data: respuestas } = await supabase
+        .from('respuestas_alumno')
+        .select('id_alumno, puntaje_total, estado')
+        .in('id_quiz', quizIds)
+        .in('id_alumno', alumnoIds);
+
+      // Calcular métricas
+      const respuestasCompletadas = respuestas?.filter(r => r.estado === 'completado') || [];
+      const quizzesCompletados = respuestasCompletadas.length;
+
+      // Promedio general
+      const puntajes = respuestasCompletadas
+        .filter(r => r.puntaje_total !== null)
+        .map(r => r.puntaje_total as number);
+      const promedioGeneral = puntajes.length > 0
+        ? Math.round(puntajes.reduce((a, b) => a + b, 0) / puntajes.length)
+        : 0;
+
+      // Participación: alumnos únicos que han completado al menos un quiz
+      const alumnosQueCompletaron = new Set(respuestasCompletadas.map(r => r.id_alumno));
+      const participacion = totalAlumnos > 0
+        ? Math.round((alumnosQueCompletaron.size / totalAlumnos) * 100)
+        : 0;
+
+      return {
+        promedioGeneral,
+        totalAlumnos,
+        quizzesCompletados,
+        participacion,
+      };
+    },
+    enabled: !!profesor?.id,
+  });
+}
+
 // Hook para obtener las asignaciones del profesor con métricas
 export function useAsignacionesProfesor() {
   const { profesor } = useProfesor();
