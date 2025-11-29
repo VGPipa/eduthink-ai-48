@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -11,6 +11,16 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { StatCard } from '@/components/dashboard/StatCard';
 import {
   Plus,
@@ -20,35 +30,86 @@ import {
   Users,
   BookOpen,
   GraduationCap,
-  AlertCircle
+  AlertCircle,
+  Loader2
 } from 'lucide-react';
-
-const MOCK_STATS = {
-  totalAsignaciones: 48,
-  profesoresSinAsignar: 3,
-  cursosCubiertos: 12,
-  salonesCubiertos: 18
-};
-
-const MOCK_ASIGNACIONES = [
-  { id: '1', profesor: 'María García', curso: 'Matemáticas', salon: '3ro A', anio: '2024' },
-  { id: '2', profesor: 'María García', curso: 'Matemáticas', salon: '3ro B', anio: '2024' },
-  { id: '3', profesor: 'Juan López', curso: 'Lenguaje', salon: '3ro A', anio: '2024' },
-  { id: '4', profesor: 'Juan López', curso: 'Lenguaje', salon: '4to A', anio: '2024' },
-  { id: '5', profesor: 'Ana Martínez', curso: 'Ciencias', salon: '4to A', anio: '2024' },
-  { id: '6', profesor: 'Ana Martínez', curso: 'Ciencias', salon: '4to B', anio: '2024' },
-  { id: '7', profesor: 'Carlos Ruiz', curso: 'Historia', salon: '5to A', anio: '2024' },
-  { id: '8', profesor: 'Laura Sánchez', curso: 'Inglés', salon: '3ro A', anio: '2024' }
-];
+import { useAsignaciones } from '@/hooks/useAsignaciones';
+import { useAniosEscolares } from '@/hooks/useAniosEscolares';
+import { AsignacionDialog } from '@/components/admin/AsignacionDialog';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
+import { useQueryClient } from '@tanstack/react-query';
 
 export default function Asignaciones() {
   const [searchQuery, setSearchQuery] = useState('');
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editData, setEditData] = useState<any>(null);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  
+  const { anioActivo } = useAniosEscolares();
+  const { asignaciones, grupos, materias, isLoading } = useAsignaciones(anioActivo?.anio_escolar);
 
-const filteredAsignaciones = MOCK_ASIGNACIONES.filter(a => 
-    a.profesor.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    a.curso.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    a.salon.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredAsignaciones = asignaciones.filter(a => {
+    const profesorNombre = `${a.materia?.nombre || ''} ${a.grupo?.nombre || ''}`;
+    return profesorNombre.toLowerCase().includes(searchQuery.toLowerCase());
+  });
+
+  const handleEdit = (asignacion: any) => {
+    setEditData({
+      id: asignacion.id,
+      id_profesor: asignacion.id_profesor,
+      id_materia: asignacion.id_materia,
+      id_grupo: asignacion.id_grupo,
+      anio_escolar: asignacion.anio_escolar,
+    });
+    setDialogOpen(true);
+  };
+
+  const handleDelete = async () => {
+    if (!deleteId) return;
+
+    try {
+      const { error } = await supabase
+        .from('asignaciones_profesor')
+        .delete()
+        .eq('id', deleteId);
+
+      if (error) throw error;
+
+      toast({
+        title: 'Asignación eliminada',
+        description: 'La asignación se eliminó correctamente',
+      });
+
+      queryClient.invalidateQueries({ queryKey: ['asignaciones'] });
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message || 'Ocurrió un error al eliminar',
+        variant: 'destructive',
+      });
+    } finally {
+      setDeleteId(null);
+    }
+  };
+
+  const handleSuccess = () => {
+    queryClient.invalidateQueries({ queryKey: ['asignaciones'] });
+    setEditData(null);
+  };
+
+  const handleNewAsignacion = () => {
+    setEditData(null);
+    setDialogOpen(true);
+  };
+
+  const stats = {
+    totalAsignaciones: asignaciones.length,
+    cursosCubiertos: materias.length,
+    salonesCubiertos: grupos.length,
+  };
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -60,33 +121,27 @@ const filteredAsignaciones = MOCK_ASIGNACIONES.filter(a =>
             Asigna profesores a cursos y salones
           </p>
         </div>
-        <Button variant="gradient">
+        <Button variant="gradient" onClick={handleNewAsignacion}>
           <Plus className="w-4 h-4 mr-2" />
           Nueva Asignación
         </Button>
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <StatCard
           title="Total asignaciones"
-          value={MOCK_STATS.totalAsignaciones}
+          value={stats.totalAsignaciones}
           icon={Users}
         />
         <StatCard
-          title="Profesores sin asignar"
-          value={MOCK_STATS.profesoresSinAsignar}
-          icon={AlertCircle}
-          description="Requieren atención"
-        />
-        <StatCard
           title="Cursos cubiertos"
-          value={MOCK_STATS.cursosCubiertos}
+          value={stats.cursosCubiertos}
           icon={BookOpen}
         />
         <StatCard
           title="Salones cubiertos"
-          value={MOCK_STATS.salonesCubiertos}
+          value={stats.salonesCubiertos}
           icon={GraduationCap}
           variant="gradient"
         />
@@ -109,41 +164,80 @@ const filteredAsignaciones = MOCK_ASIGNACIONES.filter(a =>
           </div>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Profesor</TableHead>
-                <TableHead>Curso</TableHead>
-                <TableHead>Salón</TableHead>
-                <TableHead>Año</TableHead>
-                <TableHead className="text-right">Acciones</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredAsignaciones.map((asignacion) => (
-                <TableRow key={asignacion.id}>
-                  <TableCell className="font-medium">{asignacion.profesor}</TableCell>
-                  <TableCell>
-                    <Badge variant="secondary">{asignacion.curso}</Badge>
-                  </TableCell>
-                  <TableCell>{asignacion.salon}</TableCell>
-                  <TableCell>{asignacion.anio}</TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-2">
-                      <Button variant="ghost" size="icon">
-                        <Edit className="w-4 h-4" />
-                      </Button>
-                      <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive">
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
+          {isLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="w-6 h-6 animate-spin" />
+            </div>
+          ) : filteredAsignaciones.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              {searchQuery ? 'No se encontraron asignaciones' : 'No hay asignaciones registradas'}
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Materia</TableHead>
+                  <TableHead>Grupo</TableHead>
+                  <TableHead>Año</TableHead>
+                  <TableHead className="text-right">Acciones</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {filteredAsignaciones.map((asignacion) => (
+                  <TableRow key={asignacion.id}>
+                    <TableCell>
+                      <Badge variant="secondary">{asignacion.materia?.nombre}</Badge>
+                    </TableCell>
+                    <TableCell className="font-medium">{asignacion.grupo?.nombre}</TableCell>
+                    <TableCell>{asignacion.anio_escolar}</TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-2">
+                        <Button 
+                          variant="ghost" 
+                          size="icon"
+                          onClick={() => handleEdit(asignacion)}
+                        >
+                          <Edit className="w-4 h-4" />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="text-destructive hover:text-destructive"
+                          onClick={() => setDeleteId(asignacion.id)}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
         </CardContent>
       </Card>
+
+      <AsignacionDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        onSuccess={handleSuccess}
+        editData={editData}
+      />
+
+      <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar asignación?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta acción no se puede deshacer. Se eliminará permanentemente la asignación.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete}>Eliminar</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
