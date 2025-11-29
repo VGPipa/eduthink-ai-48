@@ -29,7 +29,7 @@ import GenerarClase from "./pages/profesor/GenerarClase";
 import PreClase from "./pages/profesor/PreClase";
 import PostClase from "./pages/profesor/PostClase";
 import MisSalones from "./pages/profesor/MisSalones";
-import Metricas from "./pages/profesor/Metricas";
+
 
 // Alumno pages
 import AlumnoDashboard from "./pages/alumno/AlumnoDashboard";
@@ -111,7 +111,7 @@ function AppRoutes() {
         <Route path="/profesor/pre-clase" element={<PreClase />} />
         <Route path="/profesor/post-clase" element={<PostClase />} />
         <Route path="/profesor/mis-salones" element={<MisSalones />} />
-        <Route path="/profesor/metricas" element={<Metricas />} />
+        
         
         {/* Alumno routes */}
         <Route path="/alumno/dashboard" element={<AlumnoDashboard />} />
