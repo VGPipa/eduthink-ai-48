@@ -123,7 +123,7 @@ export function useTemasProfesor(anioEscolar?: string) {
 
         // Find grupo for this curso (from asignaciones)
         // Get the first asignacion for this curso to find its grupo
-        const asignacionCurso = asignaciones.find(a => a.id_curso === curso.id);
+        const asignacionCurso = asignaciones.find(a => a.id_materia === curso.id);
         const grupo = asignacionCurso?.grupo;
 
         cursosMap.set(curso.id, {
