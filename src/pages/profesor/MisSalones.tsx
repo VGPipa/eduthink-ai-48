@@ -206,10 +206,15 @@ export default function MisSalones() {
                 onClick={() => handleAsignacionSelect(asignacion)}
               >
                 <CardContent className="p-6">
-                  {/* Header con título y badge */}
+                {/* Header con título y badge */}
                   <div className="flex items-start justify-between mb-1">
                     <div>
-                      <h3 className="text-xl font-bold text-foreground">{asignacion.grupo.nombre}</h3>
+                      <div className="flex items-baseline gap-2">
+                        <h3 className="text-xl font-bold text-foreground">{asignacion.grupo.nombre}</h3>
+                        <span className="text-xs text-muted-foreground">
+                          ({asignacion.grupo.cantidad_alumnos || 0} alumnos)
+                        </span>
+                      </div>
                       <p className="text-sm text-muted-foreground">
                         {asignacion.materia.nombre}
                       </p>
