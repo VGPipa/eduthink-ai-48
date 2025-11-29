@@ -19,7 +19,7 @@ export default function Auth() {
 
   useEffect(() => {
     if (user) {
-      navigate('/admin', { replace: true });
+      navigate('/admin/dashboard', { replace: true });
     }
   }, [user, navigate]);
 
@@ -32,7 +32,7 @@ export default function Auth() {
   }
 
   if (user) {
-    return <Navigate to="/admin" replace />;
+    return <Navigate to="/admin/dashboard" replace />;
   }
 
   const handleSignIn = async (e: React.FormEvent) => {
