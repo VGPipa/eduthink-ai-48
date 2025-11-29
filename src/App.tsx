@@ -57,7 +57,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
 function RoleRedirect() {
   // For now, redirect all authenticated users to admin dashboard
-  return <Navigate to="/admin" replace />;
+  return <Navigate to="/admin/dashboard" replace />;
 }
 
 function AppRoutes() {
