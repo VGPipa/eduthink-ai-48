@@ -6,8 +6,18 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { GraduationCap, Loader2 } from 'lucide-react';
+import { GraduationCap, Loader2, Shield, UserCheck, BookOpen, Users } from 'lucide-react';
+
+type UserRole = 'admin' | 'profesor' | 'alumno' | 'apoderado';
+
+const ROLE_OPTIONS: { value: UserRole; label: string; icon: React.ReactNode; description: string }[] = [
+  { value: 'admin', label: 'Administrador', icon: <Shield className="w-4 h-4" />, description: 'Gestión completa del sistema' },
+  { value: 'profesor', label: 'Profesor', icon: <BookOpen className="w-4 h-4" />, description: 'Docente de la institución' },
+  { value: 'alumno', label: 'Alumno', icon: <UserCheck className="w-4 h-4" />, description: 'Estudiante registrado' },
+  { value: 'apoderado', label: 'Apoderado', icon: <Users className="w-4 h-4" />, description: 'Padre o tutor de alumno' },
+];
 
 export default function Auth() {
   const { user, signIn, signUp, loading } = useAuth();
@@ -16,6 +26,9 @@ export default function Auth() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [nombre, setNombre] = useState('');
+  const [apellido, setApellido] = useState('');
+  const [selectedRole, setSelectedRole] = useState<UserRole>('alumno');
 
   useEffect(() => {
     if (user) {
@@ -55,8 +68,8 @@ export default function Auth() {
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !password || !confirmPassword) {
-      toast.error('Por favor completa todos los campos');
+    if (!email || !password || !confirmPassword || !nombre) {
+      toast.error('Por favor completa todos los campos obligatorios');
       return;
     }
 
@@ -71,7 +84,11 @@ export default function Auth() {
     }
 
     setIsLoading(true);
-    const { error } = await signUp(email, password);
+    const { error } = await signUp(email, password, {
+      nombre,
+      apellido,
+      role: selectedRole,
+    });
     setIsLoading(false);
 
     if (error) {
@@ -83,6 +100,15 @@ export default function Auth() {
     } else {
       toast.success('¡Cuenta creada exitosamente!');
     }
+  };
+
+  const resetForm = () => {
+    setEmail('');
+    setPassword('');
+    setConfirmPassword('');
+    setNombre('');
+    setApellido('');
+    setSelectedRole('alumno');
   };
 
   return (
@@ -100,7 +126,7 @@ export default function Auth() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Tabs defaultValue="signin" className="w-full">
+          <Tabs defaultValue="signin" className="w-full" onValueChange={() => resetForm()}>
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="signin">Iniciar Sesión</TabsTrigger>
               <TabsTrigger value="signup">Registrarse</TabsTrigger>
@@ -146,8 +172,58 @@ export default function Auth() {
             
             <TabsContent value="signup">
               <form onSubmit={handleSignUp} className="space-y-4">
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <Label htmlFor="signup-nombre">Nombre *</Label>
+                    <Input
+                      id="signup-nombre"
+                      type="text"
+                      placeholder="Juan"
+                      value={nombre}
+                      onChange={(e) => setNombre(e.target.value)}
+                      disabled={isLoading}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="signup-apellido">Apellido</Label>
+                    <Input
+                      id="signup-apellido"
+                      type="text"
+                      placeholder="Pérez"
+                      value={apellido}
+                      onChange={(e) => setApellido(e.target.value)}
+                      disabled={isLoading}
+                    />
+                  </div>
+                </div>
+
                 <div className="space-y-2">
-                  <Label htmlFor="signup-email">Correo Electrónico</Label>
+                  <Label htmlFor="signup-role">Tipo de Usuario *</Label>
+                  <Select value={selectedRole} onValueChange={(v) => setSelectedRole(v as UserRole)}>
+                    <SelectTrigger id="signup-role">
+                      <SelectValue placeholder="Selecciona tu rol" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {ROLE_OPTIONS.map((role) => (
+                        <SelectItem key={role.value} value={role.value}>
+                          <div className="flex items-center gap-2">
+                            {role.icon}
+                            <div>
+                              <span className="font-medium">{role.label}</span>
+                              <span className="text-muted-foreground text-xs ml-2">
+                                - {role.description}
+                              </span>
+                            </div>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="signup-email">Correo Electrónico *</Label>
                   <Input
                     id="signup-email"
                     type="email"
@@ -159,7 +235,7 @@ export default function Auth() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="signup-password">Contraseña</Label>
+                  <Label htmlFor="signup-password">Contraseña *</Label>
                   <Input
                     id="signup-password"
                     type="password"
@@ -171,7 +247,7 @@ export default function Auth() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="confirm-password">Confirmar Contraseña</Label>
+                  <Label htmlFor="confirm-password">Confirmar Contraseña *</Label>
                   <Input
                     id="confirm-password"
                     type="password"
