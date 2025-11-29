@@ -26,9 +26,7 @@ import {
 } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { useProfesores } from '@/hooks/useProfesores';
-import { useGrupos } from '@/hooks/useGrupos';
 import { useMaterias } from '@/hooks/useMaterias';
-import { useAniosEscolares } from '@/hooks/useAniosEscolares';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
@@ -61,9 +59,7 @@ export function AsignacionDialog({ open, onOpenChange, onSuccess, editData }: As
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
   const { profesores, isLoading: loadingProfesores } = useProfesores();
-  const { grupos, isLoading: loadingGrupos } = useGrupos();
   const { materias, isLoading: loadingMaterias } = useMaterias();
-  const { aniosEscolares, anioActivo, isLoading: loadingAnios } = useAniosEscolares();
 
   const form = useForm<AsignacionFormData>({
     resolver: zodResolver(asignacionSchema),
@@ -72,7 +68,7 @@ export function AsignacionDialog({ open, onOpenChange, onSuccess, editData }: As
       id_materia: '',
       grado: '',
       seccion: '',
-      anio_escolar: anioActivo?.anio_escolar || '',
+      anio_escolar: '2025',
     },
   });
 
@@ -138,7 +134,7 @@ export function AsignacionDialog({ open, onOpenChange, onSuccess, editData }: As
     }
   };
 
-  const isLoading = loadingProfesores || loadingGrupos || loadingMaterias || loadingAnios;
+  const isLoading = loadingProfesores || loadingMaterias;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -277,16 +273,12 @@ export function AsignacionDialog({ open, onOpenChange, onSuccess, editData }: As
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Selecciona un año escolar" />
+                          <SelectValue placeholder="Selecciona un año" />
                         </SelectTrigger>
                       </FormControl>
-                      <SelectContent>
-                        {aniosEscolares.map((anio) => (
-                          <SelectItem key={anio.id} value={anio.anio_escolar}>
-                            {anio.anio_escolar}
-                            {anio.activo && ' (Activo)'}
-                          </SelectItem>
-                        ))}
+                      <SelectContent className="bg-background z-50">
+                        <SelectItem value="2025">2025</SelectItem>
+                        <SelectItem value="2026">2026</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
