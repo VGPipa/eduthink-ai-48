@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -30,10 +31,9 @@ import {
   Users,
   BookOpen,
   GraduationCap,
-  AlertCircle,
   Loader2
 } from 'lucide-react';
-import { useAsignaciones } from '@/hooks/useAsignaciones';
+import { useAdminAsignaciones } from '@/hooks/useAdminAsignaciones';
 import { useAniosEscolares } from '@/hooks/useAniosEscolares';
 import { AsignacionDialog } from '@/components/admin/AsignacionDialog';
 import { supabase } from '@/integrations/supabase/client';
@@ -47,13 +47,27 @@ export default function Asignaciones() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  
+
   const { anioActivo } = useAniosEscolares();
-  const { asignaciones, grupos, materias, isLoading } = useAsignaciones(anioActivo?.anio_escolar);
+  // Use the admin hook instead of the professor-scoped one
+  const { asignaciones, isLoading } = useAdminAsignaciones(anioActivo?.anio_escolar);
+
+  // Calculate stats from the full dataset
+  const uniqueMaterias = new Set(asignaciones.map(a => a.materia?.id).filter(Boolean)).size;
+  const uniqueGrupos = new Set(asignaciones.map(a => a.grupo?.id).filter(Boolean)).size;
 
   const filteredAsignaciones = asignaciones.filter(a => {
-    const profesorNombre = `${a.materia?.nombre || ''} ${a.grupo?.nombre || ''}`;
-    return profesorNombre.toLowerCase().includes(searchQuery.toLowerCase());
+    const materiaNombre = a.materia?.nombre || '';
+    const grupoNombre = a.grupo?.nombre || '';
+    const profesorNombre = a.profesor?.profile ?
+      `${a.profesor.profile.nombre} ${a.profesor.profile.apellido}` : '';
+
+    const searchLower = searchQuery.toLowerCase();
+    return (
+      materiaNombre.toLowerCase().includes(searchLower) ||
+      grupoNombre.toLowerCase().includes(searchLower) ||
+      profesorNombre.toLowerCase().includes(searchLower)
+    );
   });
 
   const handleEdit = (asignacion: any) => {
@@ -84,7 +98,7 @@ export default function Asignaciones() {
         description: 'La asignación se eliminó correctamente',
       });
 
-      queryClient.invalidateQueries({ queryKey: ['asignaciones'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-asignaciones'] });
     } catch (error: any) {
       toast({
         title: 'Error',
@@ -97,7 +111,7 @@ export default function Asignaciones() {
   };
 
   const handleSuccess = () => {
-    queryClient.invalidateQueries({ queryKey: ['asignaciones'] });
+    queryClient.invalidateQueries({ queryKey: ['admin-asignaciones'] });
     setEditData(null);
   };
 
@@ -108,8 +122,8 @@ export default function Asignaciones() {
 
   const stats = {
     totalAsignaciones: asignaciones.length,
-    cursosCubiertos: materias.length,
-    salonesCubiertos: grupos.length,
+    cursosCubiertos: uniqueMaterias,
+    salonesCubiertos: uniqueGrupos,
   };
 
   return (
@@ -156,7 +170,7 @@ export default function Asignaciones() {
             <div className="relative w-full md:w-64">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
-                placeholder="Buscar..."
+                placeholder="Buscar por materia, grupo o profesor..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-9"
@@ -177,6 +191,7 @@ export default function Asignaciones() {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead>Profesor</TableHead>
                   <TableHead>Materia</TableHead>
                   <TableHead>Clase</TableHead>
                   <TableHead>Sección</TableHead>
@@ -187,6 +202,16 @@ export default function Asignaciones() {
               <TableBody>
                 {filteredAsignaciones.map((asignacion) => (
                   <TableRow key={asignacion.id}>
+                    <TableCell>
+                      <div className="flex flex-col">
+                        <span className="font-medium">
+                          {asignacion.profesor?.profile?.nombre} {asignacion.profesor?.profile?.apellido}
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          {asignacion.profesor?.profile?.email}
+                        </span>
+                      </div>
+                    </TableCell>
                     <TableCell>
                       <Badge variant="secondary">{asignacion.materia?.nombre}</Badge>
                     </TableCell>
@@ -199,16 +224,16 @@ export default function Asignaciones() {
                     <TableCell>{asignacion.anio_escolar}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
-                        <Button 
-                          variant="ghost" 
+                        <Button
+                          variant="ghost"
                           size="icon"
                           onClick={() => handleEdit(asignacion)}
                         >
                           <Edit className="w-4 h-4" />
                         </Button>
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
+                        <Button
+                          variant="ghost"
+                          size="icon"
                           className="text-destructive hover:text-destructive"
                           onClick={() => setDeleteId(asignacion.id)}
                         >
