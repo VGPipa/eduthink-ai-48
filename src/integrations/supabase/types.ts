@@ -14,7 +14,124 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      cursos_plan: {
+        Row: {
+          created_at: string
+          horas_semanales: number | null
+          id: string
+          nombre: string
+          objetivos: string | null
+          orden: number
+          plan_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          horas_semanales?: number | null
+          id?: string
+          nombre: string
+          objetivos?: string | null
+          orden?: number
+          plan_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          horas_semanales?: number | null
+          id?: string
+          nombre?: string
+          objetivos?: string | null
+          orden?: number
+          plan_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cursos_plan_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "planes_anuales"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      planes_anuales: {
+        Row: {
+          anio: string
+          created_at: string
+          created_by: string
+          descripcion: string | null
+          estado: Database["public"]["Enums"]["plan_estado"]
+          grado: string
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          anio: string
+          created_at?: string
+          created_by: string
+          descripcion?: string | null
+          estado?: Database["public"]["Enums"]["plan_estado"]
+          grado: string
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          anio?: string
+          created_at?: string
+          created_by?: string
+          descripcion?: string | null
+          estado?: Database["public"]["Enums"]["plan_estado"]
+          grado?: string
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      temas_plan: {
+        Row: {
+          competencias: string[] | null
+          created_at: string
+          curso_plan_id: string
+          duracion_semanas: number | null
+          estandares: string[] | null
+          id: string
+          nombre: string
+          orden: number
+          updated_at: string
+        }
+        Insert: {
+          competencias?: string[] | null
+          created_at?: string
+          curso_plan_id: string
+          duracion_semanas?: number | null
+          estandares?: string[] | null
+          id?: string
+          nombre: string
+          orden?: number
+          updated_at?: string
+        }
+        Update: {
+          competencias?: string[] | null
+          created_at?: string
+          curso_plan_id?: string
+          duracion_semanas?: number | null
+          estandares?: string[] | null
+          id?: string
+          nombre?: string
+          orden?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "temas_plan_curso_plan_id_fkey"
+            columns: ["curso_plan_id"]
+            isOneToOne: false
+            referencedRelation: "cursos_plan"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -23,7 +140,7 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      plan_estado: "activo" | "borrador" | "pendiente"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +267,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      plan_estado: ["activo", "borrador", "pendiente"],
+    },
   },
 } as const
