@@ -37,7 +37,7 @@ interface Tema {
   nombre: string;
   competencias: string[] | null;
   estandares: string[] | null;
-  duracion_semanas: number | null;
+  duracion_estimada: number | null;
   orden: number;
   curso_plan_id: string;
 }
@@ -417,7 +417,7 @@ export default function PlanAnualDetalle() {
                                 <div className="flex-1 min-w-0">
                                   <p className="font-medium">{tema.nombre}</p>
                                   <p className="text-xs text-muted-foreground mt-1">
-                                    {tema.duracion_semanas ? `${tema.duracion_semanas} semanas` : 'Duración no definida'}
+                                    {tema.duracion_estimada ? `${tema.duracion_estimada} semanas` : 'Duración no definida'}
                                   </p>
                                 </div>
                                 <div className="flex gap-1">
@@ -608,7 +608,7 @@ function TemaDialog({ open, onOpenChange, tema, cursoId, onSave, temasCount }: a
     nombre: tema?.nombre || '',
     competencias: tema?.competencias?.join(', ') || '',
     estandares: tema?.estandares?.join(', ') || '',
-    duracion_semanas: tema?.duracion_semanas || 1,
+    duracion_estimada: tema?.duracion_estimada || 1,
     orden: tema?.orden || temasCount,
     curso_plan_id: tema?.curso_plan_id || cursoId,
   });
@@ -646,8 +646,8 @@ function TemaDialog({ open, onOpenChange, tema, cursoId, onSave, temasCount }: a
             <Label>Duración (semanas)</Label>
             <Input
               type="number"
-              value={formData.duracion_semanas}
-              onChange={(e) => setFormData({ ...formData, duracion_semanas: parseInt(e.target.value) || 1 })}
+              value={formData.duracion_estimada}
+              onChange={(e) => setFormData({ ...formData, duracion_estimada: parseInt(e.target.value) || 1 })}
               min="1"
             />
           </div>
