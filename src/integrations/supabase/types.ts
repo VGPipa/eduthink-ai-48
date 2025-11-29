@@ -687,6 +687,7 @@ export type Database = {
       }
       preguntas: {
         Row: {
+          concepto: string | null
           created_at: string
           id: string
           id_quiz: string
@@ -699,6 +700,7 @@ export type Database = {
           tipo: Database["public"]["Enums"]["tipo_pregunta"] | null
         }
         Insert: {
+          concepto?: string | null
           created_at?: string
           id?: string
           id_quiz: string
@@ -711,6 +713,7 @@ export type Database = {
           tipo?: Database["public"]["Enums"]["tipo_pregunta"] | null
         }
         Update: {
+          concepto?: string | null
           created_at?: string
           id?: string
           id_quiz?: string
