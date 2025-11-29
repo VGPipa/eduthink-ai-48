@@ -1,0 +1,1 @@
+ALTER TABLE public.grupos DROP COLUMN perfil;

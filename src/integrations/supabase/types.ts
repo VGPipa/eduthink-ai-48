@@ -385,7 +385,6 @@ export type Database = {
           id: string
           id_institucion: string
           nombre: string
-          perfil: Json | null
           seccion: string | null
         }
         Insert: {
@@ -395,7 +394,6 @@ export type Database = {
           id?: string
           id_institucion: string
           nombre: string
-          perfil?: Json | null
           seccion?: string | null
         }
         Update: {
@@ -405,7 +403,6 @@ export type Database = {
           id?: string
           id_institucion?: string
           nombre?: string
-          perfil?: Json | null
           seccion?: string | null
         }
         Relationships: [
