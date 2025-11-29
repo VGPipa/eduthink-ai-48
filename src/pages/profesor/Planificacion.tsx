@@ -101,7 +101,7 @@ export default function Planificacion() {
       // Generate estructura_sesiones based on totalSesiones
       const estructuraSesiones = Array.from({ length: iniciarTemaForm.totalSesiones }, (_, i) => ({
         numero: i + 1,
-        nombre: `Sesión ${i + 1}`,
+        nombre: `Clase ${i + 1}`,
         objetivos: [],
         actividades: []
       }));
@@ -222,7 +222,7 @@ export default function Planificacion() {
       <div>
         <h1 className="text-2xl font-bold">Planificación Académica 2024</h1>
         <p className="text-muted-foreground">
-          Gestiona tus materias, temas y sesiones de clase
+          Gestiona tus materias, temas y clases
         </p>
       </div>
 
@@ -321,7 +321,7 @@ export default function Planificacion() {
                             <Progress value={tema.progreso} className="h-1.5 mb-3" />
                             <div className="flex items-center justify-between text-xs text-muted-foreground mb-3">
                               <span>{tema.progreso}% completado</span>
-                              <span>{tema.sesiones} sesiones</span>
+                              <span>{tema.sesiones} clases</span>
                             </div>
                             <div className="flex gap-2">
                               {tema.estado === 'pendiente' ? (
@@ -383,12 +383,12 @@ export default function Planificacion() {
           <DialogHeader>
             <DialogTitle>Iniciar Tema: {selectedTema?.nombre}</DialogTitle>
             <DialogDescription>
-              Crea una guía maestra para este tema. Define la estructura general de sesiones y metodologías.
+              Crea una guía maestra para este tema. Define la estructura general de clases y metodologías.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label>Total de sesiones estimadas *</Label>
+              <Label>Total de clases estimadas *</Label>
               <Input
                 type="number"
                 min="1"
