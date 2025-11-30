@@ -685,14 +685,14 @@ export default function GenerarClase() {
         estado: 'borrador'
       });
 
-      // Save questions with tipo_habilidad in concepto field
+      // Save questions
       const preguntasToInsert = quiz.preguntas.map(p => {
         const opcionCorrecta = p.opciones.find(o => o.es_correcta)?.texto || '';
         
         return {
           id_quiz: quizCreated.id,
           texto_pregunta: `${p.contexto_situacional}\n\n${p.pregunta}`,
-          concepto: `[${p.tipo_habilidad}] ${p.concepto_evaluado}`,
+          concepto: temaData?.nombre || 'Aplicación práctica',
           tipo: 'opcion_multiple' as const,
           opciones: p.opciones,
           respuesta_correcta: opcionCorrecta,
@@ -1600,109 +1600,52 @@ export default function GenerarClase() {
                     </Badge>
                   </div>
 
-                  {/* Questions by skill type */}
+                  {/* Questions - Clean layout */}
                   <div className="space-y-4">
-                    {quizPostData.preguntas.map((pregunta, i) => {
-                      // Define colors for each skill type
-                      const tipoColors: Record<string, { bg: string; border: string; badge: string; text: string }> = {
-                        'Aplicación': { 
-                          bg: 'bg-blue-50/50', 
-                          border: 'border-l-blue-500', 
-                          badge: 'bg-blue-100 text-blue-700 border-blue-200',
-                          text: 'text-blue-700'
-                        },
-                        'Pensamiento Crítico': { 
-                          bg: 'bg-purple-50/50', 
-                          border: 'border-l-purple-500', 
-                          badge: 'bg-purple-100 text-purple-700 border-purple-200',
-                          text: 'text-purple-700'
-                        },
-                        'Habilidad Humana/Ética': { 
-                          bg: 'bg-pink-50/50', 
-                          border: 'border-l-pink-500', 
-                          badge: 'bg-pink-100 text-pink-700 border-pink-200',
-                          text: 'text-pink-700'
-                        }
-                      };
-                      
-                      const colors = tipoColors[pregunta.tipo_habilidad] || tipoColors['Aplicación'];
-                      
-                      return (
-                        <div 
-                          key={i} 
-                          className={`p-4 rounded-lg border-l-4 ${colors.bg} ${colors.border}`}
-                        >
-                          <div className="flex items-center gap-2 mb-3">
-                            <span className="w-6 h-6 rounded-full bg-foreground/10 text-foreground text-sm font-bold flex items-center justify-center">
-                              {pregunta.numero}
-                            </span>
-                            <Badge className={`text-xs border ${colors.badge}`}>
-                              {pregunta.tipo_habilidad}
-                            </Badge>
-                            <Badge variant="outline" className="text-xs ml-auto">
-                              {pregunta.concepto_evaluado}
-                            </Badge>
-                          </div>
-                          
-                          {/* Contexto situacional */}
-                          <div className="p-3 rounded-lg bg-background/60 border mb-3">
-                            <p className="text-sm italic text-muted-foreground">
-                              📖 {pregunta.contexto_situacional}
-                            </p>
-                          </div>
-                          
-                          {/* Pregunta */}
-                          <p className="font-medium mb-4">{pregunta.pregunta}</p>
-                          
-                          {/* Opciones */}
-                          <div className="space-y-2 mb-4">
-                            {pregunta.opciones.map((opcion, j) => (
-                              <div 
-                                key={j} 
-                                className={`p-2 rounded-lg text-sm flex items-center gap-2 ${
-                                  opcion.es_correcta 
-                                    ? 'bg-success/10 border border-success/30 text-success' 
-                                    : 'bg-muted/50 border border-muted'
-                                }`}
-                              >
-                                <span className="w-5 h-5 rounded-full border flex items-center justify-center text-xs font-medium">
-                                  {String.fromCharCode(65 + j)}
-                                </span>
-                                {opcion.es_correcta && <CheckCircle2 className="w-4 h-4" />}
-                                <span>{opcion.texto}</span>
-                              </div>
-                            ))}
-                          </div>
-                          
-                          {/* Retroalimentación expandible */}
-                          <details className="group">
-                            <summary className="cursor-pointer text-sm font-medium text-muted-foreground hover:text-foreground flex items-center gap-1">
-                              <Info className="w-4 h-4" />
-                              Ver retroalimentación detallada
-                            </summary>
-                            <div className="mt-2 p-3 rounded-lg bg-amber-50 border border-amber-200">
-                              <p className="text-sm text-amber-800">{pregunta.retroalimentacion_detallada}</p>
+                    {quizPostData.preguntas.map((pregunta, i) => (
+                      <div key={i} className="p-4 rounded-lg border bg-card">
+                        {/* Contexto situacional - cursiva y gris suave */}
+                        <p className="text-sm italic text-muted-foreground mb-2">
+                          {pregunta.contexto_situacional}
+                        </p>
+                        
+                        {/* Pregunta principal - negrita con número */}
+                        <p className="font-semibold mb-4">
+                          {pregunta.numero}. {pregunta.pregunta}
+                        </p>
+                        
+                        {/* Opciones */}
+                        <div className="space-y-2 mb-4">
+                          {pregunta.opciones.map((opcion, j) => (
+                            <div 
+                              key={j} 
+                              className={`p-2 rounded-lg text-sm flex items-center gap-2 ${
+                                opcion.es_correcta 
+                                  ? 'bg-success/10 border border-success/30 text-success' 
+                                  : 'bg-muted/50 border border-muted'
+                              }`}
+                            >
+                              <span className="w-5 h-5 rounded-full border flex items-center justify-center text-xs font-medium">
+                                {String.fromCharCode(65 + j)}
+                              </span>
+                              {opcion.es_correcta && <CheckCircle2 className="w-4 h-4" />}
+                              <span>{opcion.texto}</span>
                             </div>
-                          </details>
+                          ))}
                         </div>
-                      );
-                    })}
-                  </div>
-                  
-                  {/* Summary by type */}
-                  <div className="grid grid-cols-3 gap-3">
-                    <div className="p-3 rounded-lg bg-blue-50 border border-blue-200 text-center">
-                      <span className="text-2xl font-bold text-blue-700">3</span>
-                      <p className="text-xs text-blue-600">Aplicación</p>
-                    </div>
-                    <div className="p-3 rounded-lg bg-purple-50 border border-purple-200 text-center">
-                      <span className="text-2xl font-bold text-purple-700">2</span>
-                      <p className="text-xs text-purple-600">P. Crítico</p>
-                    </div>
-                    <div className="p-3 rounded-lg bg-pink-50 border border-pink-200 text-center">
-                      <span className="text-2xl font-bold text-pink-700">2</span>
-                      <p className="text-xs text-pink-600">Humana/Ética</p>
-                    </div>
+                        
+                        {/* Retroalimentación expandible */}
+                        <details className="group">
+                          <summary className="cursor-pointer text-sm font-medium text-muted-foreground hover:text-foreground flex items-center gap-1">
+                            <Info className="w-4 h-4" />
+                            Ver retroalimentación detallada
+                          </summary>
+                          <div className="mt-2 p-3 rounded-lg bg-amber-50 border border-amber-200">
+                            <p className="text-sm text-amber-800">{pregunta.retroalimentacion_detallada}</p>
+                          </div>
+                        </details>
+                      </div>
+                    ))}
                   </div>
                 </div>
               )}
