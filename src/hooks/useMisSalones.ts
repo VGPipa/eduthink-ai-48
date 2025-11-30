@@ -643,6 +643,19 @@ export function useMetricasPRE(grupoId: string | null, filtros?: { materiaId?: s
         return { participacion: 0, nivelPreparacion: 0, conceptosRefuerzo: [] };
       }
 
+      // Si hay filtro de materia, obtener los temas de esa materia
+      let temasIds: string[] | null = null;
+      if (filtros?.materiaId && !filtros?.temaId) {
+        const { data: temas } = await supabase
+          .from('temas_plan')
+          .select('id')
+          .eq('curso_plan_id', filtros.materiaId);
+        temasIds = temas?.map(t => t.id) || [];
+        if (temasIds.length === 0) {
+          return { participacion: 0, nivelPreparacion: 0, conceptosRefuerzo: [] };
+        }
+      }
+
       // Obtener clases con quizzes PRE y notas usando joins
       let clasesQuery = supabase
         .from('clases')
@@ -662,11 +675,13 @@ export function useMetricasPRE(grupoId: string | null, filtros?: { materiaId?: s
         .eq('id_grupo', grupoId)
         .eq('quizzes.tipo', 'previo');
 
-      if (filtros?.temaId) {
-        clasesQuery = clasesQuery.eq('id_tema', filtros.temaId);
-      }
+      // Aplicar filtros
       if (filtros?.claseId) {
         clasesQuery = clasesQuery.eq('id', filtros.claseId);
+      } else if (filtros?.temaId) {
+        clasesQuery = clasesQuery.eq('id_tema', filtros.temaId);
+      } else if (temasIds && temasIds.length > 0) {
+        clasesQuery = clasesQuery.in('id_tema', temasIds);
       }
 
       const { data: clases } = await clasesQuery;
@@ -777,6 +792,19 @@ export function useMetricasPOST(grupoId: string | null, filtros?: { materiaId?: 
         return { participacion: 0, nivelDesempeno: 0, alumnosRefuerzo: [] };
       }
 
+      // Si hay filtro de materia, obtener los temas de esa materia
+      let temasIds: string[] | null = null;
+      if (filtros?.materiaId && !filtros?.temaId) {
+        const { data: temas } = await supabase
+          .from('temas_plan')
+          .select('id')
+          .eq('curso_plan_id', filtros.materiaId);
+        temasIds = temas?.map(t => t.id) || [];
+        if (temasIds.length === 0) {
+          return { participacion: 0, nivelDesempeno: 0, alumnosRefuerzo: [] };
+        }
+      }
+
       // Obtener clases con quizzes POST y notas usando joins
       let clasesQuery = supabase
         .from('clases')
@@ -795,11 +823,13 @@ export function useMetricasPOST(grupoId: string | null, filtros?: { materiaId?: 
         .eq('id_grupo', grupoId)
         .eq('quizzes.tipo', 'post');
 
-      if (filtros?.temaId) {
-        clasesQuery = clasesQuery.eq('id_tema', filtros.temaId);
-      }
+      // Aplicar filtros
       if (filtros?.claseId) {
         clasesQuery = clasesQuery.eq('id', filtros.claseId);
+      } else if (filtros?.temaId) {
+        clasesQuery = clasesQuery.eq('id_tema', filtros.temaId);
+      } else if (temasIds && temasIds.length > 0) {
+        clasesQuery = clasesQuery.in('id_tema', temasIds);
       }
 
       const { data: clases } = await clasesQuery;
