@@ -46,7 +46,7 @@ import {
 
 const STEPS = [
   { id: 1, title: 'Contexto', icon: BookOpen },
-  { id: 2, title: 'Generar Guía', icon: Sparkles },
+  { id: 2, title: 'Guía de Clase', icon: Sparkles },
   { id: 3, title: 'Quiz PRE', icon: ClipboardList },
   { id: 4, title: 'Quiz POST', icon: ClipboardList },
   { id: 5, title: 'Validar', icon: FileCheck }
@@ -1618,7 +1618,7 @@ export default function GenerarClase() {
             onClick={() => setCurrentStep(Math.min(5, currentStep + 1))}
             disabled={!canProceed()}
           >
-            Siguiente
+            {currentStep === 1 ? 'Generar Guía' : 'Siguiente'}
             <ChevronRight className="w-4 h-4 ml-2" />
           </Button>
         ) : (
