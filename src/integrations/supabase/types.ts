@@ -952,57 +952,6 @@ export type Database = {
           },
         ]
       }
-      retroalimentaciones: {
-        Row: {
-          areas_mejora: Json | null
-          contenido: string | null
-          created_at: string
-          fortalezas: Json | null
-          id: string
-          id_alumno: string | null
-          id_clase: string
-          recomendaciones: Json | null
-          tipo: string | null
-        }
-        Insert: {
-          areas_mejora?: Json | null
-          contenido?: string | null
-          created_at?: string
-          fortalezas?: Json | null
-          id?: string
-          id_alumno?: string | null
-          id_clase: string
-          recomendaciones?: Json | null
-          tipo?: string | null
-        }
-        Update: {
-          areas_mejora?: Json | null
-          contenido?: string | null
-          created_at?: string
-          fortalezas?: Json | null
-          id?: string
-          id_alumno?: string | null
-          id_clase?: string
-          recomendaciones?: Json | null
-          tipo?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "retroalimentaciones_id_alumno_fkey"
-            columns: ["id_alumno"]
-            isOneToOne: false
-            referencedRelation: "alumnos"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "retroalimentaciones_id_clase_fkey"
-            columns: ["id_clase"]
-            isOneToOne: false
-            referencedRelation: "clases"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       temas_plan: {
         Row: {
           bimestre: number | null

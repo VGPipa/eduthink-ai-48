@@ -5,7 +5,6 @@
  * - Class guides (guías de clase)
  * - Quizzes (PRE and POST)
  * - Processing quiz responses and generating recommendations
- * - Generating personalized feedback (retroalimentaciones)
  * 
  * Uses Supabase Edge Functions with OpenAI for real AI generation.
  */
@@ -141,14 +140,6 @@ export interface ProcessQuizResult {
   conceptos_debiles: ConceptoDebil[];
   recomendaciones: RecomendacionData[];
   alertas: string[];
-}
-
-export interface RetroalimentacionData {
-  contenido: string;
-  fortalezas: string[];
-  areas_mejora: string[];
-  recomendaciones: string[];
-  tipo: 'individual' | 'grupal';
 }
 
 export interface ProcessQuizResponseData {
@@ -413,108 +404,6 @@ export async function processQuizResponses(
         concepto_relacionado: 'General'
       }],
       alertas: ['Error al procesar las recomendaciones con IA']
-    };
-  }
-}
-
-/**
- * Generates personalized feedback for students
- * 
- * @param respuestas - Student quiz responses
- * @param tipo - 'individual' or 'grupal'
- * @param nombreAlumno - Student name (for individual feedback)
- * @returns Generated feedback data
- */
-export async function generateRetroalimentaciones(
-  respuestas: Array<{
-    id_alumno: string;
-    nombre?: string;
-    respuestas_detalle: Array<{
-      id_pregunta: string;
-      respuesta_alumno: string;
-      es_correcta: boolean;
-      tiempo_segundos?: number;
-    }>;
-    puntaje_total?: number;
-  }>,
-  tipo: 'individual' | 'grupal',
-  nombreAlumno?: string
-): Promise<RetroalimentacionData> {
-  // TODO: Replace with actual AI API call
-  
-  await new Promise(resolve => setTimeout(resolve, 2000)); // Simulate API delay
-
-  if (tipo === 'individual' && respuestas.length > 0) {
-    const respuesta = respuestas[0];
-    const correctas = respuesta.respuestas_detalle.filter(r => r.es_correcta).length;
-    const total = respuesta.respuestas_detalle.length;
-    const porcentaje = total > 0 ? Math.round((correctas / total) * 100) : 0;
-
-    const fortalezas: string[] = [];
-    const areas_mejora: string[] = [];
-    const recomendaciones: string[] = [];
-
-    if (porcentaje >= 80) {
-      fortalezas.push('Excelente comprensión de los conceptos principales');
-      fortalezas.push('Buen dominio de la aplicación práctica');
-      recomendaciones.push('Continúa practicando con ejercicios más complejos');
-    } else if (porcentaje >= 60) {
-      fortalezas.push('Comprensión básica de los conceptos');
-      areas_mejora.push('Necesitas reforzar algunos conceptos específicos');
-      recomendaciones.push('Revisa los temas donde tuviste dificultades');
-      recomendaciones.push('Practica con ejercicios similares');
-    } else {
-      areas_mejora.push('Requieres refuerzo en los conceptos fundamentales');
-      areas_mejora.push('Necesitas más práctica con ejercicios básicos');
-      recomendaciones.push('Revisa el material de la clase nuevamente');
-      recomendaciones.push('Consulta con tu profesor sobre los conceptos que no comprendiste');
-      recomendaciones.push('Dedica tiempo adicional al estudio de estos temas');
-    }
-
-    return {
-      contenido: `${nombreAlumno || 'Estudiante'}, has obtenido un ${porcentaje}% de aciertos. ${porcentaje >= 80 ? '¡Felicitaciones por tu excelente desempeño!' : 'Hay áreas de mejora que puedes trabajar.'}`,
-      fortalezas,
-      areas_mejora,
-      recomendaciones,
-      tipo: 'individual'
-    };
-  } else {
-    // Grupal feedback
-    const totalAlumnos = respuestas.length;
-    const promedios = respuestas
-      .map(r => r.puntaje_total || 0)
-      .filter(p => p > 0);
-    const promedioGrupal = promedios.length > 0
-      ? Math.round(promedios.reduce((a, b) => a + b, 0) / promedios.length)
-      : 0;
-
-    const fortalezas: string[] = [];
-    const areas_mejora: string[] = [];
-    const recomendaciones: string[] = [];
-
-    if (promedioGrupal >= 80) {
-      fortalezas.push('El grupo demostró excelente comprensión del tema');
-      fortalezas.push('Buena participación y compromiso general');
-      recomendaciones.push('Pueden avanzar a conceptos más complejos');
-    } else if (promedioGrupal >= 60) {
-      fortalezas.push('El grupo tiene una base sólida de conocimientos');
-      areas_mejora.push('Algunos estudiantes necesitan refuerzo adicional');
-      recomendaciones.push('Organizar sesiones de apoyo para quienes lo necesiten');
-      recomendaciones.push('Revisar los conceptos con menor dominio');
-    } else {
-      areas_mejora.push('El grupo requiere refuerzo en los conceptos fundamentales');
-      areas_mejora.push('Necesitan más práctica con ejercicios básicos');
-      recomendaciones.push('Realizar una sesión de repaso general');
-      recomendaciones.push('Adaptar el ritmo de enseñanza');
-      recomendaciones.push('Proporcionar material de apoyo adicional');
-    }
-
-    return {
-      contenido: `El grupo obtuvo un promedio de ${promedioGrupal}% de aciertos. ${promedioGrupal >= 80 ? '¡Excelente trabajo en equipo!' : 'Hay oportunidades de mejora que podemos trabajar juntos.'}`,
-      fortalezas,
-      areas_mejora,
-      recomendaciones,
-      tipo: 'grupal'
     };
   }
 }
