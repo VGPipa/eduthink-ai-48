@@ -112,7 +112,6 @@ export function useGuiasClase(claseId?: string) {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['guias-clase', variables.id_clase] });
       queryClient.invalidateQueries({ queryKey: ['clases'] });
-      toast.success('Guía creada exitosamente');
     },
     onError: (error: any) => {
       toast.error('Error al crear la guía: ' + error.message);

@@ -8,6 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { useProfesor } from '@/hooks/useProfesor';
 import { useAsignaciones } from '@/hooks/useAsignaciones';
@@ -86,6 +87,14 @@ export default function GenerarClase() {
   const [currentStep, setCurrentStep] = useState(1);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isLoadingData, setIsLoadingData] = useState(true);
+  const [generarEnParalelo, setGenerarEnParalelo] = useState(false);
+  
+  // Parallel generation progress
+  const [generacionProgreso, setGeneracionProgreso] = useState({
+    guia: { estado: 'pendiente' as 'pendiente' | 'generando' | 'completado' | 'error', error: null as string | null },
+    quizPre: { estado: 'pendiente' as 'pendiente' | 'generando' | 'completado' | 'error', error: null as string | null },
+    quizPost: { estado: 'pendiente' as 'pendiente' | 'generando' | 'completado' | 'error', error: null as string | null }
+  });
   
   // Data from DB
   const [temaData, setTemaData] = useState<any>(null);
@@ -522,6 +531,12 @@ export default function GenerarClase() {
     setGuiaGenerada(null);
     setQuizPreData(null);
     setQuizPostData(null);
+    setGenerarEnParalelo(false);
+    setGeneracionProgreso({
+      guia: { estado: 'pendiente', error: null },
+      quizPre: { estado: 'pendiente', error: null },
+      quizPost: { estado: 'pendiente', error: null }
+    });
     setCurrentStep(1);
     setViewMode('wizard');
   };
@@ -558,6 +573,12 @@ export default function GenerarClase() {
     setGuiaGenerada(null);
     setQuizPreData(null);
     setQuizPostData(null);
+    setGenerarEnParalelo(false);
+    setGeneracionProgreso({
+      guia: { estado: 'pendiente', error: null },
+      quizPre: { estado: 'pendiente', error: null },
+      quizPost: { estado: 'pendiente', error: null }
+    });
     setCurrentStep(1);
   };
 
@@ -672,6 +693,239 @@ export default function GenerarClase() {
       toast({
         title: 'Error',
         description: 'Error al generar la guía: ' + error.message,
+        variant: 'destructive'
+      });
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const handleGenerarTodoEnParalelo = async () => {
+    // Use custom name if provided, otherwise use tema name from DB
+    const temaNombre = formData.temaPersonalizado || temaData?.nombre;
+    
+    if (!temaNombre || !formData.contexto) {
+      toast({
+        title: 'Error',
+        description: 'Completa el tema y contexto antes de generar',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    if (!temaData?.id) {
+      toast({
+        title: 'Error',
+        description: 'Debes seleccionar un tema antes de continuar',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    if (!grupoData) {
+      toast({
+        title: 'Error',
+        description: 'Selecciona un salón antes de continuar',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    setIsGenerating(true);
+    setGeneracionProgreso({
+      guia: { estado: 'generando', error: null },
+      quizPre: { estado: 'generando', error: null },
+      quizPost: { estado: 'generando', error: null }
+    });
+
+    try {
+      // Ensure clase exists
+      const clase = await ensureClase();
+      
+      // Update clase state
+      await updateClase.mutateAsync({
+        id: clase.id,
+        estado: 'generando_clase',
+        contexto: formData.contexto,
+      });
+
+      // Generate all three in parallel
+      const [guiaResult, quizPreResult, quizPostResult] = await Promise.allSettled([
+        // Generate guía
+        generateGuiaClase(
+          temaNombre,
+          formData.contexto,
+          formData.recursos,
+          {
+            grado: grupoData?.grado,
+            seccion: grupoData?.seccion,
+            numeroEstudiantes: grupoData?.cantidad_alumnos,
+            duracion: formData.duracion,
+            area: cursoData?.nombre
+          }
+        ),
+        // Generate quiz PRE (without guia info initially)
+        generateQuizPre({
+          tema: temaNombre,
+          contexto: formData.contexto,
+          grado: grupoData?.grado,
+          area: cursoData?.nombre
+        }),
+        // Generate quiz POST (without guia info initially)
+        generateQuizPost({
+          tema: temaNombre,
+          contexto: formData.contexto,
+          grado: grupoData?.grado,
+          area: cursoData?.nombre
+        })
+      ]);
+
+      // Process guía result
+      if (guiaResult.status === 'fulfilled') {
+        const guia = guiaResult.value;
+        setGuiaGenerada(guia);
+        setGeneracionProgreso(prev => ({ ...prev, guia: { estado: 'completado', error: null } }));
+
+        // Save guía to DB
+        const guiaVersion = await createGuiaVersion.mutateAsync({
+          id_clase: clase.id,
+          objetivos: `Cognitivo: ${guia.objetivos_aprendizaje.cognitivo}\nHumano: ${guia.objetivos_aprendizaje.humano}`,
+          estructura: guia.secuencia_didactica,
+          contenido: guia,
+          preguntas_socraticas: [],
+          generada_ia: true,
+          estado: 'borrador'
+        });
+
+        await updateClase.mutateAsync({
+          id: clase.id,
+          estado: 'editando_guia',
+          id_guia_version_actual: guiaVersion.id
+        });
+      } else {
+        const errorMsg = guiaResult.reason?.message || 'Error desconocido';
+        setGeneracionProgreso(prev => ({ ...prev, guia: { estado: 'error', error: errorMsg } }));
+        toast({
+          title: 'Error al generar guía',
+          description: errorMsg,
+          variant: 'destructive'
+        });
+      }
+
+      // Process quiz PRE result
+      if (quizPreResult.status === 'fulfilled') {
+        const quiz = quizPreResult.value;
+        setQuizPreData(quiz);
+        setGeneracionProgreso(prev => ({ ...prev, quizPre: { estado: 'completado', error: null } }));
+
+        // Save quiz PRE to DB
+        const quizCreated = await createQuiz.mutateAsync({
+          id_clase: clase.id,
+          tipo: 'previo',
+          titulo: `Micro-Learning: ${quiz.estimulo_aprendizaje.titulo}`,
+          instrucciones: `Lee atentamente el siguiente contenido y responde las preguntas de comprensión. Tiempo estimado de lectura: ${quiz.estimulo_aprendizaje.tiempo_lectura_estimado}`,
+          tiempo_limite: 5,
+          estado: 'borrador'
+        });
+
+        const preguntasToInsert = quiz.quiz_comprension.map((p, index) => {
+          const opcionCorrecta = p.opciones.find(o => o.es_correcta)?.texto || '';
+          return {
+            id_quiz: quizCreated.id,
+            texto_pregunta: p.pregunta,
+            concepto: p.concepto,
+            tipo: 'opcion_multiple' as const,
+            opciones: p.opciones,
+            respuesta_correcta: opcionCorrecta,
+            justificacion: p.feedback_error,
+            feedback_acierto: p.feedback_acierto,
+            orden: index + 1
+          };
+        });
+
+        const { error: preguntasError } = await supabase
+          .from('preguntas')
+          .insert(preguntasToInsert);
+
+        if (preguntasError) throw preguntasError;
+      } else {
+        const errorMsg = quizPreResult.reason?.message || 'Error desconocido';
+        setGeneracionProgreso(prev => ({ ...prev, quizPre: { estado: 'error', error: errorMsg } }));
+        toast({
+          title: 'Error al generar Quiz PRE',
+          description: errorMsg,
+          variant: 'destructive'
+        });
+      }
+
+      // Process quiz POST result
+      if (quizPostResult.status === 'fulfilled') {
+        const quiz = quizPostResult.value;
+        setQuizPostData(quiz);
+        setGeneracionProgreso(prev => ({ ...prev, quizPost: { estado: 'completado', error: null } }));
+
+        // Save quiz POST to DB
+        const quizCreated = await createQuiz.mutateAsync({
+          id_clase: clase.id,
+          tipo: 'post',
+          titulo: quiz.metadata.titulo_evaluacion,
+          instrucciones: `${quiz.metadata.proposito}\n\nNivel taxonómico: ${quiz.metadata.nivel_taxonomico}`,
+          tiempo_limite: 15,
+          estado: 'borrador'
+        });
+
+        const preguntasToInsert = quiz.preguntas.map(p => {
+          const opcionCorrecta = p.opciones.find(o => o.es_correcta)?.texto || '';
+          return {
+            id_quiz: quizCreated.id,
+            texto_pregunta: `${p.contexto_situacional}\n\n${p.pregunta}`,
+            concepto: temaData?.nombre || 'Aplicación práctica',
+            tipo: 'opcion_multiple' as const,
+            opciones: p.opciones,
+            respuesta_correcta: opcionCorrecta,
+            justificacion: p.retroalimentacion_detallada,
+            orden: p.numero
+          };
+        });
+
+        const { error: preguntasError } = await supabase
+          .from('preguntas')
+          .insert(preguntasToInsert);
+
+        if (preguntasError) throw preguntasError;
+      } else {
+        const errorMsg = quizPostResult.reason?.message || 'Error desconocido';
+        setGeneracionProgreso(prev => ({ ...prev, quizPost: { estado: 'error', error: errorMsg } }));
+        toast({
+          title: 'Error al generar Quiz POST',
+          description: errorMsg,
+          variant: 'destructive'
+        });
+      }
+
+      // Show success message if at least one succeeded
+      const successCount = [
+        guiaResult.status === 'fulfilled',
+        quizPreResult.status === 'fulfilled',
+        quizPostResult.status === 'fulfilled'
+      ].filter(Boolean).length;
+
+      if (successCount > 0) {
+        toast({
+          title: 'Generación completada',
+          description: `${successCount} de 3 componentes generados exitosamente`
+        });
+        
+        // Advance to step 2 if guía was generated
+        if (guiaResult.status === 'fulfilled') {
+          setCurrentStep(2);
+        }
+      }
+
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: 'Error durante la generación: ' + error.message,
         variant: 'destructive'
       });
     } finally {
@@ -1364,13 +1618,136 @@ export default function GenerarClase() {
                   rows={3}
                 />
               </div>
+
+              {/* Opción de generación en paralelo (para demo) */}
+              <div className="flex items-center space-x-2 p-4 rounded-lg border bg-muted/30">
+                <Checkbox 
+                  id="generar-paralelo" 
+                  checked={generarEnParalelo}
+                  onCheckedChange={(checked) => setGenerarEnParalelo(checked === true)}
+                />
+                <Label htmlFor="generar-paralelo" className="cursor-pointer">
+                  <div className="flex flex-col gap-1">
+                    <span className="font-medium">Generar todo en paralelo (Demo)</span>
+                    <span className="text-xs text-muted-foreground">
+                      Genera la guía y ambos quizzes simultáneamente para acelerar el proceso
+                    </span>
+                  </div>
+                </Label>
+              </div>
             </div>
           )}
 
           {/* Step 2: Generate Guide */}
           {currentStep === 2 && (
             <div className="space-y-6">
-              {isGenerating ? (
+              {isGenerating && generarEnParalelo ? (
+                <div className="space-y-4">
+                  <div className="text-center py-4">
+                    <Loader2 className="w-12 h-12 text-primary mx-auto mb-4 animate-spin" />
+                    <h2 className="text-lg font-semibold mb-2">Generando en Paralelo</h2>
+                    <p className="text-muted-foreground">
+                      Generando guía y quizzes simultáneamente...
+                    </p>
+                  </div>
+                  
+                  {/* Progress indicators */}
+                  <div className="space-y-3">
+                    <div className={`p-3 rounded-lg border ${
+                      generacionProgreso.guia.estado === 'completado' ? 'bg-success/10 border-success/20' :
+                      generacionProgreso.guia.estado === 'error' ? 'bg-destructive/10 border-destructive/20' :
+                      'bg-muted/50'
+                    }`}>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          {generacionProgreso.guia.estado === 'completado' ? (
+                            <CheckCircle2 className="w-5 h-5 text-success" />
+                          ) : generacionProgreso.guia.estado === 'error' ? (
+                            <X className="w-5 h-5 text-destructive" />
+                          ) : (
+                            <Loader2 className="w-5 h-5 animate-spin text-primary" />
+                          )}
+                          <span className="font-medium">Guía de Clase</span>
+                        </div>
+                        <Badge variant={
+                          generacionProgreso.guia.estado === 'completado' ? 'default' :
+                          generacionProgreso.guia.estado === 'error' ? 'destructive' :
+                          'secondary'
+                        }>
+                          {generacionProgreso.guia.estado === 'completado' ? 'Completado' :
+                           generacionProgreso.guia.estado === 'error' ? 'Error' :
+                           'Generando...'}
+                        </Badge>
+                      </div>
+                      {generacionProgreso.guia.error && (
+                        <p className="text-xs text-destructive mt-2">{generacionProgreso.guia.error}</p>
+                      )}
+                    </div>
+
+                    <div className={`p-3 rounded-lg border ${
+                      generacionProgreso.quizPre.estado === 'completado' ? 'bg-success/10 border-success/20' :
+                      generacionProgreso.quizPre.estado === 'error' ? 'bg-destructive/10 border-destructive/20' :
+                      'bg-muted/50'
+                    }`}>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          {generacionProgreso.quizPre.estado === 'completado' ? (
+                            <CheckCircle2 className="w-5 h-5 text-success" />
+                          ) : generacionProgreso.quizPre.estado === 'error' ? (
+                            <X className="w-5 h-5 text-destructive" />
+                          ) : (
+                            <Loader2 className="w-5 h-5 animate-spin text-primary" />
+                          )}
+                          <span className="font-medium">Quiz PRE</span>
+                        </div>
+                        <Badge variant={
+                          generacionProgreso.quizPre.estado === 'completado' ? 'default' :
+                          generacionProgreso.quizPre.estado === 'error' ? 'destructive' :
+                          'secondary'
+                        }>
+                          {generacionProgreso.quizPre.estado === 'completado' ? 'Completado' :
+                           generacionProgreso.quizPre.estado === 'error' ? 'Error' :
+                           'Generando...'}
+                        </Badge>
+                      </div>
+                      {generacionProgreso.quizPre.error && (
+                        <p className="text-xs text-destructive mt-2">{generacionProgreso.quizPre.error}</p>
+                      )}
+                    </div>
+
+                    <div className={`p-3 rounded-lg border ${
+                      generacionProgreso.quizPost.estado === 'completado' ? 'bg-success/10 border-success/20' :
+                      generacionProgreso.quizPost.estado === 'error' ? 'bg-destructive/10 border-destructive/20' :
+                      'bg-muted/50'
+                    }`}>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          {generacionProgreso.quizPost.estado === 'completado' ? (
+                            <CheckCircle2 className="w-5 h-5 text-success" />
+                          ) : generacionProgreso.quizPost.estado === 'error' ? (
+                            <X className="w-5 h-5 text-destructive" />
+                          ) : (
+                            <Loader2 className="w-5 h-5 animate-spin text-primary" />
+                          )}
+                          <span className="font-medium">Quiz POST</span>
+                        </div>
+                        <Badge variant={
+                          generacionProgreso.quizPost.estado === 'completado' ? 'default' :
+                          generacionProgreso.quizPost.estado === 'error' ? 'destructive' :
+                          'secondary'
+                        }>
+                          {generacionProgreso.quizPost.estado === 'completado' ? 'Completado' :
+                           generacionProgreso.quizPost.estado === 'error' ? 'Error' :
+                           'Generando...'}
+                        </Badge>
+                      </div>
+                      {generacionProgreso.quizPost.error && (
+                        <p className="text-xs text-destructive mt-2">{generacionProgreso.quizPost.error}</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ) : isGenerating ? (
                 <div className="text-center py-12">
                   <Loader2 className="w-12 h-12 text-primary mx-auto mb-4 animate-spin" />
                   <h2 className="text-lg font-semibold mb-2">Generando Guía de Clase</h2>
@@ -1867,18 +2244,18 @@ export default function GenerarClase() {
             ) : (
               <Button 
                 variant="gradient"
-                onClick={handleGenerarGuia}
+                onClick={generarEnParalelo ? handleGenerarTodoEnParalelo : handleGenerarGuia}
                 disabled={!canProceed() || isGenerating}
               >
                 {isGenerating ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Generando...
+                    {generarEnParalelo ? 'Generando todo...' : 'Generando...'}
                   </>
                 ) : (
                   <>
                     <Sparkles className="w-4 h-4 mr-2" />
-                    Generar Guía
+                    {generarEnParalelo ? 'Generar Todo en Paralelo' : 'Generar Guía'}
                   </>
                 )}
               </Button>
