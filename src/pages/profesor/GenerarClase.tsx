@@ -16,7 +16,7 @@ import { useGuiasClase } from '@/hooks/useGuias';
 import { useQuizzes } from '@/hooks/useQuizzes';
 import { useTemasProfesor } from '@/hooks/useTemasProfesor';
 import { supabase } from '@/integrations/supabase/client';
-import { generateGuiaClase, generateQuiz, generateQuizPre, type GuiaClaseData, type QuizData, type QuizPreData } from '@/lib/ai/generate';
+import { generateGuiaClase, generateQuizPre, generateQuizPost, type GuiaClaseData, type QuizPreData, type QuizPostData } from '@/lib/ai/generate';
 import {
   Sparkles,
   ChevronLeft,
@@ -105,7 +105,7 @@ export default function GenerarClase() {
   // Generated content
   const [guiaGenerada, setGuiaGenerada] = useState<GuiaClaseData | null>(null);
   const [quizPreData, setQuizPreData] = useState<QuizPreData | null>(null);
-  const [quizPostData, setQuizPostData] = useState<QuizData | null>(null);
+  const [quizPostData, setQuizPostData] = useState<QuizPostData | null>(null);
   
   // Hooks for DB operations
   const { createClase, updateClase } = useClases();
@@ -651,31 +651,55 @@ export default function GenerarClase() {
     try {
       const clase = claseData || await ensureClase();
 
-      // Generate quiz with AI
-      const quiz = await generateQuiz('post', temaNombre, 'intermedio', 10);
+      // Extract enriched info from guia for better quiz generation
+      const guiaInfo = guiaGenerada ? {
+        objetivo_humano: guiaGenerada.objetivos_aprendizaje.humano,
+        objetivo_aprendizaje: guiaGenerada.objetivos_aprendizaje.cognitivo,
+        competencia: guiaGenerada.curriculo_peru.competencia,
+        capacidad: guiaGenerada.curriculo_peru.capacidad,
+        desempeno_cneb: guiaGenerada.curriculo_peru.desempeno_precisado,
+        enfoque_transversal: guiaGenerada.curriculo_peru.enfoque_transversal,
+        actividad_desarrollo: guiaGenerada.secuencia_didactica.find(s => s.fase === 'DESARROLLO')?.actividad_detallada,
+        actividad_cierre: guiaGenerada.secuencia_didactica.find(s => s.fase === 'CIERRE')?.actividad_detallada,
+        criterios_evaluacion: guiaGenerada.recursos_y_evaluacion.criterios_evaluacion
+      } : undefined;
+
+      // Generate quiz with AI using new edge function
+      const quiz = await generateQuizPost({
+        tema: temaNombre,
+        contexto: formData.contexto,
+        grado: grupoData?.grado,
+        area: cursoData?.nombre,
+        guia_clase: guiaInfo
+      });
+      
       setQuizPostData(quiz);
 
-      // Save quiz to DB
+      // Save quiz to DB with metadata in instrucciones
       const quizCreated = await createQuiz.mutateAsync({
         id_clase: clase.id,
         tipo: 'post',
-        titulo: quiz.titulo,
-        instrucciones: quiz.instrucciones,
-        tiempo_limite: 30,
+        titulo: quiz.metadata.titulo_evaluacion,
+        instrucciones: `${quiz.metadata.proposito}\n\nNivel taxonómico: ${quiz.metadata.nivel_taxonomico}`,
+        tiempo_limite: 15,
         estado: 'borrador'
       });
 
-      // Save questions directly to DB
-      const preguntasToInsert = quiz.preguntas.map(p => ({
-        id_quiz: quizCreated.id,
-        texto_pregunta: p.texto,
-        concepto: p.concepto,
-        tipo: 'opcion_multiple' as const,
-        opciones: p.opciones || [],
-        respuesta_correcta: p.respuesta_correcta,
-        justificacion: p.justificacion,
-        orden: p.orden
-      }));
+      // Save questions with tipo_habilidad in concepto field
+      const preguntasToInsert = quiz.preguntas.map(p => {
+        const opcionCorrecta = p.opciones.find(o => o.es_correcta)?.texto || '';
+        
+        return {
+          id_quiz: quizCreated.id,
+          texto_pregunta: `${p.contexto_situacional}\n\n${p.pregunta}`,
+          concepto: `[${p.tipo_habilidad}] ${p.concepto_evaluado}`,
+          tipo: 'opcion_multiple' as const,
+          opciones: p.opciones,
+          respuesta_correcta: opcionCorrecta,
+          justificacion: p.retroalimentacion_detallada,
+          orden: p.numero
+        };
+      });
 
       const { error: preguntasError } = await supabase
         .from('preguntas')
@@ -683,7 +707,7 @@ export default function GenerarClase() {
 
       if (preguntasError) throw preguntasError;
 
-      toast({ title: 'Quiz POST generado', description: `${quiz.preguntas.length} preguntas de evaluación listas` });
+      toast({ title: 'Quiz POST generado', description: `Evaluación de competencias con ${quiz.preguntas.length} preguntas` });
     } catch (error: any) {
       toast({
         title: 'Error',
@@ -1535,9 +1559,9 @@ export default function GenerarClase() {
             <div className="space-y-6">
               <div className="text-center py-4">
                 <ClipboardList className="w-12 h-12 text-success mx-auto mb-4" />
-                <h2 className="text-lg font-semibold mb-2">Evaluación Final (POST)</h2>
+                <h2 className="text-lg font-semibold mb-2">Evaluación de Competencias (POST)</h2>
                 <p className="text-muted-foreground mb-6">
-                  Quiz completo para evaluar el aprendizaje (5-10 preguntas)
+                  7 preguntas de situación y análisis • 15 minutos
                 </p>
                   {!quizPostData && (
                   <Button variant="gradient" size="lg" onClick={handleGenerarQuizPost} disabled={isGenerating}>
@@ -1557,23 +1581,129 @@ export default function GenerarClase() {
               </div>
 
                 {quizPostData && (
-                <div className="space-y-4 animate-fade-in">
-                  <div className="p-4 rounded-lg bg-success/10 border border-success/20">
-                    <div className="flex items-center gap-2 text-success">
-                      <CheckCircle2 className="w-5 h-5" />
-                        <span className="font-medium">Quiz POST generado ({quizPostData.preguntas.length} preguntas)</span>
+                <div className="space-y-6 animate-fade-in">
+                  {/* Metadata Header */}
+                  <div className="p-4 rounded-lg bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-2 text-emerald-700">
+                        <CheckCircle2 className="w-5 h-5" />
+                        <span className="font-bold">{quizPostData.metadata.titulo_evaluacion}</span>
+                      </div>
+                      <Badge variant="secondary" className="flex items-center gap-1">
+                        <Clock className="w-3 h-3" />
+                        {quizPostData.metadata.tiempo_sugerido}
+                      </Badge>
                     </div>
+                    <p className="text-sm text-emerald-600 mb-2">{quizPostData.metadata.proposito}</p>
+                    <Badge variant="outline" className="text-xs">
+                      Nivel: {quizPostData.metadata.nivel_taxonomico}
+                    </Badge>
                   </div>
 
-                    {quizPostData.preguntas.map((pregunta, i) => (
-                    <div key={i} className="p-4 rounded-lg border">
-                      <div className="flex items-center gap-2 mb-2">
-                        <Badge variant="outline" className="text-xs">{pregunta.tipo}</Badge>
-                        <span className="text-sm text-muted-foreground">Pregunta {i + 1}</span>
-                      </div>
-                      <p className="font-medium">{pregunta.texto}</p>
+                  {/* Questions by skill type */}
+                  <div className="space-y-4">
+                    {quizPostData.preguntas.map((pregunta, i) => {
+                      // Define colors for each skill type
+                      const tipoColors: Record<string, { bg: string; border: string; badge: string; text: string }> = {
+                        'Aplicación': { 
+                          bg: 'bg-blue-50/50', 
+                          border: 'border-l-blue-500', 
+                          badge: 'bg-blue-100 text-blue-700 border-blue-200',
+                          text: 'text-blue-700'
+                        },
+                        'Pensamiento Crítico': { 
+                          bg: 'bg-purple-50/50', 
+                          border: 'border-l-purple-500', 
+                          badge: 'bg-purple-100 text-purple-700 border-purple-200',
+                          text: 'text-purple-700'
+                        },
+                        'Habilidad Humana/Ética': { 
+                          bg: 'bg-pink-50/50', 
+                          border: 'border-l-pink-500', 
+                          badge: 'bg-pink-100 text-pink-700 border-pink-200',
+                          text: 'text-pink-700'
+                        }
+                      };
+                      
+                      const colors = tipoColors[pregunta.tipo_habilidad] || tipoColors['Aplicación'];
+                      
+                      return (
+                        <div 
+                          key={i} 
+                          className={`p-4 rounded-lg border-l-4 ${colors.bg} ${colors.border}`}
+                        >
+                          <div className="flex items-center gap-2 mb-3">
+                            <span className="w-6 h-6 rounded-full bg-foreground/10 text-foreground text-sm font-bold flex items-center justify-center">
+                              {pregunta.numero}
+                            </span>
+                            <Badge className={`text-xs border ${colors.badge}`}>
+                              {pregunta.tipo_habilidad}
+                            </Badge>
+                            <Badge variant="outline" className="text-xs ml-auto">
+                              {pregunta.concepto_evaluado}
+                            </Badge>
+                          </div>
+                          
+                          {/* Contexto situacional */}
+                          <div className="p-3 rounded-lg bg-background/60 border mb-3">
+                            <p className="text-sm italic text-muted-foreground">
+                              📖 {pregunta.contexto_situacional}
+                            </p>
+                          </div>
+                          
+                          {/* Pregunta */}
+                          <p className="font-medium mb-4">{pregunta.pregunta}</p>
+                          
+                          {/* Opciones */}
+                          <div className="space-y-2 mb-4">
+                            {pregunta.opciones.map((opcion, j) => (
+                              <div 
+                                key={j} 
+                                className={`p-2 rounded-lg text-sm flex items-center gap-2 ${
+                                  opcion.es_correcta 
+                                    ? 'bg-success/10 border border-success/30 text-success' 
+                                    : 'bg-muted/50 border border-muted'
+                                }`}
+                              >
+                                <span className="w-5 h-5 rounded-full border flex items-center justify-center text-xs font-medium">
+                                  {String.fromCharCode(65 + j)}
+                                </span>
+                                {opcion.es_correcta && <CheckCircle2 className="w-4 h-4" />}
+                                <span>{opcion.texto}</span>
+                              </div>
+                            ))}
+                          </div>
+                          
+                          {/* Retroalimentación expandible */}
+                          <details className="group">
+                            <summary className="cursor-pointer text-sm font-medium text-muted-foreground hover:text-foreground flex items-center gap-1">
+                              <Info className="w-4 h-4" />
+                              Ver retroalimentación detallada
+                            </summary>
+                            <div className="mt-2 p-3 rounded-lg bg-amber-50 border border-amber-200">
+                              <p className="text-sm text-amber-800">{pregunta.retroalimentacion_detallada}</p>
+                            </div>
+                          </details>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  
+                  {/* Summary by type */}
+                  <div className="grid grid-cols-3 gap-3">
+                    <div className="p-3 rounded-lg bg-blue-50 border border-blue-200 text-center">
+                      <span className="text-2xl font-bold text-blue-700">3</span>
+                      <p className="text-xs text-blue-600">Aplicación</p>
                     </div>
-                  ))}
+                    <div className="p-3 rounded-lg bg-purple-50 border border-purple-200 text-center">
+                      <span className="text-2xl font-bold text-purple-700">2</span>
+                      <p className="text-xs text-purple-600">P. Crítico</p>
+                    </div>
+                    <div className="p-3 rounded-lg bg-pink-50 border border-pink-200 text-center">
+                      <span className="text-2xl font-bold text-pink-700">2</span>
+                      <p className="text-xs text-pink-600">Humana/Ética</p>
+                    </div>
+                  </div>
                 </div>
               )}
             </div>
