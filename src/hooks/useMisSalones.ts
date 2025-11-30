@@ -517,6 +517,19 @@ export function useResumenSalon(grupoId: string | null, filtros?: { materiaId?: 
       const alumnoIds = alumnosGrupo?.map(a => a.id_alumno) || [];
       const alumnosSet = new Set(alumnoIds);
 
+      // Si hay filtro de materia, obtener los temas de esa materia
+      let temasIds: string[] | null = null;
+      if (filtros?.materiaId && !filtros?.temaId) {
+        const { data: temas } = await supabase
+          .from('temas_plan')
+          .select('id')
+          .eq('curso_plan_id', filtros.materiaId);
+        temasIds = temas?.map(t => t.id) || [];
+        if (temasIds.length === 0) {
+          return { participacion: 0, alumnosRequierenRefuerzo: 0, porcentajeRefuerzo: 0, desempeno: 0 };
+        }
+      }
+
       // Construir query de clases con joins a quizzes y notas
       let clasesQuery = supabase
         .from('clases')
@@ -533,8 +546,13 @@ export function useResumenSalon(grupoId: string | null, filtros?: { materiaId?: 
         `)
         .eq('id_grupo', grupoId);
 
-      if (filtros?.temaId) {
+      // Aplicar filtros
+      if (filtros?.claseId) {
+        clasesQuery = clasesQuery.eq('id', filtros.claseId);
+      } else if (filtros?.temaId) {
         clasesQuery = clasesQuery.eq('id_tema', filtros.temaId);
+      } else if (temasIds && temasIds.length > 0) {
+        clasesQuery = clasesQuery.in('id_tema', temasIds);
       }
 
       const { data: clases } = await clasesQuery;
