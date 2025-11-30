@@ -686,14 +686,16 @@ export function useMetricasPOST(grupoId: string | null, filtros?: { materiaId?: 
         return { participacion: 0, nivelDesempeno: 0, alumnosRefuerzo: [] };
       }
 
-      // Obtener alumnos del grupo con sus perfiles
+      // Obtener alumnos del grupo con sus datos directos
       const { data: alumnosGrupo } = await supabase
         .from('alumnos_grupo')
         .select(`
           id_alumno,
           alumnos (
             id,
-            user_id
+            user_id,
+            nombre,
+            apellido
           )
         `)
         .eq('id_grupo', grupoId);
@@ -786,8 +788,16 @@ export function useMetricasPOST(grupoId: string | null, filtros?: { materiaId?: 
         const promedio = Math.round(puntajes.reduce((a, b) => a + b, 0) / puntajes.length);
         if (promedio < 60) {
           const alumnoData = alumnosGrupo?.find(a => a.id_alumno === alumnoId);
-          const userId = (alumnoData?.alumnos as any)?.user_id;
-          const nombre = userId ? perfilMap.get(userId) || 'Sin nombre' : 'Sin nombre';
+          const alumno = alumnoData?.alumnos as any;
+          
+          // Primero usar nombre/apellido de alumnos, luego fallback a profiles
+          let nombre = 'Sin nombre';
+          if (alumno?.nombre || alumno?.apellido) {
+            nombre = `${alumno.nombre || ''} ${alumno.apellido || ''}`.trim();
+          } else if (alumno?.user_id) {
+            nombre = perfilMap.get(alumno.user_id) || 'Sin nombre';
+          }
+          
           alumnosRefuerzo.push({ id: alumnoId, nombre, porcentaje: promedio });
         }
       });
