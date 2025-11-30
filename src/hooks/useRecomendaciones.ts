@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import type { Database } from '@/integrations/supabase/types';
+import type { Database, Json } from '@/integrations/supabase/types';
 
 type RecomendacionRow = Database['public']['Tables']['recomendaciones']['Row'];
 
@@ -16,6 +16,12 @@ export interface Recomendacion extends RecomendacionRow {
 export interface CreateRecomendacionData {
   id_quiz: string;
   contenido: string;
+  titulo?: string;
+  tipo?: string;
+  prioridad?: string;
+  momento?: string;
+  concepto_relacionado?: string;
+  analisis_general?: Json;
 }
 
 export function useRecomendaciones(quizId?: string) {
@@ -45,7 +51,16 @@ export function useRecomendaciones(quizId?: string) {
     mutationFn: async (data: CreateRecomendacionData) => {
       const { data: recomendacion, error } = await supabase
         .from('recomendaciones')
-        .insert([data])
+        .insert([{
+          id_quiz: data.id_quiz,
+          contenido: data.contenido,
+          titulo: data.titulo,
+          tipo: data.tipo,
+          prioridad: data.prioridad,
+          momento: data.momento,
+          concepto_relacionado: data.concepto_relacionado,
+          analisis_general: data.analisis_general
+        }])
         .select()
         .single();
 

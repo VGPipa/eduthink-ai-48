@@ -865,22 +865,40 @@ export type Database = {
       }
       recomendaciones: {
         Row: {
+          analisis_general: Json | null
+          concepto_relacionado: string | null
           contenido: string | null
           created_at: string
           id: string
           id_quiz: string
+          momento: string | null
+          prioridad: string | null
+          tipo: string | null
+          titulo: string | null
         }
         Insert: {
+          analisis_general?: Json | null
+          concepto_relacionado?: string | null
           contenido?: string | null
           created_at?: string
           id?: string
           id_quiz: string
+          momento?: string | null
+          prioridad?: string | null
+          tipo?: string | null
+          titulo?: string | null
         }
         Update: {
+          analisis_general?: Json | null
+          concepto_relacionado?: string | null
           contenido?: string | null
           created_at?: string
           id?: string
           id_quiz?: string
+          momento?: string | null
+          prioridad?: string | null
+          tipo?: string | null
+          titulo?: string | null
         }
         Relationships: [
           {

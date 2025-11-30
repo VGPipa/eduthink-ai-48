@@ -6,9 +6,10 @@ import { Badge } from '@/components/ui/badge';
 import { useClases } from '@/hooks/useClases';
 import { useQuizzes } from '@/hooks/useQuizzes';
 import { useRetroalimentaciones } from '@/hooks/useRetroalimentaciones';
+import { useRecomendaciones } from '@/hooks/useRecomendaciones';
 import { supabase } from '@/integrations/supabase/client';
-import { generateRetroalimentaciones } from '@/lib/ai/generate';
-import { Loader2, ChevronLeft, Send, Brain, CheckCircle2, Users, MessageSquare } from 'lucide-react';
+import { generateRetroalimentaciones, processQuizResponses } from '@/lib/ai/generate';
+import { Loader2, ChevronLeft, Send, Brain, CheckCircle2, Users, MessageSquare, Lightbulb, BookOpen, Target, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
@@ -17,6 +18,8 @@ export default function PostClase() {
   const { toast } = useToast();
   const [selectedClaseId, setSelectedClaseId] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isProcessingRecomendaciones, setIsProcessingRecomendaciones] = useState(false);
+  const [selectedClase, setSelectedClase] = useState<any>(null);
 
   // Get clases with estado en_clase or completada
   const { clases, updateClase, isLoading: clasesLoading } = useClases();
@@ -30,6 +33,9 @@ export default function PostClase() {
   
   // Get retroalimentaciones for selected clase
   const { retroalimentaciones, retroalimentacionesIndividuales, retroalimentacionesGrupales, createRetroalimentacion } = useRetroalimentaciones(selectedClaseId);
+
+  // Get recomendaciones for quiz POST
+  const { recomendaciones, createRecomendacion } = useRecomendaciones(quizPost?.id);
 
   // Get respuestas for quiz POST
   const [respuestas, setRespuestas] = useState<any[]>([]);
@@ -57,7 +63,7 @@ export default function PostClase() {
           .from('respuestas_detalle')
           .select(`
             *,
-            pregunta:preguntas(id, texto_pregunta, concepto)
+            pregunta:preguntas(id, texto_pregunta, concepto, respuesta_correcta)
           `)
           .in('id_nota_alumno', respuestaIds);
 
@@ -135,6 +141,84 @@ export default function PostClase() {
     }
   };
 
+  const handleGenerarRecomendaciones = async () => {
+    if (!quizPost || respuestas.length === 0 || !selectedClase) {
+      toast({
+        title: 'Error',
+        description: 'No hay respuestas para procesar',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    setIsProcessingRecomendaciones(true);
+    try {
+      // Get preguntas del quiz
+      const { data: preguntas, error: preguntasError } = await supabase
+        .from('preguntas')
+        .select('id, texto_pregunta, concepto, respuesta_correcta')
+        .eq('id_quiz', quizPost.id)
+        .order('orden');
+
+      if (preguntasError) throw preguntasError;
+
+      // Prepare data for AI processing with context
+      const processData = {
+        respuestas: respuestas.map(r => ({
+          id_alumno: r.id_alumno,
+          respuestas_detalle: r.respuestas_detalle.map((d: any) => ({
+            id_pregunta: d.id_pregunta,
+            respuesta_alumno: d.respuesta_alumno,
+            es_correcta: d.es_correcta
+          }))
+        })),
+        preguntas: preguntas?.map(p => ({
+          id: p.id,
+          texto_pregunta: p.texto_pregunta,
+          concepto: p.concepto,
+          respuesta_correcta: p.respuesta_correcta
+        })) || [],
+        tema: selectedClase?.tema?.nombre || 'Tema no especificado',
+        grado: selectedClase?.grupo?.grado || 'No especificado',
+        area: selectedClase?.tema?.curso_plan?.nombre || 'No especificada',
+        contexto: selectedClase?.contexto || ''
+      };
+
+      // Process with AI
+      const resultado = await processQuizResponses(processData, 'post');
+
+      // Save analysis general to first recommendation
+      const analisisGeneral = resultado.analisis_general;
+
+      // Save recomendaciones to DB
+      for (const rec of resultado.recomendaciones) {
+        await createRecomendacion.mutateAsync({
+          id_quiz: quizPost.id,
+          contenido: rec.contenido,
+          titulo: rec.titulo,
+          tipo: rec.tipo,
+          prioridad: rec.prioridad,
+          momento: rec.momento,
+          concepto_relacionado: rec.concepto_relacionado,
+          analisis_general: analisisGeneral as any
+        });
+      }
+
+      toast({ 
+        title: 'Recomendaciones generadas', 
+        description: `${resultado.recomendaciones.length} recomendaciones para próximas sesiones` 
+      });
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: 'Error al generar recomendaciones: ' + error.message,
+        variant: 'destructive'
+      });
+    } finally {
+      setIsProcessingRecomendaciones(false);
+    }
+  };
+
   const handleGenerarRetroalimentaciones = async () => {
     if (!quizPost || respuestas.length === 0 || !selectedClaseId) {
       toast({
@@ -186,7 +270,6 @@ export default function PostClase() {
         recomendaciones: retroGrupal.recomendaciones
       });
 
-
       // Update clase estado to completada
       await updateClase.mutateAsync({
         id: selectedClaseId,
@@ -208,12 +291,38 @@ export default function PostClase() {
     }
   };
 
+  // Update selected clase when selection changes
+  useEffect(() => {
+    if (selectedClaseId) {
+      const clase = clasesPost.find(c => c.id === selectedClaseId);
+      setSelectedClase(clase);
+    }
+  }, [selectedClaseId, clasesPost]);
+
   // Load respuestas when quiz is selected and published
   useEffect(() => {
     if (quizPost && quizPost.estado === 'publicado' && quizPost.id) {
       loadRespuestas(quizPost.id);
     }
   }, [quizPost?.id, quizPost?.estado]);
+
+  const getPrioridadColor = (prioridad: string | null) => {
+    switch (prioridad) {
+      case 'alta': return 'destructive';
+      case 'media': return 'default';
+      case 'baja': return 'secondary';
+      default: return 'outline';
+    }
+  };
+
+  const getTipoIcon = (tipo: string | null) => {
+    switch (tipo) {
+      case 'metodologia': return <BookOpen className="w-4 h-4" />;
+      case 'contenido': return <Target className="w-4 h-4" />;
+      case 'actividad': return <Lightbulb className="w-4 h-4" />;
+      default: return <AlertTriangle className="w-4 h-4" />;
+    }
+  };
 
   if (clasesLoading) {
     return (
@@ -222,6 +331,9 @@ export default function PostClase() {
       </div>
     );
   }
+
+  // Get analysis from first recommendation if available
+  const analisisGeneral = recomendaciones[0]?.analisis_general as any;
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -299,9 +411,10 @@ export default function PostClase() {
             <CardContent className="space-y-4">
               {quizPost ? (
                 <Tabs defaultValue="publicar">
-                  <TabsList className="grid w-full grid-cols-3">
+                  <TabsList className="grid w-full grid-cols-4">
                     <TabsTrigger value="publicar">Publicar</TabsTrigger>
                     <TabsTrigger value="respuestas">Respuestas</TabsTrigger>
+                    <TabsTrigger value="recomendaciones">Recomendaciones</TabsTrigger>
                     <TabsTrigger value="feedback">Feedback</TabsTrigger>
                   </TabsList>
 
@@ -346,27 +459,47 @@ export default function PostClase() {
                       </p>
                     ) : (
                       <>
-                        <div className="flex items-center justify-between">
+                        <div className="flex items-center justify-between flex-wrap gap-2">
                           <span className="text-sm font-medium">
                             {respuestas.length} respuesta(s) recibida(s)
                           </span>
-                          <Button
-                            size="sm"
-                            onClick={handleGenerarRetroalimentaciones}
-                            disabled={isGenerating || respuestas.length === 0}
-                          >
-                            {isGenerating ? (
-                              <>
-                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                Generando...
-                              </>
-                            ) : (
-                              <>
-                                <Brain className="w-4 h-4 mr-2" />
-                                Generar Feedback
-                              </>
-                            )}
-                          </Button>
+                          <div className="flex gap-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={handleGenerarRecomendaciones}
+                              disabled={isProcessingRecomendaciones || respuestas.length === 0}
+                            >
+                              {isProcessingRecomendaciones ? (
+                                <>
+                                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                  Procesando...
+                                </>
+                              ) : (
+                                <>
+                                  <Lightbulb className="w-4 h-4 mr-2" />
+                                  Recomendaciones
+                                </>
+                              )}
+                            </Button>
+                            <Button
+                              size="sm"
+                              onClick={handleGenerarRetroalimentaciones}
+                              disabled={isGenerating || respuestas.length === 0}
+                            >
+                              {isGenerating ? (
+                                <>
+                                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                  Generando...
+                                </>
+                              ) : (
+                                <>
+                                  <Brain className="w-4 h-4 mr-2" />
+                                  Feedback
+                                </>
+                              )}
+                            </Button>
+                          </div>
                         </div>
                         <div className="space-y-2 max-h-64 overflow-y-auto">
                           {respuestas.map((respuesta) => {
@@ -396,6 +529,85 @@ export default function PostClase() {
                     )}
                   </TabsContent>
 
+                  <TabsContent value="recomendaciones" className="space-y-4">
+                    {recomendaciones.length === 0 ? (
+                      <p className="text-sm text-muted-foreground text-center py-4">
+                        No hay recomendaciones. Genera recomendaciones desde la pestaña Respuestas.
+                      </p>
+                    ) : (
+                      <div className="space-y-4">
+                        {/* Análisis General */}
+                        {analisisGeneral && (
+                          <Card className="bg-muted/30">
+                            <CardHeader className="pb-2">
+                              <CardTitle className="text-base">Análisis General</CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-2">
+                              <div className="grid grid-cols-3 gap-2 text-center">
+                                <div className="p-2 rounded-lg bg-background">
+                                  <p className="text-xs text-muted-foreground">Participación</p>
+                                  <p className="text-lg font-bold">{analisisGeneral.participacion || 0}%</p>
+                                </div>
+                                <div className="p-2 rounded-lg bg-background">
+                                  <p className="text-xs text-muted-foreground">Promedio</p>
+                                  <p className="text-lg font-bold">{analisisGeneral.promedio_grupo || 0}%</p>
+                                </div>
+                                <div className="p-2 rounded-lg bg-background">
+                                  <p className="text-xs text-muted-foreground">Nivel</p>
+                                  <Badge variant={
+                                    analisisGeneral.nivel_preparacion === 'alto' ? 'default' :
+                                    analisisGeneral.nivel_preparacion === 'medio' ? 'secondary' : 'destructive'
+                                  }>
+                                    {analisisGeneral.nivel_preparacion || 'N/A'}
+                                  </Badge>
+                                </div>
+                              </div>
+                              {analisisGeneral.resumen && (
+                                <p className="text-sm text-muted-foreground">{analisisGeneral.resumen}</p>
+                              )}
+                            </CardContent>
+                          </Card>
+                        )}
+
+                        {/* Recomendaciones */}
+                        <div className="space-y-3">
+                          <h4 className="text-sm font-medium flex items-center gap-2">
+                            <Lightbulb className="w-4 h-4" />
+                            Recomendaciones para Próximas Sesiones
+                          </h4>
+                          {recomendaciones.map((rec) => (
+                            <Card
+                              key={rec.id}
+                              className="border-l-4"
+                              style={{
+                                borderLeftColor: rec.prioridad === 'alta' ? 'hsl(var(--destructive))' :
+                                  rec.prioridad === 'media' ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))'
+                              }}
+                            >
+                              <CardContent className="p-4">
+                                <div className="flex items-start justify-between gap-2 mb-2">
+                                  <div className="flex items-center gap-2">
+                                    {getTipoIcon(rec.tipo)}
+                                    <span className="font-medium text-sm">{rec.titulo || 'Recomendación'}</span>
+                                  </div>
+                                  <Badge variant={getPrioridadColor(rec.prioridad)}>
+                                    {rec.prioridad || 'Normal'}
+                                  </Badge>
+                                </div>
+                                <p className="text-sm text-muted-foreground">{rec.contenido}</p>
+                                {rec.concepto_relacionado && (
+                                  <p className="text-xs text-muted-foreground mt-2">
+                                    Concepto: {rec.concepto_relacionado}
+                                  </p>
+                                )}
+                              </CardContent>
+                            </Card>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </TabsContent>
+
                   <TabsContent value="feedback" className="space-y-4">
                     {retroalimentaciones.length === 0 ? (
                       <p className="text-sm text-muted-foreground text-center py-4">
@@ -416,7 +628,7 @@ export default function PostClase() {
                                   <p className="text-sm mb-3">{retro.contenido}</p>
                                   {retro.fortalezas && Array.isArray(retro.fortalezas) && retro.fortalezas.length > 0 && (
                                     <div className="mb-2">
-                                      <p className="text-xs font-medium text-success mb-1">Fortalezas:</p>
+                                      <p className="text-xs font-medium text-green-600 mb-1">Fortalezas:</p>
                                       <ul className="text-xs text-muted-foreground list-disc list-inside">
                                         {(retro.fortalezas as string[]).map((f, i) => (
                                           <li key={i}>{f}</li>
@@ -426,10 +638,20 @@ export default function PostClase() {
                                   )}
                                   {retro.areas_mejora && Array.isArray(retro.areas_mejora) && retro.areas_mejora.length > 0 && (
                                     <div className="mb-2">
-                                      <p className="text-xs font-medium text-warning mb-1">Áreas de mejora:</p>
+                                      <p className="text-xs font-medium text-yellow-600 mb-1">Áreas de mejora:</p>
                                       <ul className="text-xs text-muted-foreground list-disc list-inside">
                                         {(retro.areas_mejora as string[]).map((a, i) => (
                                           <li key={i}>{a}</li>
+                                        ))}
+                                      </ul>
+                                    </div>
+                                  )}
+                                  {retro.recomendaciones && Array.isArray(retro.recomendaciones) && retro.recomendaciones.length > 0 && (
+                                    <div>
+                                      <p className="text-xs font-medium text-blue-600 mb-1">Recomendaciones:</p>
+                                      <ul className="text-xs text-muted-foreground list-disc list-inside">
+                                        {(retro.recomendaciones as string[]).map((r, i) => (
+                                          <li key={i}>{r}</li>
                                         ))}
                                       </ul>
                                     </div>
@@ -440,14 +662,14 @@ export default function PostClase() {
                           </div>
                         )}
 
-                        {/* Individuales */}
+                        {/* Individual */}
                         {retroalimentacionesIndividuales.length > 0 && (
                           <div>
                             <div className="flex items-center gap-2 mb-2">
                               <MessageSquare className="w-4 h-4" />
                               <h4 className="font-medium">Retroalimentaciones Individuales</h4>
                             </div>
-                            <div className="space-y-2 max-h-96 overflow-y-auto">
+                            <div className="space-y-2 max-h-64 overflow-y-auto">
                               {retroalimentacionesIndividuales.map((retro) => {
                                 const alumno = alumnos.find(a => a.id === retro.id_alumno);
                                 const nombre = alumno?.profiles 
@@ -457,18 +679,8 @@ export default function PostClase() {
                                 return (
                                   <Card key={retro.id}>
                                     <CardContent className="p-3">
-                                      <p className="text-xs font-medium mb-2">{nombre}</p>
-                                      <p className="text-xs mb-2">{retro.contenido}</p>
-                                      {retro.recomendaciones && (retro.recomendaciones as string[]).length > 0 && (
-                                        <div>
-                                          <p className="text-xs font-medium mb-1">Recomendaciones:</p>
-                                          <ul className="text-xs text-muted-foreground list-disc list-inside">
-                                            {(retro.recomendaciones as string[]).map((r, i) => (
-                                              <li key={i}>{r}</li>
-                                            ))}
-                                          </ul>
-                                        </div>
-                                      )}
+                                      <p className="text-sm font-medium mb-1">{nombre}</p>
+                                      <p className="text-xs text-muted-foreground">{retro.contenido}</p>
                                     </CardContent>
                                   </Card>
                                 );
@@ -492,4 +704,3 @@ export default function PostClase() {
     </div>
   );
 }
-
