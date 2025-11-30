@@ -559,12 +559,16 @@ export default function GenerarClase() {
     try {
       const clase = claseData || await ensureClase();
 
-      // Extract info from guia for better quiz generation
+      // Extract enriched info from guia for better quiz generation with concept alignment
       const guiaInfo = guiaGenerada ? {
         objetivo_cognitivo: guiaGenerada.objetivos_aprendizaje.cognitivo,
         objetivo_humano: guiaGenerada.objetivos_aprendizaje.humano,
         desempeno_cneb: guiaGenerada.curriculo_peru.desempeno_precisado,
-        actividad_inicio: guiaGenerada.secuencia_didactica.find(s => s.fase === 'INICIO')?.actividad_detallada
+        actividad_inicio: guiaGenerada.secuencia_didactica.find(s => s.fase === 'INICIO')?.actividad_detallada,
+        actividad_desarrollo: guiaGenerada.secuencia_didactica.find(s => s.fase === 'DESARROLLO')?.actividad_detallada,
+        criterios_evaluacion: guiaGenerada.recursos_y_evaluacion.criterios_evaluacion,
+        capacidad_cneb: guiaGenerada.curriculo_peru.capacidad,
+        habilidad_foco: guiaGenerada.secuencia_didactica.find(s => s.fase === 'DESARROLLO')?.habilidad_foco
       } : undefined;
 
       // Generate quiz with AI using new edge function
@@ -1504,14 +1508,13 @@ export default function GenerarClase() {
                     <div className="space-y-4">
                       {quizPreData.quiz_comprension.map((pregunta, i) => (
                         <div key={i} className="p-4 rounded-lg border bg-card">
-                          <div className="flex items-center gap-2 mb-3">
-                            <span className="w-6 h-6 rounded-full bg-primary/10 text-primary text-sm font-bold flex items-center justify-center">
-                              {i + 1}
-                            </span>
-                            <Badge variant="outline" className="text-xs">{pregunta.concepto}</Badge>
-                          </div>
+                          {/* Concepto sutil en gris cursiva */}
+                          <p className="text-xs text-muted-foreground italic mb-2">
+                            {i + 1}. {pregunta.concepto}
+                          </p>
                           
-                          <p className="font-medium mb-3">{pregunta.pregunta}</p>
+                          {/* Pregunta principal en negrita */}
+                          <p className="font-semibold mb-3">{pregunta.pregunta}</p>
                           
                           <div className="space-y-2 mb-4">
                             {pregunta.opciones.map((opcion, j) => (

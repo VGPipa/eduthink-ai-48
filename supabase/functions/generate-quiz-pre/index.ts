@@ -16,14 +16,17 @@ El alumno se enfrentará a un "Estímulo de Aprendizaje" (un texto breve + una r
 1. EL ESTÍMULO (La Base Teórica):
    - Genera un párrafo explicativo (máximo 120 palabras) que sintetice la idea central o el concepto "básico" que el alumno DEBE saber antes de entrar a clase.
    - Basándote en el objetivo cognitivo y el desempeño CNEB proporcionados.
-   - Genera un "Prompt de Imagen" detallado que describa una ilustración o diagrama que complementaría visualmente este texto (para que el sistema pueda generar o buscar la imagen).
+   - Genera un "Prompt de Imagen" detallado que describa una ilustración o diagrama que complementaría visualmente este texto.
 
-2. LA EVALUACIÓN (3 Preguntas):
+2. LA EVALUACIÓN (3 Preguntas alineadas a conceptos de la clase):
    - Genera exactamente 3 preguntas de opción múltiple.
-   - REGLA DE ORO: Las preguntas deben medir la COMPRENSIÓN del texto o la imagen descrita. No preguntes datos curiosos externos. El alumno debe sentir que si leyó con atención, tiene la respuesta.
+   - REGLA CRÍTICA: Cada pregunta debe evaluar UN CONCEPTO CLAVE DIFERENTE extraído de la actividad de desarrollo de la guía de clase.
+   - El campo "concepto" debe ser conciso (2-4 palabras) y representar un concepto específico de la sesión.
+   - Ejemplos de conceptos buenos: "Trayectoria parabólica", "Vector velocidad", "Ley de conservación", "Ecuación cuadrática".
+   - NO uses conceptos genéricos como "Comprensión del tema" o el nombre del tema completo.
+   - Las preguntas deben medir la COMPRENSIÓN del texto. El alumno debe sentir que si leyó con atención, tiene la respuesta.
    - Cada pregunta debe tener exactamente 3 opciones.
    - Cada pregunta debe tener feedback inmediato tanto para acierto como para error.
-   - El feedback de error debe referenciar el texto del estímulo.
 
 ### FORMATO DE SALIDA (JSON SCHEMA):
 Tu respuesta debe ser un único objeto JSON válido con esta estructura exacta:
@@ -38,7 +41,7 @@ Tu respuesta debe ser un único objeto JSON válido con esta estructura exacta:
   "quiz_comprension": [
     {
       "pregunta": "String (La pregunta clara y directa)",
-      "concepto": "String (El concepto que evalúa esta pregunta)",
+      "concepto": "String (Concepto específico de 2-4 palabras extraído de la actividad de desarrollo)",
       "opciones": [
         {"texto": "String", "es_correcta": true},
         {"texto": "String", "es_correcta": false},
@@ -62,6 +65,10 @@ interface GenerateQuizPreRequest {
     objetivo_humano?: string;
     desempeno_cneb?: string;
     actividad_inicio?: string;
+    actividad_desarrollo?: string;
+    criterios_evaluacion?: string[];
+    capacidad_cneb?: string;
+    habilidad_foco?: string;
   };
 }
 
@@ -101,8 +108,16 @@ INFORMACIÓN DE LA GUÍA DE CLASE:
 - Objetivo Cognitivo: ${guia_clase.objetivo_cognitivo || '[NO DISPONIBLE]'}
 - Objetivo Humano: ${guia_clase.objetivo_humano || '[NO DISPONIBLE]'}
 - Desempeño CNEB: ${guia_clase.desempeno_cneb || '[NO DISPONIBLE]'}
+- Capacidad CNEB: ${guia_clase.capacidad_cneb || '[NO DISPONIBLE]'}
 - Actividad de Inicio: ${guia_clase.actividad_inicio || '[NO DISPONIBLE]'}
+
+CONCEPTOS CLAVE DE LA CLASE (extraer de aquí los conceptos para cada pregunta):
+- Actividad de Desarrollo: ${guia_clase.actividad_desarrollo || '[NO DISPONIBLE]'}
+- Habilidad Foco: ${guia_clase.habilidad_foco || '[NO DISPONIBLE]'}
+- Criterios de Evaluación: ${guia_clase.criterios_evaluacion?.join(', ') || '[NO DISPONIBLE]'}
 ` : ''}
+
+INSTRUCCIÓN CRÍTICA: Cada una de las 3 preguntas debe evaluar un CONCEPTO ESPECÍFICO DIFERENTE extraído de la actividad de desarrollo. El campo "concepto" debe ser conciso (2-4 palabras) y representar un concepto clave de la sesión.
 
 Genera el Pre-Quiz de Micro-Learning con el estímulo de aprendizaje y las 3 preguntas de comprensión según el schema especificado.`;
 
