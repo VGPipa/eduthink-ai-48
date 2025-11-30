@@ -4,6 +4,18 @@
 
 **URL**: https://lovable.dev/projects/86f5fc8d-1fb3-46d9-a5bf-00c5399ea0f7
 
+## Login Credentials
+
+You can log in as a teacher or student using the following credentials:
+
+**Teacher Account:**
+- Email: `docente@gmail.com`
+- Password: `admin123`
+
+**Student Account:**
+- Email: `alumno@gmail.com`
+- Password: `admin123`
+
 ## How can I edit this code?
 
 There are several ways of editing your application.
