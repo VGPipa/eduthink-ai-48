@@ -499,6 +499,9 @@ export default function GenerarClase() {
       });
 
     toast({ title: '¡Guía generada!', description: 'La guía de clase ha sido creada con éxito' });
+      
+      // Avanzar automáticamente al paso 2
+      setCurrentStep(2);
     } catch (error: any) {
       toast({
         title: 'Error',
@@ -1174,28 +1177,26 @@ export default function GenerarClase() {
           {/* Step 2: Generate Guide */}
           {currentStep === 2 && (
             <div className="space-y-6">
-              <div className="text-center py-4">
-                <Sparkles className="w-12 h-12 text-primary mx-auto mb-4" />
-                <h2 className="text-lg font-semibold mb-2">Generar Guía de Clase</h2>
-                <p className="text-muted-foreground mb-6">
-                  El Arquitecto Pedagógico creará una experiencia de aprendizaje transformadora
-                </p>
-                {!guiaGenerada && (
-                  <Button variant="gradient" size="lg" onClick={handleGenerarGuia} disabled={isGenerating}>
-                    {isGenerating ? (
-                      <>
-                        <Loader2 className="w-5 h-5 animate-spin" />
-                        Generando...
-                      </>
-                    ) : (
-                      <>
-                        <Sparkles className="w-5 h-5" />
-                        Generar Guía
-                      </>
-                    )}
+              {isGenerating ? (
+                <div className="text-center py-12">
+                  <Loader2 className="w-12 h-12 text-primary mx-auto mb-4 animate-spin" />
+                  <h2 className="text-lg font-semibold mb-2">Generando Guía de Clase</h2>
+                  <p className="text-muted-foreground">
+                    El Arquitecto Pedagógico está creando tu experiencia de aprendizaje...
+                  </p>
+                </div>
+              ) : !guiaGenerada ? (
+                <div className="text-center py-12">
+                  <Sparkles className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                  <p className="text-muted-foreground">
+                    No hay guía generada. Vuelve al paso anterior.
+                  </p>
+                  <Button variant="outline" className="mt-4" onClick={() => setCurrentStep(1)}>
+                    <ChevronLeft className="w-4 h-4 mr-2" />
+                    Volver a Contexto
                   </Button>
-                )}
-              </div>
+                </div>
+              ) : null}
 
               {guiaGenerada && (
                 <div className="space-y-6 animate-fade-in">
@@ -1613,14 +1614,34 @@ export default function GenerarClase() {
         </Button>
 
         {currentStep < 5 ? (
-          <Button 
-            variant="gradient"
-            onClick={() => setCurrentStep(Math.min(5, currentStep + 1))}
-            disabled={!canProceed()}
-          >
-            {currentStep === 1 ? 'Generar Guía' : 'Siguiente'}
-            <ChevronRight className="w-4 h-4 ml-2" />
-          </Button>
+          currentStep === 1 ? (
+            <Button 
+              variant="gradient"
+              onClick={handleGenerarGuia}
+              disabled={!canProceed() || isGenerating}
+            >
+              {isGenerating ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Generando...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="w-4 h-4 mr-2" />
+                  Generar Guía
+                </>
+              )}
+            </Button>
+          ) : (
+            <Button 
+              variant="gradient"
+              onClick={() => setCurrentStep(Math.min(5, currentStep + 1))}
+              disabled={!canProceed()}
+            >
+              Siguiente
+              <ChevronRight className="w-4 h-4 ml-2" />
+            </Button>
+          )
         ) : (
           <Button 
             variant="gradient"
