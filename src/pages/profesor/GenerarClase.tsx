@@ -879,23 +879,14 @@ export default function GenerarClase() {
     }
 
     try {
-      // First transition: editando_guia -> guia_aprobada (if needed)
-      const currentEstado = claseData.estado;
-      if (currentEstado === 'editando_guia') {
-        await updateClase.mutateAsync({
-          id: claseData.id,
-          estado: 'guia_aprobada'
-        });
-      }
-
-      // Second transition: guia_aprobada -> clase_programada
+      // Transición directa a clase_programada (validación completa)
       await updateClase.mutateAsync({
         id: claseData.id,
         estado: 'clase_programada'
       });
 
-    toast({ title: '¡Clase validada!', description: 'Tu clase está lista para ser impartida' });
-    navigate('/profesor/dashboard');
+      toast({ title: '¡Clase validada!', description: 'Tu clase está lista para ser impartida' });
+      navigate('/profesor/dashboard');
     } catch (error: any) {
       toast({
         title: 'Error',

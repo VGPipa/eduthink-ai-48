@@ -44,7 +44,7 @@ export interface CreateClaseData {
 const VALID_TRANSITIONS: Record<EstadoClase, EstadoClase[]> = {
   borrador: ['generando_clase', 'borrador'],
   generando_clase: ['editando_guia', 'borrador'],
-  editando_guia: ['guia_aprobada', 'editando_guia', 'borrador'],
+  editando_guia: ['guia_aprobada', 'clase_programada', 'editando_guia', 'borrador'],
   guia_aprobada: ['clase_programada', 'editando_guia'],
   clase_programada: ['en_clase', 'clase_programada'],
   en_clase: ['completada', 'en_clase'],
