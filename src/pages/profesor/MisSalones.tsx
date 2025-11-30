@@ -93,7 +93,7 @@ export default function MisSalones() {
     return (
       <div className="space-y-6 animate-fade-in">
         <div>
-          <h1 className="text-2xl font-bold">Mis Salones</h1>
+          <h1 className="text-2xl font-bold">Métricas</h1>
           <p className="text-muted-foreground">
             Métricas del desempeño del grupo
           </p>
@@ -137,8 +137,8 @@ export default function MisSalones() {
                         {metricasGlobales?.totalAlumnos || 0}
                       </p>
                     </div>
-                    <div className="bg-blue-50 p-2 rounded-lg">
-                      <Users className="w-5 h-5 text-blue-500" />
+                    <div className="bg-primary/10 p-2 rounded-lg">
+                      <Users className="w-5 h-5 text-primary" />
                     </div>
                   </div>
                 </CardContent>
@@ -154,8 +154,8 @@ export default function MisSalones() {
                         {metricasGlobales?.quizzesCompletados || 0}
                       </p>
                     </div>
-                    <div className="bg-blue-50 p-2 rounded-lg">
-                      <ClipboardList className="w-5 h-5 text-blue-500" />
+                    <div className="bg-primary/10 p-2 rounded-lg">
+                      <ClipboardList className="w-5 h-5 text-primary" />
                     </div>
                   </div>
                 </CardContent>
@@ -171,8 +171,8 @@ export default function MisSalones() {
                         {metricasGlobales?.participacion || 0}%
                       </p>
                     </div>
-                    <div className="bg-blue-50 p-2 rounded-lg">
-                      <CheckCircle className="w-5 h-5 text-blue-500" />
+                    <div className="bg-primary/10 p-2 rounded-lg">
+                      <CheckCircle className="w-5 h-5 text-primary" />
                     </div>
                   </div>
                 </CardContent>
@@ -202,7 +202,7 @@ export default function MisSalones() {
             {asignaciones.map((asignacion) => (
               <Card 
                 key={asignacion.id} 
-                className="border shadow-sm cursor-pointer hover:shadow-lg transition-all hover:border-blue-300"
+                className="border shadow-sm cursor-pointer hover:shadow-lg transition-all hover:border-primary/50"
                 onClick={() => handleAsignacionSelect(asignacion)}
               >
                 <CardContent className="p-6">
@@ -220,7 +220,7 @@ export default function MisSalones() {
                       </p>
                     </div>
                     <Badge 
-                      className="bg-blue-500 hover:bg-blue-600 text-white font-semibold px-3 py-1 rounded-full"
+                      className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold px-3 py-1 rounded-full"
                     >
                       {asignacion.promedio}%
                     </Badge>
@@ -229,22 +229,22 @@ export default function MisSalones() {
                   {/* Barra de promedio */}
                   <div className="mt-4 mb-4">
                     <div className="flex items-center justify-between mb-1.5">
-                      <span className="text-sm text-blue-600 font-medium">Promedio</span>
+                      <span className="text-sm text-primary font-medium">Promedio</span>
                       <span className="text-sm font-semibold">{asignacion.promedio}%</span>
                     </div>
                     <Progress 
                       value={asignacion.promedio} 
-                      className="h-2 [&>div]:bg-blue-500" 
+                      className="h-2 [&>div]:bg-primary" 
                     />
                   </div>
 
                   {/* Fila de Quizzes y Asistencia */}
                   <div className="grid grid-cols-2 gap-4 pt-3 border-t">
-                    <div className="bg-slate-50 rounded-lg p-3">
+                    <div className="bg-muted/50 rounded-lg p-3">
                       <p className="text-xs text-muted-foreground mb-1">Quizzes</p>
                       <p className="text-xl font-bold text-foreground">{asignacion.totalQuizzes}</p>
                     </div>
-                    <div className="bg-slate-50 rounded-lg p-3">
+                    <div className="bg-muted/50 rounded-lg p-3">
                       <p className="text-xs text-muted-foreground mb-1">Asistencia</p>
                       <p className="text-xl font-bold text-foreground">{asignacion.asistencia}%</p>
                     </div>
@@ -279,24 +279,13 @@ export default function MisSalones() {
       </div>
 
       <div>
-        <h1 className="text-2xl font-bold">Mis Salones</h1>
+        <h1 className="text-2xl font-bold">{selectedAsignacion.grupo.nombre}</h1>
         <p className="text-muted-foreground">Métricas del desempeño del grupo</p>
       </div>
 
       {/* Filtros */}
       <Card className="border shadow-sm">
-        <CardContent className="p-4 space-y-4">
-          {/* Salón selector */}
-          <div>
-            <label className="text-sm text-muted-foreground mb-1.5 block">Salón:</label>
-            <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg cursor-pointer">
-              <span className="font-medium">
-                {selectedAsignacion?.grupo.nombre} - {selectedAsignacion?.grupo.grado} {selectedAsignacion?.grupo.seccion || ''}
-              </span>
-              <ChevronDown className="w-4 h-4 text-muted-foreground" />
-            </div>
-          </div>
-
+        <CardContent className="p-4">
           {/* Filtros en fila */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
@@ -378,7 +367,7 @@ export default function MisSalones() {
               <Card className="border shadow-sm">
                 <CardContent className="p-5">
                   <div className="flex items-center gap-2 mb-2">
-                    <Users className="w-4 h-4 text-orange-500" />
+                    <Users className="w-4 h-4 text-primary" />
                     <span className="text-sm text-muted-foreground">Participación</span>
                   </div>
                   <p className="text-3xl font-bold">{resumen?.participacion || 0}%</p>
@@ -389,7 +378,7 @@ export default function MisSalones() {
               <Card className="border shadow-sm">
                 <CardContent className="p-5">
                   <div className="flex items-center gap-2 mb-2">
-                    <AlertTriangle className="w-4 h-4 text-orange-500" />
+                    <AlertTriangle className="w-4 h-4 text-primary" />
                     <span className="text-sm text-muted-foreground">Alumnos que requieren refuerzo</span>
                   </div>
                   <p className="text-3xl font-bold">{resumen?.alumnosRequierenRefuerzo || 0}</p>
@@ -400,7 +389,7 @@ export default function MisSalones() {
               <Card className="border shadow-sm">
                 <CardContent className="p-5">
                   <div className="flex items-center gap-2 mb-2">
-                    <Target className="w-4 h-4 text-orange-500" />
+                    <Target className="w-4 h-4 text-primary" />
                     <span className="text-sm text-muted-foreground">Desempeño</span>
                   </div>
                   <p className="text-3xl font-bold">{resumen?.desempeno || 0}%</p>
@@ -422,7 +411,7 @@ export default function MisSalones() {
           <Card className="border shadow-sm">
             <CardContent className="p-5">
               <div className="flex items-center gap-2 mb-3">
-                <Users className="w-4 h-4 text-orange-500" />
+                <Users className="w-4 h-4 text-primary" />
                 <span className="font-medium">Participación</span>
               </div>
               <p className="text-sm text-muted-foreground mb-3">Porcentaje de completación</p>
@@ -432,7 +421,7 @@ export default function MisSalones() {
                 <div className="flex items-center gap-3">
                   <Progress 
                     value={metricasPre?.participacion || 0} 
-                    className="h-2 flex-1 [&>div]:bg-orange-500" 
+                    className="h-3 flex-[2] [&>div]:bg-primary" 
                   />
                   <span className="text-sm font-medium w-12 text-right">{metricasPre?.participacion || 0}%</span>
                 </div>
@@ -444,7 +433,7 @@ export default function MisSalones() {
           <Card className="border shadow-sm">
             <CardContent className="p-5">
               <div className="flex items-center gap-2 mb-3">
-                <Target className="w-4 h-4 text-orange-500" />
+                <Target className="w-4 h-4 text-primary" />
                 <span className="font-medium">Nivel de Preparación</span>
               </div>
               <p className="text-sm text-muted-foreground mb-3">Porcentaje de aciertos promedio</p>
@@ -454,7 +443,7 @@ export default function MisSalones() {
                 <div className="flex items-center gap-3">
                   <Progress 
                     value={metricasPre?.nivelPreparacion || 0} 
-                    className="h-2 flex-1 [&>div]:bg-orange-500" 
+                    className="h-3 flex-[2] [&>div]:bg-primary" 
                   />
                   <span className="text-sm font-medium w-12 text-right">{metricasPre?.nivelPreparacion || 0}%</span>
                 </div>
@@ -480,7 +469,7 @@ export default function MisSalones() {
                         <span className="text-sm font-medium">{concepto.nombre}</span>
                         <p className="text-xs text-muted-foreground">{concepto.porcentajeAcierto}% de acierto</p>
                       </div>
-                      <Badge className="bg-orange-500 hover:bg-orange-600">{concepto.porcentajeAcierto}%</Badge>
+                      <Badge className="bg-primary hover:bg-primary/90">{concepto.porcentajeAcierto}%</Badge>
                     </div>
                   ))}
                 </div>
@@ -496,12 +485,12 @@ export default function MisSalones() {
           <Card className="border shadow-sm">
             <CardContent className="p-5">
               <div className="flex items-center gap-2 mb-2">
-                <Lightbulb className="w-4 h-4 text-amber-500" />
+                <Lightbulb className="w-4 h-4 text-primary" />
                 <span className="font-medium">Recomendaciones</span>
               </div>
               <p className="text-sm text-muted-foreground mb-4">Acciones sugeridas para preparar la clase</p>
               {recomendacionPre ? (
-                <div className="p-4 bg-muted/30 rounded-lg border-l-4 border-amber-500">
+                <div className="p-4 bg-muted/30 rounded-lg border-l-4 border-primary">
                   <p className="text-sm font-medium mb-1">{recomendacionPre.titulo}</p>
                   <p className="text-sm text-muted-foreground">{recomendacionPre.descripcion}</p>
                 </div>
@@ -525,7 +514,7 @@ export default function MisSalones() {
           <Card className="border shadow-sm">
             <CardContent className="p-5">
               <div className="flex items-center gap-2 mb-3">
-                <Users className="w-4 h-4 text-orange-500" />
+                <Users className="w-4 h-4 text-primary" />
                 <span className="font-medium">Participación</span>
               </div>
               <p className="text-sm text-muted-foreground mb-3">Porcentaje de completación</p>
@@ -535,7 +524,7 @@ export default function MisSalones() {
                 <div className="flex items-center gap-3">
                   <Progress 
                     value={metricasPost?.participacion || 0} 
-                    className="h-2 flex-1 [&>div]:bg-orange-500" 
+                    className="h-3 flex-[2] [&>div]:bg-primary" 
                   />
                   <span className="text-sm font-medium w-12 text-right">{metricasPost?.participacion || 0}%</span>
                 </div>
@@ -547,7 +536,7 @@ export default function MisSalones() {
           <Card className="border shadow-sm">
             <CardContent className="p-5">
               <div className="flex items-center gap-2 mb-3">
-                <TrendingUp className="w-4 h-4 text-orange-500" />
+                <TrendingUp className="w-4 h-4 text-primary" />
                 <span className="font-medium">Nivel de Desempeño</span>
               </div>
               <p className="text-sm text-muted-foreground mb-3">Promedio de logro</p>
@@ -557,7 +546,7 @@ export default function MisSalones() {
                 <div className="flex items-center gap-3">
                   <Progress 
                     value={metricasPost?.nivelDesempeno || 0} 
-                    className="h-2 flex-1 [&>div]:bg-orange-500" 
+                    className="h-3 flex-[2] [&>div]:bg-primary" 
                   />
                   <span className="text-sm font-medium w-12 text-right">{metricasPost?.nivelDesempeno || 0}%</span>
                 </div>
@@ -569,7 +558,7 @@ export default function MisSalones() {
           <Card className="border shadow-sm">
             <CardContent className="p-5">
               <div className="flex items-center gap-2 mb-2">
-                <AlertTriangle className="w-4 h-4 text-orange-500" />
+                <AlertTriangle className="w-4 h-4 text-primary" />
                 <span className="font-medium">Alumnos que requieren refuerzo</span>
               </div>
               <p className="text-sm text-muted-foreground mb-4">Alumnos con bajo desempeño</p>
@@ -580,7 +569,7 @@ export default function MisSalones() {
                   {metricasPost.alumnosRefuerzo.slice(0, 3).map((alumno) => (
                     <div key={alumno.id} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
                       <span className="text-sm font-medium">{alumno.nombre}</span>
-                      <Badge className="bg-orange-500 hover:bg-orange-600">{alumno.porcentaje}%</Badge>
+                      <Badge className="bg-primary hover:bg-primary/90">{alumno.porcentaje}%</Badge>
                     </div>
                   ))}
                 </div>
@@ -596,13 +585,13 @@ export default function MisSalones() {
           <Card className="border shadow-sm">
             <CardContent className="p-5">
               <div className="flex items-center gap-2 mb-2">
-                <Lightbulb className="w-4 h-4 text-amber-500" />
+                <Lightbulb className="w-4 h-4 text-primary" />
                 <span className="font-medium">Recomendaciones</span>
               </div>
               <p className="text-sm text-muted-foreground mb-4">Acciones sugeridas después de la clase</p>
               {recomendacionPost ? (
                 <div className="p-4 bg-muted/30 rounded-lg">
-                  <Badge className="bg-orange-500 hover:bg-orange-600 mb-2">Refuerzo</Badge>
+                  <Badge className="bg-primary hover:bg-primary/90 mb-2">Refuerzo</Badge>
                   <p className="text-sm font-medium mb-1">{recomendacionPost.titulo}</p>
                   <p className="text-sm text-muted-foreground">{recomendacionPost.descripcion}</p>
                 </div>

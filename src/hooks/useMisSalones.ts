@@ -2,6 +2,10 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useProfesor } from './useProfesor';
 
+// Cache times for React Query
+const STALE_TIME = 5 * 60 * 1000; // 5 minutos
+const GC_TIME = 10 * 60 * 1000; // 10 minutos
+
 // Tipos para las métricas del salón
 export interface ResumenSalon {
   participacion: number;
@@ -53,7 +57,7 @@ export interface MetricasGlobales {
   participacion: number;
 }
 
-// Hook para obtener métricas globales del profesor
+// Hook para obtener métricas globales del profesor (OPTIMIZADO)
 export function useMetricasGlobalesProfesor() {
   const { profesor } = useProfesor();
 
@@ -64,20 +68,33 @@ export function useMetricasGlobalesProfesor() {
         return { promedioGeneral: 0, totalAlumnos: 0, quizzesCompletados: 0, participacion: 0 };
       }
 
-      // Obtener todas las asignaciones del profesor
-      const { data: asignaciones, error } = await supabase
-        .from('asignaciones_profesor')
-        .select('id_grupo')
+      // Una sola consulta para obtener clases con quizzes y notas usando joins
+      const { data: clasesConDatos, error } = await supabase
+        .from('clases')
+        .select(`
+          id,
+          id_grupo,
+          quizzes (
+            id,
+            nota_alumno (
+              id_alumno,
+              puntaje_total,
+              estado
+            )
+          )
+        `)
         .eq('id_profesor', profesor.id);
 
       if (error) throw error;
-      if (!asignaciones || asignaciones.length === 0) {
+
+      // Obtener grupos únicos de las clases
+      const grupoIds = [...new Set(clasesConDatos?.map(c => c.id_grupo) || [])];
+      
+      if (grupoIds.length === 0) {
         return { promedioGeneral: 0, totalAlumnos: 0, quizzesCompletados: 0, participacion: 0 };
       }
 
-      const grupoIds = [...new Set(asignaciones.map(a => a.id_grupo))];
-
-      // Obtener alumnos únicos de todos los grupos
+      // Una consulta para todos los alumnos de esos grupos
       const { data: alumnosGrupo } = await supabase
         .from('alumnos_grupo')
         .select('id_alumno')
@@ -85,44 +102,28 @@ export function useMetricasGlobalesProfesor() {
 
       const alumnosUnicos = new Set(alumnosGrupo?.map(a => a.id_alumno) || []);
       const totalAlumnos = alumnosUnicos.size;
-      const alumnoIds = Array.from(alumnosUnicos);
 
-      // Obtener todas las clases del profesor
-      const { data: clases } = await supabase
-        .from('clases')
-        .select('id')
-        .eq('id_profesor', profesor.id);
-
-      const claseIds = clases?.map(c => c.id) || [];
-
-      if (claseIds.length === 0 || totalAlumnos === 0) {
-        return { promedioGeneral: 0, totalAlumnos, quizzesCompletados: 0, participacion: 0 };
+      if (totalAlumnos === 0) {
+        return { promedioGeneral: 0, totalAlumnos: 0, quizzesCompletados: 0, participacion: 0 };
       }
 
-      // Obtener todos los quizzes de las clases
-      const { data: quizzes } = await supabase
-        .from('quizzes')
-        .select('id')
-        .in('id_clase', claseIds);
+      // Procesar todas las notas en memoria
+      const todasLasNotas: { id_alumno: string; puntaje_total: number | null; estado: string | null }[] = [];
+      clasesConDatos?.forEach(clase => {
+        const quizzes = clase.quizzes as any[] || [];
+        quizzes.forEach(quiz => {
+          const notas = quiz.nota_alumno as any[] || [];
+          notas.forEach(nota => {
+            if (alumnosUnicos.has(nota.id_alumno)) {
+              todasLasNotas.push(nota);
+            }
+          });
+        });
+      });
 
-      const quizIds = quizzes?.map(q => q.id) || [];
-
-      if (quizIds.length === 0) {
-        return { promedioGeneral: 0, totalAlumnos, quizzesCompletados: 0, participacion: 0 };
-      }
-
-      // Obtener notas de los alumnos
-      const { data: respuestas } = await supabase
-        .from('nota_alumno')
-        .select('id_alumno, puntaje_total, estado')
-        .in('id_quiz', quizIds)
-        .in('id_alumno', alumnoIds);
-
-      // Calcular métricas
-      const respuestasCompletadas = respuestas?.filter(r => r.estado === 'completado') || [];
+      const respuestasCompletadas = todasLasNotas.filter(r => r.estado === 'completado');
       const quizzesCompletados = respuestasCompletadas.length;
 
-      // Promedio general
       const puntajes = respuestasCompletadas
         .filter(r => r.puntaje_total !== null)
         .map(r => r.puntaje_total as number);
@@ -130,11 +131,8 @@ export function useMetricasGlobalesProfesor() {
         ? Math.round(puntajes.reduce((a, b) => a + b, 0) / puntajes.length)
         : 0;
 
-      // Participación: alumnos únicos que han completado al menos un quiz
       const alumnosQueCompletaron = new Set(respuestasCompletadas.map(r => r.id_alumno));
-      const participacion = totalAlumnos > 0
-        ? Math.round((alumnosQueCompletaron.size / totalAlumnos) * 100)
-        : 0;
+      const participacion = Math.round((alumnosQueCompletaron.size / totalAlumnos) * 100);
 
       return {
         promedioGeneral,
@@ -144,10 +142,12 @@ export function useMetricasGlobalesProfesor() {
       };
     },
     enabled: !!profesor?.id,
+    staleTime: STALE_TIME,
+    gcTime: GC_TIME,
   });
 }
 
-// Hook para obtener las asignaciones del profesor con métricas
+// Hook para obtener las asignaciones del profesor con métricas (OPTIMIZADO - SIN N+1)
 export function useAsignacionesProfesor() {
   const { profesor } = useProfesor();
 
@@ -156,7 +156,7 @@ export function useAsignacionesProfesor() {
     queryFn: async (): Promise<AsignacionConMetricas[]> => {
       if (!profesor?.id) return [];
 
-      // Obtener asignaciones con grupos y materias
+      // 1. Obtener asignaciones con grupos y materias
       const { data: asignaciones, error } = await supabase
         .from('asignaciones_profesor')
         .select(`
@@ -180,7 +180,69 @@ export function useAsignacionesProfesor() {
       if (error) throw error;
       if (!asignaciones || asignaciones.length === 0) return [];
 
-      // Para cada asignación, calcular métricas
+      // Extraer IDs únicos para batch queries
+      const grupoIds = [...new Set(asignaciones.map(a => a.id_grupo))];
+      const materiaIds = [...new Set(asignaciones.map(a => a.id_materia))];
+
+      // 2. BATCH: Obtener todos los alumnos de todos los grupos
+      const { data: todosAlumnos } = await supabase
+        .from('alumnos_grupo')
+        .select('id_grupo, id_alumno')
+        .in('id_grupo', grupoIds);
+
+      // Crear mapa de alumnos por grupo
+      const alumnosPorGrupo = new Map<string, string[]>();
+      todosAlumnos?.forEach(a => {
+        const lista = alumnosPorGrupo.get(a.id_grupo) || [];
+        lista.push(a.id_alumno);
+        alumnosPorGrupo.set(a.id_grupo, lista);
+      });
+
+      // 3. BATCH: Obtener todos los temas de todas las materias
+      const { data: todosTemas } = await supabase
+        .from('temas_plan')
+        .select('id, curso_plan_id')
+        .in('curso_plan_id', materiaIds);
+
+      // Crear mapa de temas por materia
+      const temasPorMateria = new Map<string, string[]>();
+      todosTemas?.forEach(t => {
+        const lista = temasPorMateria.get(t.curso_plan_id) || [];
+        lista.push(t.id);
+        temasPorMateria.set(t.curso_plan_id, lista);
+      });
+
+      const todosTemasIds = todosTemas?.map(t => t.id) || [];
+
+      // 4. BATCH con JOIN: Obtener todas las clases con quizzes y notas
+      const { data: todasClases } = await supabase
+        .from('clases')
+        .select(`
+          id,
+          id_grupo,
+          id_tema,
+          quizzes (
+            id,
+            nota_alumno (
+              id_alumno,
+              puntaje_total,
+              estado
+            )
+          )
+        `)
+        .in('id_grupo', grupoIds)
+        .in('id_tema', todosTemasIds.length > 0 ? todosTemasIds : ['']);
+
+      // Indexar clases por grupo+tema
+      const clasesPorGrupoTema = new Map<string, typeof todasClases>();
+      todasClases?.forEach(c => {
+        const key = `${c.id_grupo}-${c.id_tema}`;
+        const lista = clasesPorGrupoTema.get(key) || [];
+        lista.push(c);
+        clasesPorGrupoTema.set(key, lista);
+      });
+
+      // 5. Procesar cada asignación en memoria (sin más queries)
       const asignacionesConMetricas: AsignacionConMetricas[] = [];
 
       for (const asig of asignaciones) {
@@ -189,24 +251,11 @@ export function useAsignacionesProfesor() {
         
         if (!grupo || !materia) continue;
 
-        // Obtener alumnos del grupo
-        const { data: alumnosGrupo } = await supabase
-          .from('alumnos_grupo')
-          .select('id_alumno')
-          .eq('id_grupo', grupo.id);
+        const alumnosDelGrupo = alumnosPorGrupo.get(grupo.id) || [];
+        const totalAlumnos = alumnosDelGrupo.length;
+        const temasDeMateria = temasPorMateria.get(materia.id) || [];
 
-        const totalAlumnos = alumnosGrupo?.length || 0;
-        const alumnoIds = alumnosGrupo?.map(a => a.id_alumno) || [];
-
-        // Obtener temas de la materia
-        const { data: temas } = await supabase
-          .from('temas_plan')
-          .select('id')
-          .eq('curso_plan_id', materia.id);
-
-        const temaIds = temas?.map(t => t.id) || [];
-
-        if (temaIds.length === 0) {
+        if (temasDeMateria.length === 0 || totalAlumnos === 0) {
           asignacionesConMetricas.push({
             id: asig.id,
             materia: { id: materia.id, nombre: materia.nombre },
@@ -218,57 +267,29 @@ export function useAsignacionesProfesor() {
           continue;
         }
 
-        // Obtener clases de esos temas en ese grupo
-        const { data: clases } = await supabase
-          .from('clases')
-          .select('id')
-          .eq('id_grupo', grupo.id)
-          .in('id_tema', temaIds);
+        // Recopilar notas de todas las clases de esta asignación
+        const alumnosSet = new Set(alumnosDelGrupo);
+        const notasAsignacion: { id_alumno: string; puntaje_total: number | null; estado: string | null }[] = [];
+        let totalQuizzes = 0;
 
-        const claseIds = clases?.map(c => c.id) || [];
-
-        if (claseIds.length === 0) {
-          asignacionesConMetricas.push({
-            id: asig.id,
-            materia: { id: materia.id, nombre: materia.nombre },
-            grupo: { id: grupo.id, nombre: grupo.nombre, grado: grupo.grado, seccion: grupo.seccion, cantidad_alumnos: grupo.cantidad_alumnos || 0 },
-            promedio: 0,
-            totalQuizzes: 0,
-            asistencia: 0,
+        temasDeMateria.forEach(temaId => {
+          const clasesDelTema = clasesPorGrupoTema.get(`${grupo.id}-${temaId}`) || [];
+          clasesDelTema.forEach(clase => {
+            const quizzes = (clase as any).quizzes as any[] || [];
+            totalQuizzes += quizzes.length;
+            quizzes.forEach(quiz => {
+              const notas = quiz.nota_alumno as any[] || [];
+              notas.forEach(nota => {
+                if (alumnosSet.has(nota.id_alumno)) {
+                  notasAsignacion.push(nota);
+                }
+              });
+            });
           });
-          continue;
-        }
-
-        // Obtener quizzes de esas clases
-        const { data: quizzes } = await supabase
-          .from('quizzes')
-          .select('id')
-          .in('id_clase', claseIds);
-
-        const quizIds = quizzes?.map(q => q.id) || [];
-        const totalQuizzes = quizIds.length;
-
-        if (totalQuizzes === 0 || totalAlumnos === 0) {
-          asignacionesConMetricas.push({
-            id: asig.id,
-            materia: { id: materia.id, nombre: materia.nombre },
-            grupo: { id: grupo.id, nombre: grupo.nombre, grado: grupo.grado, seccion: grupo.seccion, cantidad_alumnos: grupo.cantidad_alumnos || 0 },
-            promedio: 0,
-            totalQuizzes: 0,
-            asistencia: 0,
-          });
-          continue;
-        }
-
-        // Obtener notas de los alumnos
-        const { data: respuestas } = await supabase
-          .from('nota_alumno')
-          .select('id_alumno, puntaje_total, estado')
-          .in('id_quiz', quizIds)
-          .in('id_alumno', alumnoIds);
+        });
 
         // Calcular métricas
-        const completadas = respuestas?.filter(r => r.estado === 'completado') || [];
+        const completadas = notasAsignacion.filter(r => r.estado === 'completado');
         const puntajes = completadas
           .filter(r => r.puntaje_total !== null)
           .map(r => r.puntaje_total as number);
@@ -278,7 +299,7 @@ export function useAsignacionesProfesor() {
           : 0;
 
         const alumnosQueCompletaron = new Set(completadas.map(r => r.id_alumno));
-        const asistencia = Math.round((alumnosQueCompletaron.size / totalAlumnos) * 100);
+        const asistencia = totalAlumnos > 0 ? Math.round((alumnosQueCompletaron.size / totalAlumnos) * 100) : 0;
 
         asignacionesConMetricas.push({
           id: asig.id,
@@ -293,6 +314,8 @@ export function useAsignacionesProfesor() {
       return asignacionesConMetricas;
     },
     enabled: !!profesor?.id,
+    staleTime: STALE_TIME,
+    gcTime: GC_TIME,
   });
 }
 
@@ -339,6 +362,8 @@ export function useGruposProfesor() {
       return Array.from(gruposUnicos.values());
     },
     enabled: !!profesor?.id,
+    staleTime: STALE_TIME,
+    gcTime: GC_TIME,
   });
 }
 
@@ -374,6 +399,8 @@ export function useMateriasGrupo(grupoId: string | null) {
       }) || [];
     },
     enabled: !!grupoId && !!profesor?.id,
+    staleTime: STALE_TIME,
+    gcTime: GC_TIME,
   });
 }
 
@@ -394,6 +421,8 @@ export function useTemasMateria(materiaId: string | null) {
       return data || [];
     },
     enabled: !!materiaId,
+    staleTime: STALE_TIME,
+    gcTime: GC_TIME,
   });
 }
 
@@ -459,10 +488,12 @@ export function useClasesTema(temaId: string | null, grupoId: string | null) {
       }));
     },
     enabled: !!temaId && !!profesor?.id,
+    staleTime: STALE_TIME,
+    gcTime: GC_TIME,
   });
 }
 
-// Hook para obtener el resumen del salón
+// Hook para obtener el resumen del salón (OPTIMIZADO con joins)
 export function useResumenSalon(grupoId: string | null, filtros?: { materiaId?: string; temaId?: string; claseId?: string }) {
   return useQuery({
     queryKey: ['resumen-salon', grupoId, filtros],
@@ -484,49 +515,75 @@ export function useResumenSalon(grupoId: string | null, filtros?: { materiaId?: 
       }
 
       const alumnoIds = alumnosGrupo?.map(a => a.id_alumno) || [];
+      const alumnosSet = new Set(alumnoIds);
 
-      // Construir query de clases con filtros
+      // Si hay filtro de materia, obtener los temas de esa materia
+      let temasIds: string[] | null = null;
+      if (filtros?.materiaId && !filtros?.temaId) {
+        const { data: temas } = await supabase
+          .from('temas_plan')
+          .select('id')
+          .eq('curso_plan_id', filtros.materiaId);
+        temasIds = temas?.map(t => t.id) || [];
+        if (temasIds.length === 0) {
+          return { participacion: 0, alumnosRequierenRefuerzo: 0, porcentajeRefuerzo: 0, desempeno: 0 };
+        }
+      }
+
+      // Construir query de clases con joins a quizzes y notas
       let clasesQuery = supabase
         .from('clases')
-        .select('id')
+        .select(`
+          id,
+          quizzes (
+            id,
+            nota_alumno (
+              id_alumno,
+              puntaje_total,
+              estado
+            )
+          )
+        `)
         .eq('id_grupo', grupoId);
 
-      if (filtros?.temaId) {
+      // Aplicar filtros
+      if (filtros?.claseId) {
+        clasesQuery = clasesQuery.eq('id', filtros.claseId);
+      } else if (filtros?.temaId) {
         clasesQuery = clasesQuery.eq('id_tema', filtros.temaId);
+      } else if (temasIds && temasIds.length > 0) {
+        clasesQuery = clasesQuery.in('id_tema', temasIds);
       }
 
       const { data: clases } = await clasesQuery;
-      const claseIds = clases?.map(c => c.id) || [];
 
-      if (claseIds.length === 0) {
+      if (!clases || clases.length === 0) {
         return { participacion: 0, alumnosRequierenRefuerzo: 0, porcentajeRefuerzo: 0, desempeno: 0 };
       }
 
-      // Obtener quizzes de esas clases
-      const { data: quizzes } = await supabase
-        .from('quizzes')
-        .select('id')
-        .in('id_clase', claseIds);
+      // Procesar notas en memoria
+      const todasLasNotas: { id_alumno: string; puntaje_total: number | null; estado: string | null }[] = [];
+      clases.forEach(clase => {
+        const quizzes = (clase as any).quizzes as any[] || [];
+        quizzes.forEach(quiz => {
+          const notas = quiz.nota_alumno as any[] || [];
+          notas.forEach(nota => {
+            if (alumnosSet.has(nota.id_alumno)) {
+              todasLasNotas.push(nota);
+            }
+          });
+        });
+      });
 
-      const quizIds = quizzes?.map(q => q.id) || [];
-
-      if (quizIds.length === 0) {
+      if (todasLasNotas.length === 0) {
         return { participacion: 0, alumnosRequierenRefuerzo: 0, porcentajeRefuerzo: 0, desempeno: 0 };
       }
-
-      // Obtener notas de los alumnos del grupo
-      const { data: respuestas } = await supabase
-        .from('nota_alumno')
-        .select('id_alumno, puntaje_total, estado')
-        .in('id_quiz', quizIds)
-        .in('id_alumno', alumnoIds);
 
       // Calcular métricas
-      const respuestasCompletadas = respuestas?.filter(r => r.estado === 'completado') || [];
+      const respuestasCompletadas = todasLasNotas.filter(r => r.estado === 'completado');
       const alumnosQueCompletaron = new Set(respuestasCompletadas.map(r => r.id_alumno));
       const participacion = Math.round((alumnosQueCompletaron.size / totalAlumnos) * 100);
 
-      // Calcular desempeño promedio
       const puntajes = respuestasCompletadas
         .filter(r => r.puntaje_total !== null)
         .map(r => r.puntaje_total as number);
@@ -534,7 +591,7 @@ export function useResumenSalon(grupoId: string | null, filtros?: { materiaId?: 
         ? Math.round(puntajes.reduce((a, b) => a + b, 0) / puntajes.length)
         : 0;
 
-      // Calcular alumnos en riesgo (promedio < 60)
+      // Calcular alumnos en riesgo
       const promediosPorAlumno = new Map<string, number[]>();
       respuestasCompletadas.forEach(r => {
         if (r.puntaje_total !== null) {
@@ -558,10 +615,12 @@ export function useResumenSalon(grupoId: string | null, filtros?: { materiaId?: 
       };
     },
     enabled: !!grupoId,
+    staleTime: STALE_TIME,
+    gcTime: GC_TIME,
   });
 }
 
-// Hook para obtener métricas PRE de un salón
+// Hook para obtener métricas PRE de un salón (OPTIMIZADO con joins)
 export function useMetricasPRE(grupoId: string | null, filtros?: { materiaId?: string; temaId?: string; claseId?: string }) {
   return useQuery({
     queryKey: ['metricas-pre', grupoId, filtros],
@@ -578,52 +637,76 @@ export function useMetricasPRE(grupoId: string | null, filtros?: { materiaId?: s
 
       const totalAlumnos = alumnosGrupo?.length || 0;
       const alumnoIds = alumnosGrupo?.map(a => a.id_alumno) || [];
+      const alumnosSet = new Set(alumnoIds);
 
       if (totalAlumnos === 0) {
         return { participacion: 0, nivelPreparacion: 0, conceptosRefuerzo: [] };
       }
 
-      // Obtener clases del grupo
+      // Si hay filtro de materia, obtener los temas de esa materia
+      let temasIds: string[] | null = null;
+      if (filtros?.materiaId && !filtros?.temaId) {
+        const { data: temas } = await supabase
+          .from('temas_plan')
+          .select('id')
+          .eq('curso_plan_id', filtros.materiaId);
+        temasIds = temas?.map(t => t.id) || [];
+        if (temasIds.length === 0) {
+          return { participacion: 0, nivelPreparacion: 0, conceptosRefuerzo: [] };
+        }
+      }
+
+      // Obtener clases con quizzes PRE y notas usando joins
       let clasesQuery = supabase
         .from('clases')
-        .select('id')
-        .eq('id_grupo', grupoId);
+        .select(`
+          id,
+          quizzes!inner (
+            id,
+            tipo,
+            nota_alumno (
+              id,
+              id_alumno,
+              puntaje_total,
+              estado
+            )
+          )
+        `)
+        .eq('id_grupo', grupoId)
+        .eq('quizzes.tipo', 'previo');
 
-      if (filtros?.temaId) {
-        clasesQuery = clasesQuery.eq('id_tema', filtros.temaId);
-      }
+      // Aplicar filtros
       if (filtros?.claseId) {
         clasesQuery = clasesQuery.eq('id', filtros.claseId);
+      } else if (filtros?.temaId) {
+        clasesQuery = clasesQuery.eq('id_tema', filtros.temaId);
+      } else if (temasIds && temasIds.length > 0) {
+        clasesQuery = clasesQuery.in('id_tema', temasIds);
       }
 
       const { data: clases } = await clasesQuery;
-      const claseIds = clases?.map(c => c.id) || [];
 
-      if (claseIds.length === 0) {
+      if (!clases || clases.length === 0) {
         return { participacion: 0, nivelPreparacion: 0, conceptosRefuerzo: [] };
       }
 
-      // Obtener quizzes PRE
-      const { data: quizzesPre } = await supabase
-        .from('quizzes')
-        .select('id')
-        .in('id_clase', claseIds)
-        .eq('tipo', 'previo');
+      // Recopilar notas PRE
+      const notasPre: { id: string; id_alumno: string; puntaje_total: number | null; estado: string | null }[] = [];
+      clases.forEach(clase => {
+        const quizzes = (clase as any).quizzes as any[] || [];
+        quizzes.forEach(quiz => {
+          if (quiz.tipo === 'previo') {
+            const notas = quiz.nota_alumno as any[] || [];
+            notas.forEach(nota => {
+              if (alumnosSet.has(nota.id_alumno)) {
+                notasPre.push(nota);
+              }
+            });
+          }
+        });
+      });
 
-      const quizPreIds = quizzesPre?.map(q => q.id) || [];
-
-      if (quizPreIds.length === 0) {
-        return { participacion: 0, nivelPreparacion: 0, conceptosRefuerzo: [] };
-      }
-
-      // Obtener notas PRE
-      const { data: respuestasPre } = await supabase
-        .from('nota_alumno')
-        .select('id, id_alumno, puntaje_total, estado')
-        .in('id_quiz', quizPreIds)
-        .in('id_alumno', alumnoIds);
-
-      const completadas = respuestasPre?.filter(r => r.estado === 'completado') || [];
+      const completadas = notasPre.filter(r => r.estado === 'completado');
       const participacion = Math.round((new Set(completadas.map(r => r.id_alumno)).size / totalAlumnos) * 100);
 
       const puntajes = completadas
@@ -633,7 +716,7 @@ export function useMetricasPRE(grupoId: string | null, filtros?: { materiaId?: s
         ? Math.round(puntajes.reduce((a, b) => a + b, 0) / puntajes.length)
         : 0;
 
-      // Obtener conceptos débiles desde las preguntas
+      // Obtener conceptos débiles
       const respuestaIds = completadas.map(r => r.id);
       if (respuestaIds.length === 0) {
         return { participacion, nivelPreparacion, conceptosRefuerzo: [] };
@@ -661,7 +744,6 @@ export function useMetricasPRE(grupoId: string | null, filtros?: { materiaId?: s
         conceptoStats.set(concepto, stats);
       });
 
-      // Calcular porcentajes y filtrar los débiles
       const conceptosRefuerzo = Array.from(conceptoStats.entries())
         .map(([nombre, stats]) => ({
           nombre,
@@ -674,10 +756,12 @@ export function useMetricasPRE(grupoId: string | null, filtros?: { materiaId?: s
       return { participacion, nivelPreparacion, conceptosRefuerzo };
     },
     enabled: !!grupoId,
+    staleTime: STALE_TIME,
+    gcTime: GC_TIME,
   });
 }
 
-// Hook para obtener métricas POST de un salón
+// Hook para obtener métricas POST de un salón (OPTIMIZADO con joins)
 export function useMetricasPOST(grupoId: string | null, filtros?: { materiaId?: string; temaId?: string; claseId?: string }) {
   return useQuery({
     queryKey: ['metricas-post', grupoId, filtros],
@@ -686,66 +770,91 @@ export function useMetricasPOST(grupoId: string | null, filtros?: { materiaId?: 
         return { participacion: 0, nivelDesempeno: 0, alumnosRefuerzo: [] };
       }
 
-      // Obtener alumnos del grupo con sus perfiles
+      // Obtener alumnos del grupo con sus datos directos
       const { data: alumnosGrupo } = await supabase
         .from('alumnos_grupo')
         .select(`
           id_alumno,
           alumnos (
             id,
-            user_id
+            user_id,
+            nombre,
+            apellido
           )
         `)
         .eq('id_grupo', grupoId);
 
       const totalAlumnos = alumnosGrupo?.length || 0;
       const alumnoIds = alumnosGrupo?.map(a => a.id_alumno) || [];
+      const alumnosSet = new Set(alumnoIds);
 
       if (totalAlumnos === 0) {
         return { participacion: 0, nivelDesempeno: 0, alumnosRefuerzo: [] };
       }
 
-      // Obtener clases del grupo
+      // Si hay filtro de materia, obtener los temas de esa materia
+      let temasIds: string[] | null = null;
+      if (filtros?.materiaId && !filtros?.temaId) {
+        const { data: temas } = await supabase
+          .from('temas_plan')
+          .select('id')
+          .eq('curso_plan_id', filtros.materiaId);
+        temasIds = temas?.map(t => t.id) || [];
+        if (temasIds.length === 0) {
+          return { participacion: 0, nivelDesempeno: 0, alumnosRefuerzo: [] };
+        }
+      }
+
+      // Obtener clases con quizzes POST y notas usando joins
       let clasesQuery = supabase
         .from('clases')
-        .select('id')
-        .eq('id_grupo', grupoId);
+        .select(`
+          id,
+          quizzes!inner (
+            id,
+            tipo,
+            nota_alumno (
+              id_alumno,
+              puntaje_total,
+              estado
+            )
+          )
+        `)
+        .eq('id_grupo', grupoId)
+        .eq('quizzes.tipo', 'post');
 
-      if (filtros?.temaId) {
-        clasesQuery = clasesQuery.eq('id_tema', filtros.temaId);
-      }
+      // Aplicar filtros
       if (filtros?.claseId) {
         clasesQuery = clasesQuery.eq('id', filtros.claseId);
+      } else if (filtros?.temaId) {
+        clasesQuery = clasesQuery.eq('id_tema', filtros.temaId);
+      } else if (temasIds && temasIds.length > 0) {
+        clasesQuery = clasesQuery.in('id_tema', temasIds);
       }
 
       const { data: clases } = await clasesQuery;
-      const claseIds = clases?.map(c => c.id) || [];
 
-      if (claseIds.length === 0) {
+      if (!clases || clases.length === 0) {
         return { participacion: 0, nivelDesempeno: 0, alumnosRefuerzo: [] };
       }
 
-      // Obtener quizzes POST
-      const { data: quizzesPost } = await supabase
-        .from('quizzes')
-        .select('id')
-        .in('id_clase', claseIds)
-        .eq('tipo', 'post');
+      // Recopilar notas POST
+      const notasPost: { id_alumno: string; puntaje_total: number | null; estado: string | null }[] = [];
+      clases.forEach(clase => {
+        const quizzes = (clase as any).quizzes as any[] || [];
+        quizzes.forEach(quiz => {
+          if (quiz.tipo === 'post') {
+            const notas = quiz.nota_alumno as any[] || [];
+            notas.forEach(nota => {
+              if (alumnosSet.has(nota.id_alumno)) {
+                notasPost.push(nota);
+              }
+            });
+          }
+        });
+      });
 
-      const quizPostIds = quizzesPost?.map(q => q.id) || [];
-
-      if (quizPostIds.length === 0) {
-        return { participacion: 0, nivelDesempeno: 0, alumnosRefuerzo: [] };
-      }
-
-      // Obtener notas POST
-      const { data: respuestasPost } = await supabase
-        .from('nota_alumno')
-        .select('id_alumno, puntaje_total, estado')
-        .in('id_quiz', quizPostIds)
-        .in('id_alumno', alumnoIds);
-
-      const completadas = respuestasPost?.filter(r => r.estado === 'completado') || [];
+      const completadas = notasPost.filter(r => r.estado === 'completado');
       const participacion = Math.round((new Set(completadas.map(r => r.id_alumno)).size / totalAlumnos) * 100);
 
       const puntajes = completadas
@@ -755,7 +864,7 @@ export function useMetricasPOST(grupoId: string | null, filtros?: { materiaId?: 
         ? Math.round(puntajes.reduce((a, b) => a + b, 0) / puntajes.length)
         : 0;
 
-      // Calcular promedios por alumno para encontrar los de bajo rendimiento
+      // Calcular promedios por alumno
       const promediosPorAlumno = new Map<string, number[]>();
       completadas.forEach(r => {
         if (r.puntaje_total !== null) {
@@ -765,15 +874,17 @@ export function useMetricasPOST(grupoId: string | null, filtros?: { materiaId?: 
         }
       });
 
-      // Obtener perfiles de los alumnos para los nombres
+      // Obtener perfiles para fallback de nombres
       const userIds = alumnosGrupo
         ?.map(a => (a.alumnos as any)?.user_id)
         .filter(Boolean) || [];
 
-      const { data: perfiles } = await supabase
-        .from('profiles')
-        .select('user_id, nombre, apellido')
-        .in('user_id', userIds);
+      const { data: perfiles } = userIds.length > 0 
+        ? await supabase
+            .from('profiles')
+            .select('user_id, nombre, apellido')
+            .in('user_id', userIds)
+        : { data: [] };
 
       const perfilMap = new Map<string, string>();
       perfiles?.forEach(p => {
@@ -786,8 +897,16 @@ export function useMetricasPOST(grupoId: string | null, filtros?: { materiaId?: 
         const promedio = Math.round(puntajes.reduce((a, b) => a + b, 0) / puntajes.length);
         if (promedio < 60) {
           const alumnoData = alumnosGrupo?.find(a => a.id_alumno === alumnoId);
-          const userId = (alumnoData?.alumnos as any)?.user_id;
-          const nombre = userId ? perfilMap.get(userId) || 'Sin nombre' : 'Sin nombre';
+          const alumno = alumnoData?.alumnos as any;
+          
+          // Primero usar nombre/apellido de alumnos, luego fallback a profiles
+          let nombre = 'Sin nombre';
+          if (alumno?.nombre || alumno?.apellido) {
+            nombre = `${alumno.nombre || ''} ${alumno.apellido || ''}`.trim();
+          } else if (alumno?.user_id) {
+            nombre = perfilMap.get(alumno.user_id) || 'Sin nombre';
+          }
+          
           alumnosRefuerzo.push({ id: alumnoId, nombre, porcentaje: promedio });
         }
       });
@@ -797,65 +916,61 @@ export function useMetricasPOST(grupoId: string | null, filtros?: { materiaId?: 
       return { participacion, nivelDesempeno, alumnosRefuerzo: alumnosRefuerzo.slice(0, 5) };
     },
     enabled: !!grupoId,
+    staleTime: STALE_TIME,
+    gcTime: GC_TIME,
   });
 }
 
-// Hook para obtener recomendaciones de un salón/clase
+// Hook para obtener recomendaciones de un salón/clase (OPTIMIZADO)
 export function useRecomendacionesSalon(grupoId: string | null, filtros?: { quizId?: string }) {
   return useQuery({
     queryKey: ['recomendaciones-salon', grupoId, filtros],
     queryFn: async (): Promise<RecomendacionSalon[]> => {
       if (!grupoId) return [];
 
-      // Obtener clases del grupo
+      // Usar join para obtener quizzes y recomendaciones en una query
       const { data: clases } = await supabase
         .from('clases')
-        .select('id')
+        .select(`
+          id,
+          quizzes (
+            id,
+            recomendaciones (
+              id,
+              contenido
+            )
+          )
+        `)
         .eq('id_grupo', grupoId);
 
-      const claseIds = clases?.map(c => c.id) || [];
+      if (!clases || clases.length === 0) return [];
 
-      if (claseIds.length === 0) return [];
+      // Recopilar recomendaciones
+      const recomendaciones: { id: string; contenido: string | null }[] = [];
+      clases.forEach(clase => {
+        const quizzes = (clase as any).quizzes as any[] || [];
+        quizzes.forEach(quiz => {
+          if (filtros?.quizId && quiz.id !== filtros.quizId) return;
+          const recs = quiz.recomendaciones as any[] || [];
+          recs.forEach(rec => recomendaciones.push(rec));
+        });
+      });
 
-      // Obtener quizzes de esas clases
-      let quizzesQuery = supabase
-        .from('quizzes')
-        .select('id')
-        .in('id_clase', claseIds);
-
-      if (filtros?.quizId) {
-        quizzesQuery = quizzesQuery.eq('id', filtros.quizId);
-      }
-
-      const { data: quizzes } = await quizzesQuery;
-      const quizIds = quizzes?.map(q => q.id) || [];
-
-      if (quizIds.length === 0) return [];
-
-      // Obtener recomendaciones
-      const { data: recomendaciones } = await supabase
-        .from('recomendaciones')
-        .select('id, contenido')
-        .in('id_quiz', quizIds)
-        .order('created_at', { ascending: false })
-        .limit(5);
-
-      return recomendaciones?.map(r => ({
+      return recomendaciones.slice(0, 5).map(r => ({
         id: r.id,
         tipo: 'refuerzo' as const,
         titulo: r.contenido?.split('.')[0]?.replace('[DEMO]', '').trim() || 'Recomendación',
         descripcion: r.contenido?.replace('[DEMO]', '').trim() || '',
-      })) || [];
+      }));
     },
     enabled: !!grupoId,
+    staleTime: STALE_TIME,
+    gcTime: GC_TIME,
   });
 }
 
 // Hook para generar recomendaciones con IA basadas en conceptos débiles
 export function useRecomendacionesIA(conceptosDebiles: { nombre: string; porcentajeAcierto: number }[], tipo: 'PRE' | 'POST') {
-  // Genera recomendaciones dinámicas basadas en los conceptos débiles
-  // TODO: Integrar con servicio de IA real
-  
   if (!conceptosDebiles || conceptosDebiles.length === 0) {
     return {
       recomendacion: null,
@@ -884,4 +999,3 @@ export function useRecomendacionesIA(conceptosDebiles: { nombre: string; porcent
     isLoading: false,
   };
 }
-

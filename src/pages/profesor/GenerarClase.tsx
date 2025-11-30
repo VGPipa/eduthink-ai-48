@@ -283,6 +283,27 @@ export default function GenerarClase() {
             metodologias: clase.metodologia ? [clase.metodologia] : [],
             contexto: clase.contexto || ''
           }));
+
+          // Load existing guide if it exists
+          if (clase.id_guia_version_actual) {
+            try {
+              const { data: guia } = await supabase
+                .from('guias_clase_versiones')
+                .select('*')
+                .eq('id', clase.id_guia_version_actual)
+                .single();
+
+              if (guia && guia.contenido) {
+                const contenidoGuia = guia.contenido as any;
+                setGuiaGenerada(contenidoGuia);
+              }
+            } catch (error) {
+              console.error('Error loading guide:', error);
+            }
+          }
+
+          // Load existing quizzes if they exist
+          await loadQuizzesFromDB(clase.id);
           
           setIsLoadingData(false);
         } catch (error: any) {
@@ -305,6 +326,78 @@ export default function GenerarClase() {
       loadData();
     }
   }, [temaId, cursoId, claseId, profesorId, asignaciones]);
+
+  // Helper function to load quizzes from database
+  const loadQuizzesFromDB = async (claseId: string) => {
+    try {
+      const { data: quizzes } = await supabase
+        .from('quizzes')
+        .select(`
+          *,
+          preguntas:preguntas(*)
+        `)
+        .eq('id_clase', claseId)
+        .order('tipo', { ascending: true });
+
+      if (quizzes) {
+        const quizPre = quizzes.find(q => q.tipo === 'previo');
+        const quizPost = quizzes.find(q => q.tipo === 'post');
+
+        if (quizPre && quizPre.preguntas && Array.isArray(quizPre.preguntas) && quizPre.preguntas.length > 0) {
+          // Reconstruct QuizPreData from database
+          // Extract estimulo info from titulo and instrucciones
+          const tituloMatch = quizPre.titulo?.match(/Micro-Learning:\s*(.+)/);
+          const tiempoMatch = quizPre.instrucciones?.match(/Tiempo estimado de lectura:\s*(.+)/);
+          
+          const quizPreData: QuizPreData = {
+            estimulo_aprendizaje: {
+              titulo: tituloMatch ? tituloMatch[1] : quizPre.titulo || 'Estímulo de Aprendizaje',
+              texto_contenido: 'Contenido de aprendizaje previo a la clase', // This is not stored in DB anymore
+              descripcion_visual: 'Ilustración educativa relacionada con el tema', // This is not stored in DB anymore
+              tiempo_lectura_estimado: tiempoMatch ? tiempoMatch[1] : '2 minutos'
+            },
+            quiz_comprension: (quizPre.preguntas as any[]).map((p: any) => ({
+              pregunta: p.texto_pregunta,
+              concepto: p.concepto || '',
+              opciones: p.opciones || [],
+              feedback_acierto: p.feedback_acierto || '¡Correcto!',
+              feedback_error: p.justificacion || 'Revisa nuevamente.'
+            }))
+          };
+          setQuizPreData(quizPreData);
+        }
+
+        if (quizPost && quizPost.preguntas && Array.isArray(quizPost.preguntas) && quizPost.preguntas.length > 0) {
+          const quizPostData: QuizPostData = {
+            metadata: {
+              titulo_evaluacion: quizPost.titulo || 'Evaluación de Competencias',
+              proposito: quizPost.instrucciones?.split('\n\n')[0] || 'Evaluar el aprendizaje',
+              nivel_taxonomico: quizPost.instrucciones?.match(/Nivel taxonómico:\s*(.+)/)?.[1] || 'Aplicación',
+              tiempo_sugerido: `${quizPost.tiempo_limite || 15} minutos`
+            },
+            preguntas: (quizPost.preguntas as any[]).map((p: any) => {
+              // Parse contexto_situacional and pregunta from texto_pregunta
+              const partes = p.texto_pregunta?.split('\n\n') || [];
+              const contexto = partes.length > 1 ? partes[0] : '';
+              const pregunta = partes.length > 1 ? partes[1] : p.texto_pregunta || '';
+              
+              return {
+                numero: p.orden || 0,
+                contexto_situacional: contexto,
+                pregunta: pregunta,
+                concepto: p.concepto || '',
+                opciones: p.opciones || [],
+                retroalimentacion_detallada: p.justificacion || ''
+              };
+            })
+          };
+          setQuizPostData(quizPostData);
+        }
+      }
+    } catch (error) {
+      console.error('Error loading quizzes:', error);
+    }
+  };
 
   // Handler: Select a session to continue
   const handleSeleccionarSesion = async (clase: Clase) => {
@@ -354,6 +447,9 @@ export default function GenerarClase() {
         console.error('Error loading guide:', error);
       }
     }
+    
+    // Load existing quizzes if they exist
+    await loadQuizzesFromDB(clase.id);
     
     setIsExtraordinaria(false);
     setViewMode('wizard');
@@ -582,15 +678,14 @@ export default function GenerarClase() {
       
       setQuizPreData(quiz);
 
-      // Save quiz to DB with estimulo_aprendizaje
+      // Save quiz to DB
       const quizCreated = await createQuiz.mutateAsync({
         id_clase: clase.id,
         tipo: 'previo',
         titulo: `Micro-Learning: ${quiz.estimulo_aprendizaje.titulo}`,
         instrucciones: `Lee atentamente el siguiente contenido y responde las preguntas de comprensión. Tiempo estimado de lectura: ${quiz.estimulo_aprendizaje.tiempo_lectura_estimado}`,
         tiempo_limite: 15,
-        estado: 'borrador',
-        estimulo_aprendizaje: quiz.estimulo_aprendizaje
+        estado: 'borrador'
       });
 
       // Save questions with new structure
@@ -734,7 +829,16 @@ export default function GenerarClase() {
     }
 
     try {
-      // Update clase state to clase_programada
+      // First transition: editando_guia -> guia_aprobada (if needed)
+      const currentEstado = claseData.estado;
+      if (currentEstado === 'editando_guia') {
+        await updateClase.mutateAsync({
+          id: claseData.id,
+          estado: 'guia_aprobada'
+        });
+      }
+
+      // Second transition: guia_aprobada -> clase_programada
       await updateClase.mutateAsync({
         id: claseData.id,
         estado: 'clase_programada'
