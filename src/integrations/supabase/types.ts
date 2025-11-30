@@ -16,29 +16,35 @@ export type Database = {
     Tables: {
       alumnos: {
         Row: {
+          apellido: string | null
           caracteristicas: Json | null
           created_at: string
           edad: number | null
           grado: string | null
           id: string
+          nombre: string | null
           seccion: string | null
           user_id: string | null
         }
         Insert: {
+          apellido?: string | null
           caracteristicas?: Json | null
           created_at?: string
           edad?: number | null
           grado?: string | null
           id?: string
+          nombre?: string | null
           seccion?: string | null
           user_id?: string | null
         }
         Update: {
+          apellido?: string | null
           caracteristicas?: Json | null
           created_at?: string
           edad?: number | null
           grado?: string | null
           id?: string
+          nombre?: string | null
           seccion?: string | null
           user_id?: string | null
         }
