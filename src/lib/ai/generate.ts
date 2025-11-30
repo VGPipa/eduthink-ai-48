@@ -107,6 +107,10 @@ export interface GenerateQuizPreInput {
     objetivo_humano?: string;
     desempeno_cneb?: string;
     actividad_inicio?: string;
+    actividad_desarrollo?: string;
+    criterios_evaluacion?: string[];
+    capacidad_cneb?: string;
+    habilidad_foco?: string;
   };
 }
 
