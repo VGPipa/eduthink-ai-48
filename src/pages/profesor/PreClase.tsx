@@ -8,7 +8,7 @@ import { useQuizzes } from '@/hooks/useQuizzes';
 import { useRecomendaciones } from '@/hooks/useRecomendaciones';
 import { supabase } from '@/integrations/supabase/client';
 import { processQuizResponses } from '@/lib/ai/generate';
-import { Loader2, ChevronLeft, Send, Brain, CheckCircle2 } from 'lucide-react';
+import { Loader2, ChevronLeft, Send, Brain, CheckCircle2, AlertTriangle, Lightbulb, BookOpen, Target } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
@@ -17,6 +17,7 @@ export default function PreClase() {
   const { toast } = useToast();
   const [selectedClaseId, setSelectedClaseId] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [selectedClase, setSelectedClase] = useState<any>(null);
 
   // Get clases with estado clase_programada
   const { clases, isLoading: clasesLoading } = useClases({ estado: 'clase_programada' });
@@ -53,7 +54,7 @@ export default function PreClase() {
           .from('respuestas_detalle')
           .select(`
             *,
-            pregunta:preguntas(id, texto_pregunta, concepto)
+            pregunta:preguntas(id, texto_pregunta, concepto, respuesta_correcta)
           `)
           .in('id_nota_alumno', respuestaIds);
 
@@ -115,7 +116,7 @@ export default function PreClase() {
   };
 
   const handleProcesarRespuestas = async () => {
-    if (!quizPre || respuestas.length === 0) {
+    if (!quizPre || respuestas.length === 0 || !selectedClase) {
       toast({
         title: 'Error',
         description: 'No hay respuestas para procesar',
@@ -129,13 +130,13 @@ export default function PreClase() {
       // Get preguntas del quiz
       const { data: preguntas, error: preguntasError } = await supabase
         .from('preguntas')
-        .select('id, texto_pregunta, concepto')
+        .select('id, texto_pregunta, concepto, respuesta_correcta')
         .eq('id_quiz', quizPre.id)
         .order('orden');
 
       if (preguntasError) throw preguntasError;
 
-      // Prepare data for AI processing
+      // Prepare data for AI processing with context
       const processData = {
         respuestas: respuestas.map(r => ({
           id_alumno: r.id_alumno,
@@ -145,20 +146,37 @@ export default function PreClase() {
             es_correcta: d.es_correcta
           }))
         })),
-        preguntas: preguntas || []
+        preguntas: preguntas?.map(p => ({
+          id: p.id,
+          texto_pregunta: p.texto_pregunta,
+          concepto: p.concepto,
+          respuesta_correcta: p.respuesta_correcta
+        })) || [],
+        tema: selectedClase?.tema?.nombre || 'Tema no especificado',
+        grado: selectedClase?.grupo?.grado || 'No especificado',
+        area: selectedClase?.tema?.curso_plan?.nombre || 'No especificada',
+        contexto: selectedClase?.contexto || ''
       };
 
       // Process with AI
       const resultado = await processQuizResponses(processData, 'previo');
 
+      // Save analysis general to first recommendation (or create one)
+      const analisisGeneral = resultado.analisis_general;
+
       // Save recomendaciones to DB
       for (const rec of resultado.recomendaciones) {
         await createRecomendacion.mutateAsync({
           id_quiz: quizPre.id,
-          contenido: rec.contenido
+          contenido: rec.contenido,
+          titulo: rec.titulo,
+          tipo: rec.tipo,
+          prioridad: rec.prioridad,
+          momento: rec.momento,
+          concepto_relacionado: rec.concepto_relacionado,
+          analisis_general: analisisGeneral as any
         });
       }
-
 
       toast({ 
         title: 'Respuestas procesadas', 
@@ -175,6 +193,13 @@ export default function PreClase() {
     }
   };
 
+  // Update selected clase when selection changes
+  useEffect(() => {
+    if (selectedClaseId) {
+      const clase = clases.find(c => c.id === selectedClaseId);
+      setSelectedClase(clase);
+    }
+  }, [selectedClaseId, clases]);
 
   // Load respuestas when quiz is selected and published
   useEffect(() => {
@@ -183,6 +208,24 @@ export default function PreClase() {
     }
   }, [quizPre?.id, quizPre?.estado]);
 
+  const getPrioridadColor = (prioridad: string | null) => {
+    switch (prioridad) {
+      case 'alta': return 'destructive';
+      case 'media': return 'default';
+      case 'baja': return 'secondary';
+      default: return 'outline';
+    }
+  };
+
+  const getTipoIcon = (tipo: string | null) => {
+    switch (tipo) {
+      case 'metodologia': return <BookOpen className="w-4 h-4" />;
+      case 'contenido': return <Target className="w-4 h-4" />;
+      case 'actividad': return <Lightbulb className="w-4 h-4" />;
+      default: return <AlertTriangle className="w-4 h-4" />;
+    }
+  };
+
   if (clasesLoading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -190,6 +233,9 @@ export default function PreClase() {
       </div>
     );
   }
+
+  // Get analysis from first recommendation if available
+  const analisisGeneral = recomendaciones[0]?.analisis_general as any;
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -363,15 +409,75 @@ export default function PreClase() {
                         No hay recomendaciones. Procesa las respuestas primero.
                       </p>
                     ) : (
-                      <div className="space-y-3">
-                        {recomendaciones.map((rec) => (
-                          <div
-                            key={rec.id}
-                            className="p-4 rounded-lg border bg-muted/50"
-                          >
-                            <p className="text-sm">{rec.contenido}</p>
-                          </div>
-                        ))}
+                      <div className="space-y-4">
+                        {/* Análisis General */}
+                        {analisisGeneral && (
+                          <Card className="bg-muted/30">
+                            <CardHeader className="pb-2">
+                              <CardTitle className="text-base">Análisis General</CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-2">
+                              <div className="grid grid-cols-3 gap-2 text-center">
+                                <div className="p-2 rounded-lg bg-background">
+                                  <p className="text-xs text-muted-foreground">Participación</p>
+                                  <p className="text-lg font-bold">{analisisGeneral.participacion || 0}%</p>
+                                </div>
+                                <div className="p-2 rounded-lg bg-background">
+                                  <p className="text-xs text-muted-foreground">Promedio</p>
+                                  <p className="text-lg font-bold">{analisisGeneral.promedio_grupo || 0}%</p>
+                                </div>
+                                <div className="p-2 rounded-lg bg-background">
+                                  <p className="text-xs text-muted-foreground">Nivel</p>
+                                  <Badge variant={
+                                    analisisGeneral.nivel_preparacion === 'alto' ? 'default' :
+                                    analisisGeneral.nivel_preparacion === 'medio' ? 'secondary' : 'destructive'
+                                  }>
+                                    {analisisGeneral.nivel_preparacion || 'N/A'}
+                                  </Badge>
+                                </div>
+                              </div>
+                              {analisisGeneral.resumen && (
+                                <p className="text-sm text-muted-foreground">{analisisGeneral.resumen}</p>
+                              )}
+                            </CardContent>
+                          </Card>
+                        )}
+
+                        {/* Recomendaciones */}
+                        <div className="space-y-3">
+                          <h4 className="text-sm font-medium flex items-center gap-2">
+                            <Lightbulb className="w-4 h-4" />
+                            Recomendaciones para la Clase
+                          </h4>
+                          {recomendaciones.map((rec) => (
+                            <Card
+                              key={rec.id}
+                              className="border-l-4"
+                              style={{
+                                borderLeftColor: rec.prioridad === 'alta' ? 'hsl(var(--destructive))' :
+                                  rec.prioridad === 'media' ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))'
+                              }}
+                            >
+                              <CardContent className="p-4">
+                                <div className="flex items-start justify-between gap-2 mb-2">
+                                  <div className="flex items-center gap-2">
+                                    {getTipoIcon(rec.tipo)}
+                                    <span className="font-medium text-sm">{rec.titulo || 'Recomendación'}</span>
+                                  </div>
+                                  <Badge variant={getPrioridadColor(rec.prioridad)}>
+                                    {rec.prioridad || 'Normal'}
+                                  </Badge>
+                                </div>
+                                <p className="text-sm text-muted-foreground">{rec.contenido}</p>
+                                {rec.concepto_relacionado && (
+                                  <p className="text-xs text-muted-foreground mt-2">
+                                    Concepto: {rec.concepto_relacionado}
+                                  </p>
+                                )}
+                              </CardContent>
+                            </Card>
+                          ))}
+                        </div>
                       </div>
                     )}
                   </TabsContent>
@@ -388,4 +494,3 @@ export default function PreClase() {
     </div>
   );
 }
-

@@ -112,9 +112,35 @@ export interface GenerateQuizPreInput {
 }
 
 export interface RecomendacionData {
+  titulo: string;
   contenido: string;
-  tipo: 'refuerzo' | 'adaptacion' | 'metodologia';
+  tipo: 'metodologia' | 'contenido' | 'actividad' | 'seguimiento';
   prioridad: 'alta' | 'media' | 'baja';
+  momento: 'durante_clase' | 'proxima_sesion';
+  concepto_relacionado: string;
+}
+
+export interface AnalisisGeneral {
+  participacion: number;
+  promedio_grupo: number;
+  nivel_preparacion: 'bajo' | 'medio' | 'alto';
+  resumen: string;
+}
+
+export interface ConceptoDebil {
+  concepto: string;
+  pregunta_id?: string;
+  pregunta_texto?: string;
+  porcentaje_acierto: number;
+  patron_error?: string;
+  prioridad: 'alta' | 'media' | 'baja';
+}
+
+export interface ProcessQuizResult {
+  analisis_general: AnalisisGeneral;
+  conceptos_debiles: ConceptoDebil[];
+  recomendaciones: RecomendacionData[];
+  alertas: string[];
 }
 
 export interface RetroalimentacionData {
@@ -138,7 +164,12 @@ export interface ProcessQuizResponseData {
     id: string;
     texto_pregunta: string;
     concepto?: string;
+    respuesta_correcta?: string;
   }>;
+  tema?: string;
+  grado?: string;
+  area?: string;
+  contexto?: string;
 }
 
 /**
@@ -275,125 +306,115 @@ export async function generateQuiz(
 }
 
 /**
- * Processes quiz responses and generates recommendations
+ * Processes quiz responses and generates AI-powered recommendations
  * 
  * @param data - Quiz response data including student answers
  * @param tipo - 'previo' or 'post'
- * @returns Recommendations and metrics
+ * @returns AI-generated recommendations and analysis
  */
 export async function processQuizResponses(
   data: ProcessQuizResponseData,
   tipo: 'previo' | 'post'
-): Promise<{
-  recomendaciones: RecomendacionData[];
-  metricas: {
-    participacion: number;
-    promedio: number;
-    conceptosDebiles: Array<{ concepto: string; porcentajeAcierto: number }>;
-  };
-}> {
-  // TODO: Replace with actual AI API call
-  
-  await new Promise(resolve => setTimeout(resolve, 2000)); // Simulate API delay
+): Promise<ProcessQuizResult> {
+  try {
+    // Pre-process data to aggregate responses
+    const totalAlumnos = data.respuestas.length;
+    const respuestasCompletas = data.respuestas.filter(r => 
+      r.respuestas_detalle.length > 0
+    );
+    const participacion = totalAlumnos > 0 
+      ? Math.round((respuestasCompletas.length / totalAlumnos) * 100)
+      : 0;
 
-  const totalAlumnos = data.respuestas.length;
-  const respuestasCompletas = data.respuestas.filter(r => 
-    r.respuestas_detalle.length > 0
-  );
-  const participacion = totalAlumnos > 0 
-    ? Math.round((respuestasCompletas.length / totalAlumnos) * 100)
-    : 0;
+    // Calculate metrics per question
+    const respuestasAgregadas = data.preguntas.map(pregunta => {
+      const respuestasParaPregunta = respuestasCompletas.flatMap(r => 
+        r.respuestas_detalle.filter(d => d.id_pregunta === pregunta.id)
+      );
+      
+      const total = respuestasParaPregunta.length;
+      const correctas = respuestasParaPregunta.filter(r => r.es_correcta).length;
+      const incorrectas = total - correctas;
+      
+      // Get frequent incorrect answers
+      const incorrectasMap = new Map<string, number>();
+      respuestasParaPregunta
+        .filter(r => !r.es_correcta && r.respuesta_alumno)
+        .forEach(r => {
+          const count = incorrectasMap.get(r.respuesta_alumno) || 0;
+          incorrectasMap.set(r.respuesta_alumno, count + 1);
+        });
+      
+      const respuestasIncorrectasFrecuentes = Array.from(incorrectasMap.entries())
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 3)
+        .map(([respuesta]) => respuesta);
 
-  // Calculate average score
-  let totalCorrectas = 0;
-  let totalPreguntas = 0;
-  const conceptosStats = new Map<string, { correctas: number; total: number }>();
+      return {
+        id_pregunta: pregunta.id,
+        total_respuestas: total,
+        correctas,
+        incorrectas,
+        porcentaje_acierto: total > 0 ? Math.round((correctas / total) * 100) : 0,
+        respuestas_incorrectas_frecuentes: respuestasIncorrectasFrecuentes
+      };
+    });
 
-  respuestasCompletas.forEach(respuesta => {
-    respuesta.respuestas_detalle.forEach(detalle => {
-      totalPreguntas++;
-      if (detalle.es_correcta) totalCorrectas++;
+    // Calculate overall average
+    const totalCorrectas = respuestasAgregadas.reduce((sum, r) => sum + r.correctas, 0);
+    const totalRespuestas = respuestasAgregadas.reduce((sum, r) => sum + r.total_respuestas, 0);
+    const promedio = totalRespuestas > 0 ? Math.round((totalCorrectas / totalRespuestas) * 100) : 0;
 
-      // Find question context
-      const pregunta = data.preguntas.find(p => p.id === detalle.id_pregunta);
-      if (pregunta?.concepto) {
-        const conceptoName = pregunta.concepto;
-        const stats = conceptosStats.get(conceptoName) || { correctas: 0, total: 0 };
-        stats.total++;
-        if (detalle.es_correcta) stats.correctas++;
-        conceptosStats.set(conceptoName, stats);
+    // Call AI Edge Function
+    const { data: aiResult, error } = await supabase.functions.invoke('generate-recomendaciones', {
+      body: {
+        tipo_quiz: tipo,
+        tema: data.tema || 'Tema no especificado',
+        grado: data.grado || 'No especificado',
+        area: data.area || 'No especificada',
+        contexto: data.contexto || '',
+        preguntas: data.preguntas.map(p => ({
+          id: p.id,
+          texto_pregunta: p.texto_pregunta,
+          concepto: p.concepto || 'General',
+          respuesta_correcta: p.respuesta_correcta || ''
+        })),
+        respuestas_agregadas: respuestasAgregadas,
+        metricas: {
+          participacion,
+          promedio
+        }
       }
     });
-  });
 
-  const promedio = totalPreguntas > 0
-    ? Math.round((totalCorrectas / totalPreguntas) * 100)
-    : 0;
-
-  // Identify weak concepts
-  const conceptosDebiles = Array.from(conceptosStats.entries())
-    .map(([concepto, stats]) => ({
-      concepto,
-      porcentajeAcierto: Math.round((stats.correctas / stats.total) * 100)
-    }))
-    .filter(c => c.porcentajeAcierto < 70)
-    .sort((a, b) => a.porcentajeAcierto - b.porcentajeAcierto)
-    .slice(0, 5);
-
-  // Generate recommendations
-  const recomendaciones: RecomendacionData[] = [];
-
-  if (tipo === 'previo') {
-    if (promedio < 50) {
-      recomendaciones.push({
-        contenido: `El nivel de preparación previa es bajo (${promedio}%). Se recomienda comenzar con conceptos básicos y realizar una introducción más detallada.`,
-        tipo: 'refuerzo',
-        prioridad: 'alta'
-      });
+    if (error) {
+      console.error('Error calling generate-recomendaciones:', error);
+      throw new Error(error.message || 'Error al procesar respuestas');
     }
 
-    if (participacion < 80) {
-      recomendaciones.push({
-        contenido: `La participación en el quiz previo es del ${participacion}%. Considera recordar a los estudiantes la importancia de completar la evaluación.`,
-        tipo: 'metodologia',
-        prioridad: 'media'
-      });
-    }
-
-    conceptosDebiles.forEach(concepto => {
-      recomendaciones.push({
-        contenido: `El concepto "${concepto.concepto}" muestra bajo dominio (${concepto.porcentajeAcierto}% de aciertos). Se recomienda dedicar tiempo adicional en la explicación.`,
-        tipo: 'refuerzo',
-        prioridad: concepto.porcentajeAcierto < 40 ? 'alta' : 'media'
-      });
-    });
-  } else {
-    // POST quiz recommendations
-    if (promedio < 70) {
-      recomendaciones.push({
-        contenido: `El promedio de aciertos es ${promedio}%, lo que indica que algunos conceptos necesitan refuerzo. Considera realizar una sesión de repaso.`,
-        tipo: 'refuerzo',
-        prioridad: 'alta'
-      });
-    }
-
-    conceptosDebiles.forEach(concepto => {
-      recomendaciones.push({
-        contenido: `El concepto "${concepto.concepto}" requiere atención adicional (${concepto.porcentajeAcierto}% de aciertos). Planifica actividades de refuerzo.`,
-        tipo: 'refuerzo',
-        prioridad: 'media'
-      });
-    });
+    return aiResult as ProcessQuizResult;
+  } catch (error) {
+    console.error('Error in processQuizResponses:', error);
+    // Return a fallback result if AI fails
+    return {
+      analisis_general: {
+        participacion: 0,
+        promedio_grupo: 0,
+        nivel_preparacion: 'bajo',
+        resumen: 'No se pudo generar el análisis automático.'
+      },
+      conceptos_debiles: [],
+      recomendaciones: [{
+        titulo: 'Revisión manual requerida',
+        contenido: 'El análisis automático no pudo completarse. Revise las respuestas manualmente.',
+        tipo: 'seguimiento',
+        prioridad: 'alta',
+        momento: tipo === 'previo' ? 'durante_clase' : 'proxima_sesion',
+        concepto_relacionado: 'General'
+      }],
+      alertas: ['Error al procesar las recomendaciones con IA']
+    };
   }
-
-  return {
-    recomendaciones,
-    metricas: {
-      participacion,
-      promedio,
-      conceptosDebiles
-    }
-  };
 }
 
 /**
