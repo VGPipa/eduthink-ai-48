@@ -430,6 +430,7 @@ export default function ProfesorDashboard() {
                           </div>
                           <p className="text-sm text-muted-foreground">
                             {clase.grupo?.nombre || `${clase.grupo?.grado} ${clase.grupo?.seccion || ''}`.trim()}
+                            {clase.numero_sesion && ` • Sesión ${clase.numero_sesion}`}
                           </p>
                           {clase.fecha_programada && (
                             <div className="flex items-center gap-2 mt-2 text-sm text-muted-foreground">
@@ -469,6 +470,7 @@ export default function ProfesorDashboard() {
                               <h4 className="font-medium">{clase.tema?.nombre || 'Sin tema'}</h4>
                               <p className="text-sm text-muted-foreground">
                                 {clase.grupo?.nombre || `${clase.grupo?.grado} ${clase.grupo?.seccion || ''}`.trim()}
+                                {clase.numero_sesion && ` • Sesión ${clase.numero_sesion}`}
                               </p>
                             </div>
                           </div>
@@ -550,6 +552,7 @@ export default function ProfesorDashboard() {
                               <h4 className="font-medium">{clase.tema?.nombre || 'Sin tema'}</h4>
                               <p className="text-sm text-muted-foreground">
                                 {clase.grupo?.nombre || `${clase.grupo?.grado} ${clase.grupo?.seccion || ''}`.trim()}
+                                {clase.numero_sesion && ` • Sesión ${clase.numero_sesion}`}
                               </p>
                             </div>
                           </div>
@@ -630,7 +633,9 @@ export default function ProfesorDashboard() {
                             <div>
                               <h4 className="font-medium">{clase.tema?.nombre || 'Sin tema'}</h4>
                               <p className="text-sm text-muted-foreground">
-                                {clase.grupo?.nombre || `${clase.grupo?.grado} ${clase.grupo?.seccion || ''}`.trim()} • {clase.fecha_programada && new Date(clase.fecha_programada).toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric' })}
+                                {clase.grupo?.nombre || `${clase.grupo?.grado} ${clase.grupo?.seccion || ''}`.trim()}
+                                {clase.numero_sesion && ` • Sesión ${clase.numero_sesion}`}
+                                {clase.fecha_programada && ` • ${new Date(clase.fecha_programada).toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric' })}`}
                               </p>
                             </div>
                           </div>

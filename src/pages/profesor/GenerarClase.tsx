@@ -160,28 +160,36 @@ export default function GenerarClase() {
     return filtered;
   }, [sesionesPendientes, sesionSugerida, filtroTema, filtroGrupo]);
 
-  // Get all unique temas from sesiones for filter
+  // Get all unique temas from cursos asignados for filter
   const temasDisponibles = useMemo(() => {
     const temasMap = new Map<string, { id: string; nombre: string }>();
-    sesionesPendientes.forEach(s => {
-      if (s.tema && !temasMap.has(s.tema.id)) {
-        temasMap.set(s.tema.id, { id: s.tema.id, nombre: s.tema.nombre });
-      }
+    
+    // Get temas from cursosConTemas (all temas from assigned courses)
+    cursosConTemas.forEach(curso => {
+      curso.temas.forEach(tema => {
+        if (!temasMap.has(tema.id)) {
+          temasMap.set(tema.id, { id: tema.id, nombre: tema.nombre });
+        }
+      });
     });
+    
     return Array.from(temasMap.values());
-  }, [sesionesPendientes]);
+  }, [cursosConTemas]);
 
-  // Get all unique grupos from clases for filter
+  // Get all unique grupos from asignaciones for filter
   const gruposDisponibles = useMemo(() => {
     const gruposMap = new Map<string, { id: string; nombre: string }>();
-    sesionesPendientes.forEach(s => {
-      if (s.grupo && !gruposMap.has(s.grupo.id)) {
-        const nombre = s.grupo.nombre || `${s.grupo.grado}° ${s.grupo.seccion || ''}`.trim();
-        gruposMap.set(s.grupo.id, { id: s.grupo.id, nombre });
+    
+    // Get grupos from asignaciones (all groups assigned to the profesor)
+    grupos.forEach(grupo => {
+      if (grupo && !gruposMap.has(grupo.id)) {
+        const nombre = grupo.nombre || `${grupo.grado}° ${grupo.seccion || ''}`.trim();
+        gruposMap.set(grupo.id, { id: grupo.id, nombre });
       }
     });
+    
     return Array.from(gruposMap.values());
-  }, [sesionesPendientes]);
+  }, [grupos]);
   
   // Load initial data based on URL params
   useEffect(() => {
