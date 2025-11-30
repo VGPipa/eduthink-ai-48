@@ -120,11 +120,9 @@ export interface QuizPostMetadata {
 
 export interface QuizPostPregunta {
   numero: number;
-  tipo_habilidad: 'Aplicación' | 'Pensamiento Crítico' | 'Habilidad Humana/Ética';
   contexto_situacional: string;
   pregunta: string;
   opciones: Array<{ texto: string; es_correcta: boolean }>;
-  concepto_evaluado: string;
   retroalimentacion_detallada: string;
 }
 

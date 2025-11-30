@@ -9,12 +9,8 @@ const SYSTEM_PROMPT = `Eres el "Arquitecto de Evaluación de Competencias". Tu m
 
 ## FILOSOFÍA DE EVALUACIÓN:
 No queremos preguntas de memoria simple (ej: "¿En qué año fue...?"). Queremos preguntas de **Situación y Análisis**.
-Debes diseñar un examen de 7 preguntas diseñado para durar 15 minutos (aprox. 2 min de reflexión por pregunta).
-
-## DISTRIBUCIÓN DE LAS 7 PREGUNTAS (ESTRICTO):
-1. **3 Preguntas de APLICACIÓN:** Presenta un mini-caso nuevo y pide al alumno que aplique la teoría para resolverlo.
-2. **2 Preguntas de PENSAMIENTO CRÍTICO:** Pide identificar un error en un razonamiento o predecir una consecuencia.
-3. **2 Preguntas de HABILIDAD HUMANA/ÉTICA:** Relacionadas con el tema. Evalúan la empatía, la ética o el impacto social del conocimiento adquirido.
+Genera 7 preguntas de aplicación práctica basadas en situaciones reales.
+Diseña el examen para durar 15 minutos (aprox. 2 min de reflexión por pregunta).
 
 ## ESTRUCTURA DE CADA ÍTEM:
 Cada pregunta debe tener dos partes:
@@ -26,8 +22,7 @@ B. **El Reto:** La pregunta específica derivada de ese contexto.
 2. Utiliza el CONTEXTO del grupo para hacer las situaciones relevantes y cercanas
 3. La retroalimentación debe ser profunda y educativa, no solo decir "correcto/incorrecto"
 4. Asegura que las 4 opciones sean plausibles, evita distractores obvios
-5. El orden de las preguntas debe ser: 3 de Aplicación, 2 de Pensamiento Crítico, 2 de Habilidad Humana/Ética
-6. Alinea con el CNEB (competencia, capacidad, desempeño) cuando esté disponible
+5. Alinea con el CNEB (competencia, capacidad, desempeño) cuando esté disponible
 
 ## FORMATO DE SALIDA (JSON):
 Genera un único objeto JSON válido con esta estructura exacta:
@@ -42,7 +37,6 @@ Genera un único objeto JSON válido con esta estructura exacta:
   "preguntas": [
     {
       "numero": 1,
-      "tipo_habilidad": "Aplicación",
       "contexto_situacional": "[El escenario breve, máx 30 palabras]",
       "pregunta": "[El reto a resolver]",
       "opciones": [
@@ -51,7 +45,6 @@ Genera un único objeto JSON válido con esta estructura exacta:
         {"texto": "[Opción C]", "es_correcta": false},
         {"texto": "[Opción D]", "es_correcta": false}
       ],
-      "concepto_evaluado": "[Concepto clave que evalúa esta pregunta]",
       "retroalimentacion_detallada": "[Explicación profunda de la respuesta. Vital para el aprendizaje final]"
     }
   ]
@@ -138,10 +131,7 @@ ${contexto || 'Grupo de estudiantes de nivel estándar'}`;
 
     userPrompt += `
 
-Genera el Quiz POST con exactamente 7 preguntas siguiendo la distribución estricta:
-- 3 preguntas de Aplicación (preguntas 1-3)
-- 2 preguntas de Pensamiento Crítico (preguntas 4-5)
-- 2 preguntas de Habilidad Humana/Ética (preguntas 6-7)`;
+Genera el Quiz POST con exactamente 7 preguntas de aplicación práctica.`;
 
     console.log('Calling Lovable AI for Quiz POST generation...');
     console.log('User prompt:', userPrompt);
@@ -219,37 +209,23 @@ Genera el Quiz POST con exactamente 7 preguntas siguiendo la distribución estri
         proposito: quizData.metadata?.proposito || 'Certificar la comprensión y aplicación de los conceptos aprendidos',
         nivel_taxonomico: quizData.metadata?.nivel_taxonomico || 'Aplicación y Análisis'
       },
-      preguntas: (quizData.preguntas || []).map((p: any, index: number) => {
-        // Determine expected skill type based on position
-        let expectedTipo = 'Aplicación';
-        if (index >= 3 && index < 5) expectedTipo = 'Pensamiento Crítico';
-        if (index >= 5) expectedTipo = 'Habilidad Humana/Ética';
-
-        return {
-          numero: p.numero || index + 1,
-          tipo_habilidad: p.tipo_habilidad || expectedTipo,
-          contexto_situacional: p.contexto_situacional || '',
-          pregunta: p.pregunta || '',
-          opciones: (p.opciones || []).map((o: any) => ({
-            texto: o.texto || '',
-            es_correcta: o.es_correcta || false
-          })),
-          concepto_evaluado: p.concepto_evaluado || tema,
-          retroalimentacion_detallada: p.retroalimentacion_detallada || ''
-        };
-      })
+      preguntas: (quizData.preguntas || []).map((p: any, index: number) => ({
+        numero: p.numero || index + 1,
+        contexto_situacional: p.contexto_situacional || '',
+        pregunta: p.pregunta || '',
+        opciones: (p.opciones || []).map((o: any) => ({
+          texto: o.texto || '',
+          es_correcta: o.es_correcta || false
+        })),
+        retroalimentacion_detallada: p.retroalimentacion_detallada || ''
+      }))
     };
 
-    // Ensure we have exactly 7 questions with proper distribution
+    // Ensure we have exactly 7 questions
     while (validatedData.preguntas.length < 7) {
       const num = validatedData.preguntas.length + 1;
-      let tipo = 'Aplicación';
-      if (num >= 4 && num <= 5) tipo = 'Pensamiento Crítico';
-      if (num >= 6) tipo = 'Habilidad Humana/Ética';
-
       validatedData.preguntas.push({
         numero: num,
-        tipo_habilidad: tipo,
         contexto_situacional: `Situación relacionada con ${tema}`,
         pregunta: `Pregunta ${num} sobre ${tema}`,
         opciones: [
@@ -258,7 +234,6 @@ Genera el Quiz POST con exactamente 7 preguntas siguiendo la distribución estri
           { texto: 'Opción C', es_correcta: false },
           { texto: 'Opción D', es_correcta: false }
         ],
-        concepto_evaluado: tema,
         retroalimentacion_detallada: `La respuesta correcta demuestra comprensión de ${tema}.`
       });
     }
