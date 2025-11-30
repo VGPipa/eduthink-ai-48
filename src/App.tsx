@@ -36,6 +36,8 @@ import MisSalones from "./pages/profesor/MisSalones";
 import AlumnoDashboard from "./pages/alumno/AlumnoDashboard";
 import Evaluaciones from "./pages/alumno/Evaluaciones";
 import Progreso from "./pages/alumno/Progreso";
+import ResolverQuiz from "./pages/alumno/ResolverQuiz";
+import ResultadoQuiz from "./pages/alumno/ResultadoQuiz";
 
 // Apoderado pages
 import ApoderadoDashboard from "./pages/apoderado/ApoderadoDashboard";
@@ -119,6 +121,8 @@ function AppRoutes() {
         <Route path="/alumno/dashboard" element={<AlumnoDashboard />} />
         <Route path="/alumno/evaluaciones" element={<Evaluaciones />} />
         <Route path="/alumno/progreso" element={<Progreso />} />
+        <Route path="/alumno/quiz/:quizId" element={<ResolverQuiz />} />
+        <Route path="/alumno/quiz/:quizId/resultado" element={<ResultadoQuiz />} />
         
         {/* Apoderado routes */}
         <Route path="/apoderado/dashboard" element={<ApoderadoDashboard />} />
