@@ -1431,13 +1431,13 @@ export default function GenerarClase() {
           {/* Step 3: Quiz PRE */}
           {currentStep === 3 && (
             <div className="space-y-6">
-              <div className="text-center py-4">
-                <ClipboardList className="w-12 h-12 text-info mx-auto mb-4" />
-                <h2 className="text-lg font-semibold mb-2">Micro-Learning (PRE)</h2>
-                <p className="text-muted-foreground mb-6">
-                  Estímulo de aprendizaje + 3 preguntas de comprensión
-                </p>
-                  {!quizPreData && (
+              {!quizPreData && (
+                <div className="text-center py-4">
+                  <ClipboardList className="w-12 h-12 text-info mx-auto mb-4" />
+                  <h2 className="text-lg font-semibold mb-2">Micro-Learning (PRE)</h2>
+                  <p className="text-muted-foreground mb-6">
+                    Estímulo de aprendizaje + 3 preguntas de comprensión
+                  </p>
                   <Button variant="gradient" size="lg" onClick={handleGenerarQuizPre} disabled={isGenerating}>
                     {isGenerating ? (
                       <>
@@ -1451,10 +1451,10 @@ export default function GenerarClase() {
                       </>
                     )}
                   </Button>
-                )}
-              </div>
+                </div>
+              )}
 
-                {quizPreData && (
+              {quizPreData && (
                 <div className="space-y-6 animate-fade-in">
                   {/* Success Banner */}
                   <div className="p-4 rounded-lg bg-success/10 border border-success/20">
@@ -1557,13 +1557,13 @@ export default function GenerarClase() {
           {/* Step 4: Quiz POST */}
           {currentStep === 4 && (
             <div className="space-y-6">
-              <div className="text-center py-4">
-                <ClipboardList className="w-12 h-12 text-success mx-auto mb-4" />
-                <h2 className="text-lg font-semibold mb-2">Evaluación de Competencias (POST)</h2>
-                <p className="text-muted-foreground mb-6">
-                  7 preguntas de situación y análisis • 15 minutos
-                </p>
-                  {!quizPostData && (
+              {!quizPostData && (
+                <div className="text-center py-4">
+                  <ClipboardList className="w-12 h-12 text-success mx-auto mb-4" />
+                  <h2 className="text-lg font-semibold mb-2">Evaluación de Competencias (POST)</h2>
+                  <p className="text-muted-foreground mb-6">
+                    7 preguntas de situación y análisis • 15 minutos
+                  </p>
                   <Button variant="gradient" size="lg" onClick={handleGenerarQuizPost} disabled={isGenerating}>
                     {isGenerating ? (
                       <>
@@ -1577,10 +1577,10 @@ export default function GenerarClase() {
                       </>
                     )}
                   </Button>
-                )}
-              </div>
+                </div>
+              )}
 
-                {quizPostData && (
+              {quizPostData && (
                 <div className="space-y-6 animate-fade-in">
                   {/* Metadata Header */}
                   <div className="p-4 rounded-lg bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200">
