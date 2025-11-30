@@ -55,7 +55,7 @@ export function useGuiasClase(claseId?: string) {
         .from('guias_clase_versiones')
         .select(`
           *,
-          clase:clases(
+          clase:clases!guias_clase_versiones_id_clase_fkey(
             id,
             tema:temas_plan(nombre)
           )

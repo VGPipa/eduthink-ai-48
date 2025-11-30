@@ -68,7 +68,7 @@ export function useQuizzes(claseId?: string, tipo?: TipoQuiz) {
         .from('quizzes')
         .select(`
           *,
-          clase:clases(
+          clase:clases!quizzes_id_clase_fkey(
             id,
             tema:temas_plan(nombre)
           )

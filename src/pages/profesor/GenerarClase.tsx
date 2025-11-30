@@ -335,6 +335,26 @@ export default function GenerarClase() {
       contexto: clase.contexto || ''
     }));
     
+    // Load existing guide if it exists
+    if (clase.id_guia_version_actual) {
+      try {
+        const { data: guia } = await supabase
+          .from('guias_clase_versiones')
+          .select('*')
+          .eq('id', clase.id_guia_version_actual)
+          .single();
+        console.log('Guía:', guia);
+        if (guia && guia.contenido) {
+          const contenidoGuia = guia.contenido as any;
+          setGuiaGenerada(contenidoGuia);
+          // Advance to step 2 to show the guide
+          // setCurrentStep(2);
+        }
+      } catch (error) {
+        console.error('Error loading guide:', error);
+      }
+    }
+    
     setIsExtraordinaria(false);
     setViewMode('wizard');
   };
@@ -1203,8 +1223,8 @@ export default function GenerarClase() {
                   {/* Success Banner */}
                   <div className="p-4 rounded-lg bg-success/10 border border-success/20">
                     <div className="flex items-center gap-2 text-success">
-                      <CheckCircle2 className="w-5 h-5" />
-                      <span className="font-medium">Guía generada exitosamente</span>
+                      <BookOpen className="w-5 h-5" />
+                      <span className="font-medium">{claseData?.id_guia_version_actual ? 'Guía de clase cargada' : 'Guía generada exitosamente'}</span>
                     </div>
                   </div>
 
@@ -1615,23 +1635,33 @@ export default function GenerarClase() {
 
         {currentStep < 5 ? (
           currentStep === 1 ? (
-            <Button 
-              variant="gradient"
-              onClick={handleGenerarGuia}
-              disabled={!canProceed() || isGenerating}
-            >
-              {isGenerating ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Generando...
-                </>
-              ) : (
-                <>
-                  <Sparkles className="w-4 h-4 mr-2" />
-                  Generar Guía
-                </>
-              )}
-            </Button>
+            guiaGenerada ? (
+              <Button 
+                variant="gradient"
+                onClick={() => setCurrentStep(2)}
+              >
+                <Eye className="w-4 h-4 mr-2" />
+                Ver Guía
+              </Button>
+            ) : (
+              <Button 
+                variant="gradient"
+                onClick={handleGenerarGuia}
+                disabled={!canProceed() || isGenerating}
+              >
+                {isGenerating ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Generando...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-4 h-4 mr-2" />
+                    Generar Guía
+                  </>
+                )}
+              </Button>
+            )
           ) : (
             <Button 
               variant="gradient"
