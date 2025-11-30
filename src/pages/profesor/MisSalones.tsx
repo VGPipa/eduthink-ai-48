@@ -485,12 +485,12 @@ export default function MisSalones() {
           <Card className="border shadow-sm">
             <CardContent className="p-5">
               <div className="flex items-center gap-2 mb-2">
-                <Lightbulb className="w-4 h-4 text-amber-500" />
+                <Lightbulb className="w-4 h-4 text-primary" />
                 <span className="font-medium">Recomendaciones</span>
               </div>
               <p className="text-sm text-muted-foreground mb-4">Acciones sugeridas para preparar la clase</p>
               {recomendacionPre ? (
-                <div className="p-4 bg-muted/30 rounded-lg border-l-4 border-amber-500">
+                <div className="p-4 bg-muted/30 rounded-lg border-l-4 border-primary">
                   <p className="text-sm font-medium mb-1">{recomendacionPre.titulo}</p>
                   <p className="text-sm text-muted-foreground">{recomendacionPre.descripcion}</p>
                 </div>
@@ -585,7 +585,7 @@ export default function MisSalones() {
           <Card className="border shadow-sm">
             <CardContent className="p-5">
               <div className="flex items-center gap-2 mb-2">
-                <Lightbulb className="w-4 h-4 text-amber-500" />
+                <Lightbulb className="w-4 h-4 text-primary" />
                 <span className="font-medium">Recomendaciones</span>
               </div>
               <p className="text-sm text-muted-foreground mb-4">Acciones sugeridas después de la clase</p>
