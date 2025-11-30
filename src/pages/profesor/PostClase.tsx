@@ -5,11 +5,10 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { useClases } from '@/hooks/useClases';
 import { useQuizzes } from '@/hooks/useQuizzes';
-import { useRetroalimentaciones } from '@/hooks/useRetroalimentaciones';
 import { useRecomendaciones } from '@/hooks/useRecomendaciones';
 import { supabase } from '@/integrations/supabase/client';
-import { generateRetroalimentaciones, processQuizResponses } from '@/lib/ai/generate';
-import { Loader2, ChevronLeft, Send, Brain, CheckCircle2, Users, MessageSquare, Lightbulb, BookOpen, Target, AlertTriangle } from 'lucide-react';
+import { processQuizResponses } from '@/lib/ai/generate';
+import { Loader2, ChevronLeft, Send, CheckCircle2, Lightbulb, BookOpen, Target, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
@@ -17,12 +16,11 @@ export default function PostClase() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [selectedClaseId, setSelectedClaseId] = useState<string | null>(null);
-  const [isGenerating, setIsGenerating] = useState(false);
   const [isProcessingRecomendaciones, setIsProcessingRecomendaciones] = useState(false);
   const [selectedClase, setSelectedClase] = useState<any>(null);
 
   // Get clases with estado en_clase or completada
-  const { clases, updateClase, isLoading: clasesLoading } = useClases();
+  const { clases, isLoading: clasesLoading } = useClases();
   const clasesPost = clases.filter(c => 
     c.estado === 'en_clase' || c.estado === 'completada'
   );
@@ -30,9 +28,6 @@ export default function PostClase() {
   // Get quiz POST for selected clase
   const { quizzes: quizzesPost, publishQuiz } = useQuizzes(selectedClaseId, 'post');
   const quizPost = quizzesPost[0];
-  
-  // Get retroalimentaciones for selected clase
-  const { retroalimentaciones, retroalimentacionesIndividuales, retroalimentacionesGrupales, createRetroalimentacion } = useRetroalimentaciones(selectedClaseId);
 
   // Get recomendaciones for quiz POST
   const { recomendaciones, createRecomendacion } = useRecomendaciones(quizPost?.id);
@@ -219,78 +214,6 @@ export default function PostClase() {
     }
   };
 
-  const handleGenerarRetroalimentaciones = async () => {
-    if (!quizPost || respuestas.length === 0 || !selectedClaseId) {
-      toast({
-        title: 'Error',
-        description: 'No hay respuestas para procesar',
-        variant: 'destructive'
-      });
-      return;
-    }
-
-    setIsGenerating(true);
-    try {
-      // Prepare data for individual feedback
-      for (const respuesta of respuestas) {
-        const alumno = alumnos.find(a => a.id === respuesta.id_alumno);
-        const nombreAlumno = alumno?.profiles 
-          ? `${alumno.profiles.nombre} ${alumno.profiles.apellido}`.trim()
-          : undefined;
-
-        const retroIndividual = await generateRetroalimentaciones(
-          [respuesta],
-          'individual',
-          nombreAlumno
-        );
-
-        await createRetroalimentacion.mutateAsync({
-          id_clase: selectedClaseId,
-          id_alumno: respuesta.id_alumno,
-          tipo: 'individual',
-          contenido: retroIndividual.contenido,
-          fortalezas: retroIndividual.fortalezas,
-          areas_mejora: retroIndividual.areas_mejora,
-          recomendaciones: retroIndividual.recomendaciones
-        });
-      }
-
-      // Generate group feedback
-      const retroGrupal = await generateRetroalimentaciones(
-        respuestas,
-        'grupal'
-      );
-
-      await createRetroalimentacion.mutateAsync({
-        id_clase: selectedClaseId,
-        tipo: 'grupal',
-        contenido: retroGrupal.contenido,
-        fortalezas: retroGrupal.fortalezas,
-        areas_mejora: retroGrupal.areas_mejora,
-        recomendaciones: retroGrupal.recomendaciones
-      });
-
-      // Update clase estado to completada
-      await updateClase.mutateAsync({
-        id: selectedClaseId,
-        estado: 'completada'
-      });
-
-      toast({ 
-        title: 'Retroalimentaciones generadas', 
-        description: `${respuestas.length} individuales + 1 grupal` 
-      });
-    } catch (error: any) {
-      toast({
-        title: 'Error',
-        description: 'Error al generar retroalimentaciones: ' + error.message,
-        variant: 'destructive'
-      });
-    } finally {
-      setIsGenerating(false);
-    }
-  };
-
   // Update selected clase when selection changes
   useEffect(() => {
     if (selectedClaseId) {
@@ -344,7 +267,7 @@ export default function PostClase() {
         <div>
           <h1 className="text-2xl font-bold">Post-Clase: Quiz POST</h1>
           <p className="text-muted-foreground">
-            Publica evaluaciones finales y genera retroalimentaciones
+            Publica evaluaciones finales y genera recomendaciones
           </p>
         </div>
       </div>
@@ -411,11 +334,10 @@ export default function PostClase() {
             <CardContent className="space-y-4">
               {quizPost ? (
                 <Tabs defaultValue="publicar">
-                  <TabsList className="grid w-full grid-cols-4">
+                  <TabsList className="grid w-full grid-cols-3">
                     <TabsTrigger value="publicar">Publicar</TabsTrigger>
                     <TabsTrigger value="respuestas">Respuestas</TabsTrigger>
                     <TabsTrigger value="recomendaciones">Recomendaciones</TabsTrigger>
-                    <TabsTrigger value="feedback">Feedback</TabsTrigger>
                   </TabsList>
 
                   <TabsContent value="publicar" className="space-y-4">
@@ -463,43 +385,24 @@ export default function PostClase() {
                           <span className="text-sm font-medium">
                             {respuestas.length} respuesta(s) recibida(s)
                           </span>
-                          <div className="flex gap-2">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={handleGenerarRecomendaciones}
-                              disabled={isProcessingRecomendaciones || respuestas.length === 0}
-                            >
-                              {isProcessingRecomendaciones ? (
-                                <>
-                                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                  Procesando...
-                                </>
-                              ) : (
-                                <>
-                                  <Lightbulb className="w-4 h-4 mr-2" />
-                                  Recomendaciones
-                                </>
-                              )}
-                            </Button>
-                            <Button
-                              size="sm"
-                              onClick={handleGenerarRetroalimentaciones}
-                              disabled={isGenerating || respuestas.length === 0}
-                            >
-                              {isGenerating ? (
-                                <>
-                                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                  Generando...
-                                </>
-                              ) : (
-                                <>
-                                  <Brain className="w-4 h-4 mr-2" />
-                                  Feedback
-                                </>
-                              )}
-                            </Button>
-                          </div>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={handleGenerarRecomendaciones}
+                            disabled={isProcessingRecomendaciones || respuestas.length === 0}
+                          >
+                            {isProcessingRecomendaciones ? (
+                              <>
+                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                Procesando...
+                              </>
+                            ) : (
+                              <>
+                                <Lightbulb className="w-4 h-4 mr-2" />
+                                Generar Recomendaciones
+                              </>
+                            )}
+                          </Button>
                         </div>
                         <div className="space-y-2 max-h-64 overflow-y-auto">
                           {respuestas.map((respuesta) => {
@@ -604,90 +507,6 @@ export default function PostClase() {
                             </Card>
                           ))}
                         </div>
-                      </div>
-                    )}
-                  </TabsContent>
-
-                  <TabsContent value="feedback" className="space-y-4">
-                    {retroalimentaciones.length === 0 ? (
-                      <p className="text-sm text-muted-foreground text-center py-4">
-                        No hay retroalimentaciones. Genera feedback desde la pestaña Respuestas.
-                      </p>
-                    ) : (
-                      <div className="space-y-4">
-                        {/* Grupal */}
-                        {retroalimentacionesGrupales.length > 0 && (
-                          <div>
-                            <div className="flex items-center gap-2 mb-2">
-                              <Users className="w-4 h-4" />
-                              <h4 className="font-medium">Retroalimentación Grupal</h4>
-                            </div>
-                            {retroalimentacionesGrupales.map((retro) => (
-                              <Card key={retro.id} className="mb-3">
-                                <CardContent className="p-4">
-                                  <p className="text-sm mb-3">{retro.contenido}</p>
-                                  {retro.fortalezas && Array.isArray(retro.fortalezas) && retro.fortalezas.length > 0 && (
-                                    <div className="mb-2">
-                                      <p className="text-xs font-medium text-green-600 mb-1">Fortalezas:</p>
-                                      <ul className="text-xs text-muted-foreground list-disc list-inside">
-                                        {(retro.fortalezas as string[]).map((f, i) => (
-                                          <li key={i}>{f}</li>
-                                        ))}
-                                      </ul>
-                                    </div>
-                                  )}
-                                  {retro.areas_mejora && Array.isArray(retro.areas_mejora) && retro.areas_mejora.length > 0 && (
-                                    <div className="mb-2">
-                                      <p className="text-xs font-medium text-yellow-600 mb-1">Áreas de mejora:</p>
-                                      <ul className="text-xs text-muted-foreground list-disc list-inside">
-                                        {(retro.areas_mejora as string[]).map((a, i) => (
-                                          <li key={i}>{a}</li>
-                                        ))}
-                                      </ul>
-                                    </div>
-                                  )}
-                                  {retro.recomendaciones && Array.isArray(retro.recomendaciones) && retro.recomendaciones.length > 0 && (
-                                    <div>
-                                      <p className="text-xs font-medium text-blue-600 mb-1">Recomendaciones:</p>
-                                      <ul className="text-xs text-muted-foreground list-disc list-inside">
-                                        {(retro.recomendaciones as string[]).map((r, i) => (
-                                          <li key={i}>{r}</li>
-                                        ))}
-                                      </ul>
-                                    </div>
-                                  )}
-                                </CardContent>
-                              </Card>
-                            ))}
-                          </div>
-                        )}
-
-                        {/* Individual */}
-                        {retroalimentacionesIndividuales.length > 0 && (
-                          <div>
-                            <div className="flex items-center gap-2 mb-2">
-                              <MessageSquare className="w-4 h-4" />
-                              <h4 className="font-medium">Retroalimentaciones Individuales</h4>
-                            </div>
-                            <div className="space-y-2 max-h-64 overflow-y-auto">
-                              {retroalimentacionesIndividuales.map((retro) => {
-                                const alumno = alumnos.find(a => a.id === retro.id_alumno);
-                                const nombre = alumno?.profiles 
-                                  ? `${alumno.profiles.nombre} ${alumno.profiles.apellido}`.trim()
-                                  : 'Alumno';
-                                
-                                return (
-                                  <Card key={retro.id}>
-                                    <CardContent className="p-3">
-                                      <p className="text-sm font-medium mb-1">{nombre}</p>
-                                      <p className="text-xs text-muted-foreground">{retro.contenido}</p>
-                                    </CardContent>
-                                  </Card>
-                                );
-                              })}
-                            </div>
-                          </div>
-                        )}
                       </div>
                     )}
                   </TabsContent>
