@@ -110,6 +110,47 @@ export interface GenerateQuizPreInput {
   };
 }
 
+// Quiz POST with skill-based questions
+export interface QuizPostMetadata {
+  titulo_evaluacion: string;
+  tiempo_sugerido: string;
+  proposito: string;
+  nivel_taxonomico: string;
+}
+
+export interface QuizPostPregunta {
+  numero: number;
+  tipo_habilidad: 'Aplicación' | 'Pensamiento Crítico' | 'Habilidad Humana/Ética';
+  contexto_situacional: string;
+  pregunta: string;
+  opciones: Array<{ texto: string; es_correcta: boolean }>;
+  concepto_evaluado: string;
+  retroalimentacion_detallada: string;
+}
+
+export interface QuizPostData {
+  metadata: QuizPostMetadata;
+  preguntas: QuizPostPregunta[];
+}
+
+export interface GenerateQuizPostInput {
+  tema: string;
+  contexto: string;
+  grado?: string;
+  area?: string;
+  guia_clase?: {
+    objetivo_humano?: string;
+    objetivo_aprendizaje?: string;
+    competencia?: string;
+    capacidad?: string;
+    desempeno_cneb?: string;
+    enfoque_transversal?: string;
+    actividad_desarrollo?: string;
+    actividad_cierre?: string;
+    criterios_evaluacion?: string[];
+  };
+}
+
 export interface RecomendacionData {
   titulo: string;
   contenido: string;
@@ -245,7 +286,35 @@ export async function generateQuizPre(input: GenerateQuizPreInput): Promise<Quiz
 }
 
 /**
- * Generates quiz questions (POST only now - PRE uses generateQuizPre)
+ * Generates POST quiz with skill-based questions using AI via Edge Function
+ * 
+ * @param input - Input data including tema, contexto, and guia_clase info
+ * @returns Generated post-quiz data with metadata and 7 categorized questions
+ */
+export async function generateQuizPost(input: GenerateQuizPostInput): Promise<QuizPostData> {
+  try {
+    const { data, error } = await supabase.functions.invoke('generate-quiz-post', {
+      body: input
+    });
+
+    if (error) {
+      console.error('Error calling generate-quiz-post:', error);
+      throw new Error(error.message || 'Error al generar el quiz POST');
+    }
+
+    if (data?.error) {
+      throw new Error(data.error);
+    }
+
+    return data as QuizPostData;
+  } catch (error) {
+    console.error('Error in generateQuizPost:', error);
+    throw error;
+  }
+}
+
+/**
+ * Generates quiz questions (DEPRECATED - use generateQuizPre or generateQuizPost)
  * 
  * @param tipo - 'previo' or 'post'
  * @param tema - Topic name
