@@ -228,6 +228,38 @@ export default function GenerarClase() {
                 metodologias: clase.metodologia ? [clase.metodologia] : [],
                 contexto: clase.contexto || ''
               }));
+
+              // Load existing guide if it exists
+              if (clase.id_guia_version_actual) {
+                try {
+                  const { data: guia } = await supabase
+                    .from('guias_clase_versiones')
+                    .select('*')
+                    .eq('id', clase.id_guia_version_actual)
+                    .single();
+
+                  if (guia && guia.contenido) {
+                    const contenidoGuia = guia.contenido as any;
+                    setGuiaGenerada(contenidoGuia);
+                    // Advance to step 2 to show the guide
+                    setCurrentStep(2);
+                  }
+                } catch (error) {
+                  console.error('Error loading guide:', error);
+                }
+              }
+
+              // Load existing quizzes if they exist
+              await loadQuizzesFromDB(clase.id);
+
+              // Advance to appropriate step based on what exists
+              if (guiaGenerada && quizPreData && quizPostData) {
+                setCurrentStep(5);
+              } else if (guiaGenerada && quizPreData) {
+                setCurrentStep(4);
+              } else if (guiaGenerada) {
+                setCurrentStep(3);
+              }
             }
           }
 
@@ -296,6 +328,8 @@ export default function GenerarClase() {
               if (guia && guia.contenido) {
                 const contenidoGuia = guia.contenido as any;
                 setGuiaGenerada(contenidoGuia);
+                // Advance to step 2 to show the guide
+                setCurrentStep(2);
               }
             } catch (error) {
               console.error('Error loading guide:', error);
@@ -326,6 +360,22 @@ export default function GenerarClase() {
       loadData();
     }
   }, [temaId, cursoId, claseId, profesorId, asignaciones]);
+
+  // Effect to advance to appropriate step when data is loaded
+  useEffect(() => {
+    if (!isLoadingData && viewMode === 'wizard' && claseData) {
+      // Only advance if we're still on step 1 (don't override user navigation)
+      if (currentStep === 1) {
+        if (guiaGenerada && quizPreData && quizPostData) {
+          setCurrentStep(5);
+        } else if (guiaGenerada && quizPreData) {
+          setCurrentStep(4);
+        } else if (guiaGenerada) {
+          setCurrentStep(2);
+        }
+      }
+    }
+  }, [isLoadingData, viewMode, guiaGenerada, quizPreData, quizPostData, currentStep, claseData]);
 
   // Helper function to load quizzes from database
   const loadQuizzesFromDB = async (claseId: string) => {
