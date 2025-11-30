@@ -92,6 +92,7 @@ export default function ProfesorDashboard() {
     manana.setDate(manana.getDate() + 1);
     const finSemana = new Date(hoy);
     finSemana.setDate(finSemana.getDate() + 7);
+    finSemana.setHours(23, 59, 59, 999); // End of day
     
     const programadas = clases.filter(c => 
       c.estado === 'clase_programada' || 
@@ -115,6 +116,7 @@ export default function ProfesorDashboard() {
     const estaSemanaClases = programadas.filter(c => {
       if (!c.fecha_programada) return false;
       const fecha = new Date(c.fecha_programada);
+      fecha.setHours(0, 0, 0, 0);
       return fecha >= hoy && fecha <= finSemana && 
              fecha.getTime() !== hoy.getTime() && 
              fecha.getTime() !== manana.getTime();

@@ -150,7 +150,6 @@ export function useQuizzes(claseId?: string, tipo?: TipoQuiz) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['quizzes'] });
-      toast.success('Quiz publicado');
     },
     onError: (error: any) => {
       toast.error('Error al publicar: ' + error.message);
@@ -171,7 +170,6 @@ export function useQuizzes(claseId?: string, tipo?: TipoQuiz) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['quizzes'] });
-      toast.success('Quiz finalizado');
     },
     onError: (error: any) => {
       toast.error('Error al finalizar: ' + error.message);
