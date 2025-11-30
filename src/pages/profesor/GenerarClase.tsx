@@ -734,7 +734,7 @@ export default function GenerarClase() {
         tipo: 'previo',
         titulo: `Micro-Learning: ${quiz.estimulo_aprendizaje.titulo}`,
         instrucciones: `Lee atentamente el siguiente contenido y responde las preguntas de comprensión. Tiempo estimado de lectura: ${quiz.estimulo_aprendizaje.tiempo_lectura_estimado}`,
-        tiempo_limite: 15,
+        tiempo_limite: 5,
         estado: 'borrador'
       });
 
