@@ -32,7 +32,7 @@ const NAVIGATION: Record<AppRole, Array<{ to: string; icon: typeof LayoutDashboa
     { to: '/profesor/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
     { to: '/profesor/planificacion', icon: CalendarDays, label: 'Planificación' },
     { to: '/profesor/generar-clase', icon: Sparkles, label: 'Generar Clase' },
-    { to: '/profesor/mis-salones', icon: School, label: 'Mis Salones' }
+    { to: '/profesor/mis-salones', icon: School, label: 'Métricas' }
   ],
   alumno: [
     { to: '/alumno/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
