@@ -99,8 +99,7 @@ export function useQuizzes(claseId?: string, tipo?: TipoQuiz) {
           tiempo_limite: data.tiempo_limite,
           fecha_disponible: data.fecha_disponible,
           fecha_limite: data.fecha_limite,
-          estado: data.estado || 'borrador',
-          estimulo_aprendizaje: data.estimulo_aprendizaje as unknown as Json,
+          estado: data.estado || 'borrador'
         }])
         .select()
         .single();
@@ -110,7 +109,6 @@ export function useQuizzes(claseId?: string, tipo?: TipoQuiz) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['quizzes'] });
-      toast.success('Quiz creado exitosamente');
     },
     onError: (error: any) => {
       toast.error('Error al crear el quiz: ' + error.message);
