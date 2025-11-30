@@ -32,7 +32,6 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import {
   ArrowLeft,
-  Edit,
   Calendar,
   Clock,
   Users,
@@ -239,10 +238,6 @@ export default function TemaDetalle() {
           </div>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={() => navigate(`/profesor/planificacion`)}>
-            <Edit className="w-4 h-4 mr-2" />
-            Editar Guía
-          </Button>
           <Button variant="gradient" onClick={handleOpenProgramarClase}>
             <Calendar className="w-4 h-4 mr-2" />
             Programar Clase
@@ -311,7 +306,7 @@ export default function TemaDetalle() {
       </Card>
 
       {/* Tabs: Guía Maestra y Clases */}
-      <Tabs defaultValue="guia" className="space-y-4">
+      <Tabs defaultValue="clases" className="space-y-4">
         <TabsList>
           <TabsTrigger value="guia">Guía Maestra</TabsTrigger>
           <TabsTrigger value="clases">Clases</TabsTrigger>

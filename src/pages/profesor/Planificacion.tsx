@@ -4,7 +4,6 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Accordion,
   AccordionContent,
@@ -44,7 +43,6 @@ import {
   TrendingUp,
   Calendar,
   Sparkles,
-  PlayCircle,
   Eye,
   ChevronRight,
   AlertCircle
@@ -283,136 +281,113 @@ export default function Planificacion() {
         />
       </div>
 
-      {/* Cursos tabs */}
-      {selectedCurso && (
-      <Tabs value={selectedCurso} onValueChange={setSelectedCurso}>
-        <TabsList className="w-full flex-wrap h-auto gap-2 bg-transparent p-0">
-            {cursosConTemas.map((curso) => (
-            <TabsTrigger
-              key={curso.id}
-              value={curso.id}
-              className="data-[state=active]:gradient-bg data-[state=active]:text-primary-foreground border flex-col items-start h-auto p-3 min-w-[200px]"
-            >
-              <span className="font-semibold">{curso.nombre}</span>
-              <span className="text-xs opacity-80">
-                  {curso.grupo?.grado} {curso.grupo?.seccion} • {curso.horas_semanales || 0}h/sem
-              </span>
-              <Progress value={curso.progreso} className="h-1 mt-2 w-full" />
-            </TabsTrigger>
-          ))}
-        </TabsList>
+      {/* Cursos content */}
+      {selectedCurso && cursoActual && (() => {
+        const bimestres = getTemasByBimestre(selectedCurso);
+        return (
+          <div className="mt-6">
+            {/* Curso Section Header */}
+            <div className="mb-6">
+              <h2 className="text-xl font-bold mb-1">{cursoActual.nombre}</h2>
+              <p className="text-sm text-muted-foreground">
+                {cursoActual.grupo?.grado} {cursoActual.grupo?.seccion} • {cursoActual.horas_semanales || 0}h/sem
+              </p>
+            </div>
 
-          {cursosConTemas.map((curso) => {
-            const bimestres = getTemasByBimestre(curso.id);
-            return (
-          <TabsContent key={curso.id} value={curso.id} className="mt-6">
-                {bimestres.length === 0 ? (
-                  <Card>
-                    <CardContent className="p-8 text-center">
-                      <p className="text-muted-foreground">
-                        No hay temas asignados para este curso.
-                      </p>
-                    </CardContent>
-                  </Card>
-                ) : (
-                  <Accordion type="multiple" className="space-y-4" defaultValue={bimestres.length > 1 ? [`bim-${bimestres[1].numero}`] : [`bim-${bimestres[0].numero}`]}>
-                    {bimestres.map((bimestre) => (
-                <AccordionItem
-                  key={`bim-${bimestre.numero}`}
-                  value={`bim-${bimestre.numero}`}
-                  className="border rounded-lg overflow-hidden"
-                >
-                  <AccordionTrigger className="px-4 py-3 hover:no-underline hover:bg-muted/50">
-                    <div className="flex items-center justify-between w-full mr-4">
-                      <div className="flex items-center gap-3">
-                        <span className="font-semibold">{bimestre.nombre}</span>
-                              <Badge variant="secondary">{bimestre.temas.length} temas</Badge>
-                      </div>
-                      <div className="flex items-center gap-4">
-                        <div className="w-24">
-                          <Progress value={bimestre.progreso} className="h-2" />
+            {bimestres.length === 0 ? (
+              <Card>
+                <CardContent className="p-8 text-center">
+                  <p className="text-muted-foreground">
+                    No hay temas asignados para este curso.
+                  </p>
+                </CardContent>
+              </Card>
+            ) : (
+              <Accordion type="multiple" className="space-y-4" defaultValue={bimestres.length > 1 ? [`bim-${bimestres[1].numero}`] : [`bim-${bimestres[0].numero}`]}>
+                {bimestres.map((bimestre) => (
+                  <AccordionItem
+                    key={`bim-${bimestre.numero}`}
+                    value={`bim-${bimestre.numero}`}
+                    className="border rounded-lg overflow-hidden"
+                  >
+                    <AccordionTrigger className="px-4 py-3 hover:no-underline hover:bg-muted/50">
+                      <div className="flex items-center justify-between w-full mr-4">
+                        <div className="flex items-center gap-3">
+                          <span className="font-semibold">{bimestre.nombre}</span>
+                          <Badge variant="secondary">{bimestre.temas.length} temas</Badge>
                         </div>
-                        <span className="text-sm text-muted-foreground">{bimestre.progreso}%</span>
+                        <div className="flex items-center gap-4">
+                          <div className="w-24">
+                            <Progress value={bimestre.progreso} className="h-2" />
+                          </div>
+                          <span className="text-sm text-muted-foreground">{bimestre.progreso}%</span>
+                        </div>
                       </div>
-                    </div>
-                  </AccordionTrigger>
-                  <AccordionContent className="px-4 pb-4">
-                    <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 pt-2">
-                            {bimestre.temas.map((tema) => (
-                        <Card key={tema.id} className="hover:shadow-elevated transition-shadow">
-                          <CardContent className="p-4">
-                            <div className="flex items-start justify-between mb-2">
-                              <h4 className="font-medium text-sm line-clamp-2">{tema.nombre}</h4>
-                              <Badge 
-                                variant={estadoConfig[tema.estado]?.variant || 'secondary'}
-                                className={tema.estado === 'completado' ? 'bg-success text-success-foreground' : ''}
-                              >
-                                {estadoConfig[tema.estado]?.label}
-                              </Badge>
-                            </div>
-                            <Progress value={tema.progreso} className="h-1.5 mb-3" />
-                            <div className="flex items-center justify-between text-xs text-muted-foreground mb-3">
-                              <span>{tema.progreso}% completado</span>
-                              <span>{tema.sesiones} clases</span>
-                            </div>
-                            <div className="flex gap-2">
-                              {tema.estado === 'pendiente' ? (
-                                <Button 
-                                  variant="gradient" 
-                                  size="sm" 
-                                  className="flex-1"
-                                        onClick={() => handleIniciarTema({ id: tema.id, nombre: tema.nombre, cursoId: curso.id })}
+                    </AccordionTrigger>
+                    <AccordionContent className="px-4 pb-4">
+                      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 pt-2">
+                        {bimestre.temas.map((tema) => (
+                          <Card key={tema.id} className="hover:shadow-elevated transition-shadow">
+                            <CardContent className="p-4">
+                              <div className="flex items-start justify-between mb-2">
+                                <h4 className="font-medium text-sm line-clamp-2">{tema.nombre}</h4>
+                                <Badge 
+                                  variant={estadoConfig[tema.estado]?.variant || 'secondary'}
+                                  className={tema.estado === 'completado' ? 'bg-success text-success-foreground' : ''}
                                 >
-                                  <Sparkles className="w-3 h-3 mr-1" />
-                                  Iniciar
-                                </Button>
-                              ) : tema.estado === 'en_progreso' ? (
-                                      <>
-                                <Button 
-                                  variant="default" 
-                                  size="sm" 
-                                  className="flex-1"
-                                          onClick={() => navigate(`/profesor/planificacion/tema/${tema.id}`)}
-                                        >
-                                          <Eye className="w-3 h-3 mr-1" />
-                                          Ver Tema
-                                        </Button>
-                                        <Button 
-                                          variant="outline" 
-                                          size="sm" 
-                                          className="flex-1"
-                                          onClick={() => navigate(`/profesor/generar-clase?tema=${tema.id}&curso=${curso.id}`)}
-                                >
-                                  <PlayCircle className="w-3 h-3 mr-1" />
-                                  Generar
-                                </Button>
-                                      </>
-                              ) : (
-                                <Button 
-                                  variant="outline" 
-                                  size="sm" 
-                                  className="flex-1"
-                                  onClick={() => navigate(`/profesor/planificacion/tema/${tema.id}`)}
-                                >
-                                  <Eye className="w-3 h-3 mr-1" />
-                                  Ver detalle
-                                </Button>
-                              )}
-                            </div>
-                          </CardContent>
-                        </Card>
-                      ))}
-                    </div>
-                  </AccordionContent>
-                </AccordionItem>
-              ))}
-            </Accordion>
-                )}
-          </TabsContent>
-            );
-          })}
-        </Tabs>
-      )}
+                                  {estadoConfig[tema.estado]?.label}
+                                </Badge>
+                              </div>
+                              <Progress value={tema.progreso} className="h-1.5 mb-3" />
+                              <div className="flex items-center justify-between text-xs text-muted-foreground mb-3">
+                                <span>{tema.progreso}% completado</span>
+                                <span>{tema.sesiones} clases</span>
+                              </div>
+                              <div className="flex gap-2">
+                                {tema.estado === 'pendiente' ? (
+                                  <Button 
+                                    variant="gradient" 
+                                    size="sm" 
+                                    className="flex-1"
+                                    onClick={() => handleIniciarTema({ id: tema.id, nombre: tema.nombre, cursoId: cursoActual.id })}
+                                  >
+                                    <Sparkles className="w-3 h-3 mr-1" />
+                                    Iniciar
+                                  </Button>
+                                ) : tema.estado === 'en_progreso' ? (
+                                  <Button 
+                                    variant="default" 
+                                    size="sm" 
+                                    className="flex-1"
+                                    onClick={() => navigate(`/profesor/planificacion/tema/${tema.id}`)}
+                                  >
+                                    <Eye className="w-3 h-3 mr-1" />
+                                    Ver Tema
+                                  </Button>
+                                ) : (
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm" 
+                                    className="flex-1"
+                                    onClick={() => navigate(`/profesor/planificacion/tema/${tema.id}`)}
+                                  >
+                                    <Eye className="w-3 h-3 mr-1" />
+                                    Ver detalle
+                                  </Button>
+                                )}
+                              </div>
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+                ))}
+              </Accordion>
+            )}
+          </div>
+        );
+      })()}
 
       {/* Dialog Iniciar Tema */}
       <Dialog open={iniciarTemaDialogOpen} onOpenChange={setIniciarTemaDialogOpen}>

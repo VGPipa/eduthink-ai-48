@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { DatePicker } from '@/components/ui/date-picker';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -101,6 +102,9 @@ export default function GenerarClase() {
   const [cursoData, setCursoData] = useState<any>(null);
   const [grupoData, setGrupoData] = useState<any>(null);
   const [claseData, setClaseData] = useState<any>(null);
+  
+  // Check if class is completed (read-only mode)
+  const isClaseCompletada = claseData?.estado === 'completada';
   
   // Form state
   const [formData, setFormData] = useState({
@@ -270,8 +274,10 @@ export default function GenerarClase() {
               await loadQuizzesFromDB(clase.id);
 
               // Advance to appropriate step based on what exists
+              // If class is completed, don't go to step 5 (validation)
+              const claseCompletada = clase.estado === 'completada';
               if (guiaGenerada && quizPreData && quizPostData) {
-                setCurrentStep(5);
+                setCurrentStep(claseCompletada ? 4 : 5);
               } else if (guiaGenerada && quizPreData) {
                 setCurrentStep(4);
               } else if (guiaGenerada) {
@@ -383,16 +389,28 @@ export default function GenerarClase() {
     if (!isLoadingData && viewMode === 'wizard' && claseData) {
       // Only advance if we're still on step 1 (don't override user navigation)
       if (currentStep === 1) {
-        if (guiaGenerada && quizPreData && quizPostData) {
-          setCurrentStep(5);
-        } else if (guiaGenerada && quizPreData) {
-          setCurrentStep(4);
-        } else if (guiaGenerada) {
-          setCurrentStep(2);
+        // If class is completed, max step is 4 (don't show validation step)
+        if (isClaseCompletada) {
+          if (guiaGenerada && quizPreData && quizPostData) {
+            setCurrentStep(4);
+          } else if (guiaGenerada && quizPreData) {
+            setCurrentStep(4);
+          } else if (guiaGenerada) {
+            setCurrentStep(2);
+          }
+        } else {
+          // Normal flow for non-completed classes
+          if (guiaGenerada && quizPreData && quizPostData) {
+            setCurrentStep(5);
+          } else if (guiaGenerada && quizPreData) {
+            setCurrentStep(4);
+          } else if (guiaGenerada) {
+            setCurrentStep(2);
+          }
         }
       }
     }
-  }, [isLoadingData, viewMode, guiaGenerada, quizPreData, quizPostData, currentStep, claseData]);
+  }, [isLoadingData, viewMode, guiaGenerada, quizPreData, quizPostData, currentStep, claseData, isClaseCompletada]);
 
   // Helper function to load quizzes from database
   const loadQuizzesFromDB = async (claseId: string) => {
@@ -572,6 +590,13 @@ export default function GenerarClase() {
 
   // Handler: Back to selection
   const handleVolverSeleccion = () => {
+    // If there are URL params, user came from dashboard - navigate back
+    if (claseId || temaId || cursoId) {
+      navigate('/profesor/dashboard');
+      return;
+    }
+    
+    // Otherwise, switch to selection mode
     setViewMode('selection');
     setIsExtraordinaria(false);
     setTemaData(null);
@@ -1420,7 +1445,9 @@ export default function GenerarClase() {
       );
     }
 
-  const progress = (currentStep / STEPS.length) * 100;
+  // Calculate progress based on completion status
+  const totalSteps = isClaseCompletada ? 4 : STEPS.length;
+  const progress = (currentStep / totalSteps) * 100;
 
   return (
     <div className="max-w-4xl mx-auto space-y-6 animate-fade-in">
@@ -1443,7 +1470,7 @@ export default function GenerarClase() {
       {/* Progress */}
       <div className="space-y-4">
         <div className="flex justify-between">
-          {STEPS.map((step) => (
+          {STEPS.filter(step => !isClaseCompletada || step.id <= 4).map((step) => (
             <div 
               key={step.id}
               className={`flex items-center gap-2 ${
@@ -1480,6 +1507,16 @@ export default function GenerarClase() {
           {/* Step 1: Context */}
           {currentStep === 1 && (
             <div className="space-y-6">
+              {/* Read-only mode banner for completed classes */}
+              {isClaseCompletada && (
+                <div className="p-4 rounded-lg bg-blue-50 border border-blue-200">
+                  <div className="flex items-center gap-2 text-blue-700">
+                    <Lock className="w-5 h-5" />
+                    <span className="font-medium">Modo solo lectura - Esta clase está completada y no puede ser editada</span>
+                  </div>
+                </div>
+              )}
+              
               <div>
                 <h2 className="text-lg font-semibold mb-4">Información de la Clase</h2>
                 <div className="grid md:grid-cols-2 gap-4">
@@ -1495,6 +1532,7 @@ export default function GenerarClase() {
                             const curso = cursos.find(c => c?.id === value);
                             setCursoData(curso);
                           }}
+                          disabled={isClaseCompletada}
                         >
                           <SelectTrigger>
                             <SelectValue placeholder="Selecciona un curso" />
@@ -1527,7 +1565,7 @@ export default function GenerarClase() {
                               setFormData(prev => ({...prev, temaPersonalizado: tema.nombre}));
                             }
                           }}
-                          disabled={!cursoData}
+                          disabled={!cursoData || isClaseCompletada}
                         >
                           <SelectTrigger>
                             <SelectValue placeholder={cursoData ? "Selecciona un tema" : "Primero selecciona un curso"} />
@@ -1551,6 +1589,7 @@ export default function GenerarClase() {
                           value={formData.temaPersonalizado} 
                           onChange={(e) => setFormData({...formData, temaPersonalizado: e.target.value})}
                           placeholder="Personaliza el nombre del tema si lo deseas"
+                          disabled={isClaseCompletada}
                         />
                   </div>
                     )}
@@ -1565,6 +1604,7 @@ export default function GenerarClase() {
                             const grupo = grupos.find(g => g?.id === value);
                             setGrupoData(grupo);
                           }}
+                          disabled={isClaseCompletada}
                         >
                           <SelectTrigger>
                             <SelectValue placeholder="Selecciona un grupo" />
@@ -1585,13 +1625,23 @@ export default function GenerarClase() {
                     {/* Fecha */}
                   <div className="space-y-2">
                     <Label>Fecha programada</Label>
-                    <Input type="date" value={formData.fecha} onChange={(e) => setFormData({...formData, fecha: e.target.value})} />
+                    <DatePicker
+                      value={formData.fecha}
+                      onChange={(value) => setFormData({...formData, fecha: value})}
+                      placeholder="Selecciona una fecha"
+                      disabled={isClaseCompletada}
+                    />
                   </div>
 
                     {/* Duración */}
                   <div className="space-y-2">
                     <Label>Duración (minutos)</Label>
-                    <Input type="number" value={formData.duracion} onChange={(e) => setFormData({...formData, duracion: parseInt(e.target.value)})} />
+                    <Input 
+                      type="number" 
+                      value={formData.duracion} 
+                      onChange={(e) => setFormData({...formData, duracion: parseInt(e.target.value)})}
+                      disabled={isClaseCompletada}
+                    />
                   </div>
                 </div>
               </div>
@@ -1603,12 +1653,14 @@ export default function GenerarClase() {
                       <Badge
                         key={rec.id}
                         variant={formData.recursos.includes(rec.id) ? 'default' : 'outline'}
-                        className="cursor-pointer"
+                        className={isClaseCompletada ? "cursor-not-allowed opacity-60" : "cursor-pointer"}
                         onClick={() => {
-                          const newRec = formData.recursos.includes(rec.id)
-                            ? formData.recursos.filter(r => r !== rec.id)
-                            : [...formData.recursos, rec.id];
-                          setFormData({...formData, recursos: newRec});
+                          if (!isClaseCompletada) {
+                            const newRec = formData.recursos.includes(rec.id)
+                              ? formData.recursos.filter(r => r !== rec.id)
+                              : [...formData.recursos, rec.id];
+                            setFormData({...formData, recursos: newRec});
+                          }
                         }}
                       >
                         {rec.nombre}
@@ -1624,31 +1676,44 @@ export default function GenerarClase() {
                   value={formData.contexto}
                   onChange={(e) => setFormData({...formData, contexto: e.target.value})}
                   rows={3}
+                  disabled={isClaseCompletada}
                 />
               </div>
 
               {/* Opción de generación en paralelo (para demo) */}
-              <div className="flex items-center space-x-2 p-4 rounded-lg border bg-muted/30">
-                <Checkbox 
-                  id="generar-paralelo" 
-                  checked={generarEnParalelo}
-                  onCheckedChange={(checked) => setGenerarEnParalelo(checked === true)}
-                />
-                <Label htmlFor="generar-paralelo" className="cursor-pointer">
-                  <div className="flex flex-col gap-1">
-                    <span className="font-medium">Generar todo en paralelo (Demo)</span>
-                    <span className="text-xs text-muted-foreground">
-                      Genera la guía y ambos quizzes simultáneamente para acelerar el proceso
-                    </span>
-                  </div>
-                </Label>
-              </div>
+              {!isClaseCompletada && (
+                <div className="flex items-center space-x-2 p-4 rounded-lg border bg-muted/30">
+                  <Checkbox 
+                    id="generar-paralelo" 
+                    checked={generarEnParalelo}
+                    onCheckedChange={(checked) => setGenerarEnParalelo(checked === true)}
+                  />
+                  <Label htmlFor="generar-paralelo" className="cursor-pointer">
+                    <div className="flex flex-col gap-1">
+                      <span className="font-medium">Generar todo en paralelo (Demo)</span>
+                      <span className="text-xs text-muted-foreground">
+                        Genera la guía y ambos quizzes simultáneamente para acelerar el proceso
+                      </span>
+                    </div>
+                  </Label>
+                </div>
+              )}
             </div>
           )}
 
           {/* Step 2: Generate Guide */}
           {currentStep === 2 && (
             <div className="space-y-6">
+              {/* Read-only mode banner for completed classes */}
+              {isClaseCompletada && (
+                <div className="p-4 rounded-lg bg-blue-50 border border-blue-200">
+                  <div className="flex items-center gap-2 text-blue-700">
+                    <Lock className="w-5 h-5" />
+                    <span className="font-medium">Modo solo lectura - Esta clase está completada y no puede ser editada</span>
+                  </div>
+                </div>
+              )}
+              
               {isGenerating && generarEnParalelo ? (
                 <div className="space-y-4">
                   <div className="text-center py-4">
@@ -1769,10 +1834,12 @@ export default function GenerarClase() {
                   <p className="text-muted-foreground">
                     No hay guía generada. Vuelve al paso anterior.
                   </p>
-                  <Button variant="outline" className="mt-4" onClick={() => setCurrentStep(1)}>
-                    <ChevronLeft className="w-4 h-4 mr-2" />
-                    Volver a Contexto
-                  </Button>
+                  {!isClaseCompletada && (
+                    <Button variant="outline" className="mt-4" onClick={() => setCurrentStep(1)}>
+                      <ChevronLeft className="w-4 h-4 mr-2" />
+                      Volver a Contexto
+                    </Button>
+                  )}
                 </div>
               ) : null}
 
@@ -1965,6 +2032,16 @@ export default function GenerarClase() {
           {/* Step 3: Quiz PRE */}
           {currentStep === 3 && (
             <div className="space-y-6">
+              {/* Read-only mode banner for completed classes */}
+              {isClaseCompletada && (
+                <div className="p-4 rounded-lg bg-blue-50 border border-blue-200">
+                  <div className="flex items-center gap-2 text-blue-700">
+                    <Lock className="w-5 h-5" />
+                    <span className="font-medium">Modo solo lectura - Esta clase está completada y no puede ser editada</span>
+                  </div>
+                </div>
+              )}
+              
               {!quizPreData && (
                 <div className="text-center py-4">
                   <ClipboardList className="w-12 h-12 text-info mx-auto mb-4" />
@@ -1972,7 +2049,7 @@ export default function GenerarClase() {
                   <p className="text-muted-foreground mb-6">
                     Estímulo de aprendizaje + 3 preguntas de comprensión
                   </p>
-                  <Button variant="gradient" size="lg" onClick={handleGenerarQuizPre} disabled={isGenerating}>
+                  <Button variant="gradient" size="lg" onClick={handleGenerarQuizPre} disabled={isGenerating || isClaseCompletada}>
                     {isGenerating ? (
                       <>
                         <Loader2 className="w-5 h-5 animate-spin" />
@@ -2090,6 +2167,16 @@ export default function GenerarClase() {
           {/* Step 4: Quiz POST */}
           {currentStep === 4 && (
             <div className="space-y-6">
+              {/* Read-only mode banner for completed classes */}
+              {isClaseCompletada && (
+                <div className="p-4 rounded-lg bg-blue-50 border border-blue-200">
+                  <div className="flex items-center gap-2 text-blue-700">
+                    <Lock className="w-5 h-5" />
+                    <span className="font-medium">Modo solo lectura - Esta clase está completada y no puede ser editada</span>
+                  </div>
+                </div>
+              )}
+              
               {!quizPostData && (
                 <div className="text-center py-4">
                   <ClipboardList className="w-12 h-12 text-success mx-auto mb-4" />
@@ -2097,7 +2184,7 @@ export default function GenerarClase() {
                   <p className="text-muted-foreground mb-6">
                     7 preguntas de situación y análisis • 15 minutos
                   </p>
-                  <Button variant="gradient" size="lg" onClick={handleGenerarQuizPost} disabled={isGenerating}>
+                  <Button variant="gradient" size="lg" onClick={handleGenerarQuizPost} disabled={isGenerating || isClaseCompletada}>
                     {isGenerating ? (
                       <>
                         <Loader2 className="w-5 h-5 animate-spin" />
@@ -2185,8 +2272,8 @@ export default function GenerarClase() {
             </div>
           )}
 
-          {/* Step 5: Validate */}
-          {currentStep === 5 && (
+          {/* Step 5: Validate - Only show if class is not completed */}
+          {currentStep === 5 && !isClaseCompletada && (
             <div className="space-y-6">
               <div className="text-center py-4">
                 <FileCheck className="w-12 h-12 text-primary mx-auto mb-4" />
@@ -2225,6 +2312,47 @@ export default function GenerarClase() {
               )}
             </div>
           )}
+          
+          {/* Show completion message if class is completed and on step 5 */}
+          {currentStep === 5 && isClaseCompletada && (
+            <div className="space-y-6">
+              <div className="text-center py-4">
+                <CheckCircle2 className="w-12 h-12 text-success mx-auto mb-4" />
+                <h2 className="text-lg font-semibold mb-2">Clase Completada</h2>
+                <p className="text-muted-foreground mb-6">
+                  Esta clase ya ha sido completada y validada
+                </p>
+              </div>
+
+              <div className="space-y-3">
+                {[
+                  { label: 'Contexto de la clase', completed: true },
+                  { label: 'Guía de clase generada', completed: !!guiaGenerada },
+                    { label: 'Quiz PRE (diagnóstico)', completed: !!quizPreData },
+                    { label: 'Quiz POST (evaluación)', completed: !!quizPostData }
+                ].map((item, i) => (
+                  <div key={i} className={`flex items-center gap-3 p-4 rounded-lg ${item.completed ? 'bg-success/10' : 'bg-muted'}`}>
+                    {item.completed ? (
+                      <CheckCircle2 className="w-5 h-5 text-success" />
+                    ) : (
+                      <div className="w-5 h-5 rounded-full border-2 border-muted-foreground" />
+                    )}
+                    <span className={item.completed ? 'text-success font-medium' : 'text-muted-foreground'}>
+                      {item.label}
+                    </span>
+                  </div>
+                ))}
+              </div>
+
+              {guiaGenerada && quizPreData && quizPostData && (
+                <div className="p-4 rounded-lg bg-success/10 border border-success/20 text-center">
+                  <CheckCircle2 className="w-8 h-8 text-success mx-auto mb-2" />
+                  <p className="font-medium text-success">Clase completada exitosamente</p>
+                  <p className="text-sm text-muted-foreground">Todos los componentes están completos</p>
+                </div>
+              )}
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -2239,55 +2367,74 @@ export default function GenerarClase() {
           Anterior
         </Button>
 
-        {currentStep < 5 ? (
-          currentStep === 1 ? (
-            guiaGenerada ? (
-              <Button 
-                variant="gradient"
-                onClick={() => setCurrentStep(2)}
-              >
-                <Eye className="w-4 h-4 mr-2" />
-                Ver Guía
-              </Button>
-            ) : (
-              <Button 
-                variant="gradient"
-                onClick={generarEnParalelo ? handleGenerarTodoEnParalelo : handleGenerarGuia}
-                disabled={!canProceed() || isGenerating}
-              >
-                {isGenerating ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    {generarEnParalelo ? 'Generando todo...' : 'Generando...'}
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="w-4 h-4 mr-2" />
-                    {generarEnParalelo ? 'Generar Todo en Paralelo' : 'Generar Guía'}
-                  </>
-                )}
-              </Button>
-            )
-          ) : (
-            <Button 
-              variant="gradient"
-              onClick={() => setCurrentStep(Math.min(5, currentStep + 1))}
-              disabled={!canProceed()}
-            >
-              Siguiente
-              <ChevronRight className="w-4 h-4 ml-2" />
-            </Button>
-          )
-        ) : (
-          <Button 
-            variant="gradient"
-            onClick={handleValidar}
-              disabled={!guiaGenerada || !quizPreData || !quizPostData}
-          >
-            <CheckCircle2 className="w-4 h-4 mr-2" />
-            Validar Clase
-          </Button>
-        )}
+        {/* Determine max step based on completion status */}
+        {(() => {
+          const maxStep = isClaseCompletada ? 4 : 5;
+          
+          if (currentStep < maxStep) {
+            if (currentStep === 1) {
+              if (guiaGenerada) {
+                return (
+                  <Button 
+                    variant="gradient"
+                    onClick={() => setCurrentStep(2)}
+                  >
+                    <Eye className="w-4 h-4 mr-2" />
+                    Ver Guía
+                  </Button>
+                );
+              } else {
+                return (
+                  <Button 
+                    variant="gradient"
+                    onClick={generarEnParalelo ? handleGenerarTodoEnParalelo : handleGenerarGuia}
+                    disabled={!canProceed() || isGenerating || isClaseCompletada}
+                  >
+                    {isGenerating ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        {generarEnParalelo ? 'Generando todo...' : 'Generando...'}
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="w-4 h-4 mr-2" />
+                        {generarEnParalelo ? 'Generar Todo en Paralelo' : 'Generar Guía'}
+                      </>
+                    )}
+                  </Button>
+                );
+              }
+            } else {
+              return (
+                <Button 
+                  variant="gradient"
+                  onClick={() => setCurrentStep(Math.min(maxStep, currentStep + 1))}
+                  disabled={!canProceed()}
+                >
+                  Siguiente
+                  <ChevronRight className="w-4 h-4 ml-2" />
+                </Button>
+              );
+            }
+          } else {
+            // Step 5 - only show validate button if not completed
+            if (!isClaseCompletada) {
+              return (
+                <Button 
+                  variant="gradient"
+                  onClick={handleValidar}
+                  disabled={!guiaGenerada || !quizPreData || !quizPostData}
+                >
+                  <CheckCircle2 className="w-4 h-4 mr-2" />
+                  Validar Clase
+                </Button>
+              );
+            } else {
+              // If completed, just show a message or nothing
+              return null;
+            }
+          }
+        })()}
       </div>
     </div>
   );

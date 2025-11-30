@@ -12,6 +12,7 @@ import { useRecomendacionesSalon } from '@/hooks/useMisSalones';
 import { useQuizzes } from '@/hooks/useQuizzes';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { EstadoClase } from '@/components/profesor/EstadoClase';
 import { Loader2 } from 'lucide-react';
 import {
   Sparkles,
@@ -135,17 +136,21 @@ export default function ProfesorDashboard() {
     return all.map(c => c.id);
   }, [clasesProgramadas]);
   
-  // Fetch quizzes for all programmed classes
+  // Fetch quizzes for all classes (including those in preparation)
+  const todasLasClasesIds = useMemo(() => {
+    return [...new Set([...clases.map(c => c.id), ...clasesProgramadasIds])];
+  }, [clases, clasesProgramadasIds]);
+  
   const [quizzesMap, setQuizzesMap] = useState<Record<string, { previo?: string; post?: string }>>({});
   
   React.useEffect(() => {
     const loadQuizzes = async () => {
-      if (clasesProgramadasIds.length === 0) return;
+      if (todasLasClasesIds.length === 0) return;
       
       const { data: quizzes, error } = await supabase
         .from('quizzes')
         .select('id, id_clase, tipo, estado')
-        .in('id_clase', clasesProgramadasIds)
+        .in('id_clase', todasLasClasesIds)
         .in('tipo', ['previo', 'post']);
       
       if (error) {
@@ -169,7 +174,7 @@ export default function ProfesorDashboard() {
     };
     
     loadQuizzes();
-  }, [clasesProgramadasIds]);
+  }, [todasLasClasesIds]);
   
   // Get recommendations from first grupo (or combine all)
   const primerGrupoId = grupos[0]?.id || null;
@@ -442,6 +447,13 @@ export default function ProfesorDashboard() {
                               })}
                             </div>
                           )}
+                          <div className="mt-2">
+                            <EstadoClase
+                              tieneGuia={!!clase.guia_version || !!clase.id_guia_version_actual}
+                              tienePreQuiz={!!quizzesMap[clase.id]?.previo}
+                              tienePostQuiz={!!quizzesMap[clase.id]?.post}
+                            />
+                          </div>
                         </div>
                         <Button variant="ghost" size="icon">
                           <ChevronRight className="w-5 h-5" />
@@ -472,6 +484,13 @@ export default function ProfesorDashboard() {
                                 {clase.grupo?.nombre || `${clase.grupo?.grado} ${clase.grupo?.seccion || ''}`.trim()}
                                 {clase.numero_sesion && ` • Sesión ${clase.numero_sesion}`}
                               </p>
+                              <div className="mt-2">
+                                <EstadoClase
+                                  tieneGuia={!!clase.guia_version || !!clase.id_guia_version_actual}
+                                  tienePreQuiz={!!quizzesMap[clase.id]?.previo}
+                                  tienePostQuiz={!!quizzesMap[clase.id]?.post}
+                                />
+                              </div>
                             </div>
                           </div>
                           <div className="flex items-center gap-2">
@@ -554,6 +573,13 @@ export default function ProfesorDashboard() {
                                 {clase.grupo?.nombre || `${clase.grupo?.grado} ${clase.grupo?.seccion || ''}`.trim()}
                                 {clase.numero_sesion && ` • Sesión ${clase.numero_sesion}`}
                               </p>
+                              <div className="mt-2">
+                                <EstadoClase
+                                  tieneGuia={!!clase.guia_version || !!clase.id_guia_version_actual}
+                                  tienePreQuiz={!!quizzesMap[clase.id]?.previo}
+                                  tienePostQuiz={!!quizzesMap[clase.id]?.post}
+                                />
+                              </div>
                             </div>
                           </div>
                           <div className="flex items-center gap-2">
