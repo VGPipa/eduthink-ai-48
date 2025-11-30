@@ -823,6 +823,7 @@ export type Database = {
         Row: {
           created_at: string
           estado: Database["public"]["Enums"]["estado_quiz"] | null
+          estimulo_aprendizaje: Json | null
           fecha_disponible: string | null
           fecha_limite: string | null
           id: string
@@ -835,6 +836,7 @@ export type Database = {
         Insert: {
           created_at?: string
           estado?: Database["public"]["Enums"]["estado_quiz"] | null
+          estimulo_aprendizaje?: Json | null
           fecha_disponible?: string | null
           fecha_limite?: string | null
           id?: string
@@ -847,6 +849,7 @@ export type Database = {
         Update: {
           created_at?: string
           estado?: Database["public"]["Enums"]["estado_quiz"] | null
+          estimulo_aprendizaje?: Json | null
           fecha_disponible?: string | null
           fecha_limite?: string | null
           id?: string
