@@ -238,14 +238,14 @@ export default function MisSalones() {
                     />
                   </div>
 
-                  {/* Fila de Quizzes y Asistencia */}
+                  {/* Fila de Quizzes y Participación */}
                   <div className="grid grid-cols-2 gap-4 pt-3 border-t">
                     <div className="bg-muted/50 rounded-lg p-3">
                       <p className="text-xs text-muted-foreground mb-1">Quizzes</p>
                       <p className="text-xl font-bold text-foreground">{asignacion.totalQuizzes}</p>
                     </div>
                     <div className="bg-muted/50 rounded-lg p-3">
-                      <p className="text-xs text-muted-foreground mb-1">Asistencia</p>
+                      <p className="text-xs text-muted-foreground mb-1">Participación</p>
                       <p className="text-xl font-bold text-foreground">{asignacion.asistencia}%</p>
                     </div>
                   </div>
