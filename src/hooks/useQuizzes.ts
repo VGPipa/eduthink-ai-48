@@ -157,6 +157,27 @@ export function useQuizzes(claseId?: string, tipo?: TipoQuiz) {
     },
   });
 
+  const closeQuiz = useMutation({
+    mutationFn: async (id: string) => {
+      const { data, error } = await supabase
+        .from('quizzes')
+        .update({ estado: 'cerrado' })
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data as Quiz;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['quizzes'] });
+      toast.success('Quiz finalizado');
+    },
+    onError: (error: any) => {
+      toast.error('Error al finalizar: ' + error.message);
+    },
+  });
+
   return {
     quizzes,
     isLoading,
@@ -164,6 +185,7 @@ export function useQuizzes(claseId?: string, tipo?: TipoQuiz) {
     createQuiz,
     updateQuiz,
     publishQuiz,
+    closeQuiz,
   };
 }
 
