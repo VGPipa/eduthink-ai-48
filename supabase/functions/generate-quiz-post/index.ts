@@ -149,7 +149,7 @@ Genera el Quiz POST con exactamente 7 preguntas de aplicación práctica.`;
           { role: 'user', content: userPrompt }
         ],
         temperature: 0.7,
-        max_tokens: 4000,
+        max_tokens: 8000,
       }),
     });
 
@@ -184,10 +184,11 @@ Genera el Quiz POST con exactamente 7 preguntas de aplicación práctica.`;
     try {
       // Clean potential markdown formatting
       let cleanContent = content.trim();
+      
+      // Remove markdown code blocks
       if (cleanContent.startsWith('```json')) {
         cleanContent = cleanContent.slice(7);
-      }
-      if (cleanContent.startsWith('```')) {
+      } else if (cleanContent.startsWith('```')) {
         cleanContent = cleanContent.slice(3);
       }
       if (cleanContent.endsWith('```')) {
@@ -195,9 +196,59 @@ Genera el Quiz POST con exactamente 7 preguntas de aplicación práctica.`;
       }
       cleanContent = cleanContent.trim();
 
-      quizData = JSON.parse(cleanContent);
+      // Try to extract JSON object if there's extra text
+      const jsonMatch = cleanContent.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        cleanContent = jsonMatch[0];
+      }
+
+      // Handle truncated JSON by attempting to fix common issues
+      try {
+        quizData = JSON.parse(cleanContent);
+      } catch (firstParseError) {
+        console.log('First parse failed, attempting to fix truncated JSON...');
+        
+        // Count open/close braces and brackets to detect truncation
+        const openBraces = (cleanContent.match(/\{/g) || []).length;
+        const closeBraces = (cleanContent.match(/\}/g) || []).length;
+        const openBrackets = (cleanContent.match(/\[/g) || []).length;
+        const closeBrackets = (cleanContent.match(/\]/g) || []).length;
+        
+        // Try to close unclosed structures
+        let fixedContent = cleanContent;
+        
+        // If JSON is truncated mid-string, try to close it
+        if (fixedContent.includes('"') && !fixedContent.endsWith('}')) {
+          // Find last complete question object and truncate there
+          const lastCompleteQuestion = fixedContent.lastIndexOf('"retroalimentacion_detallada"');
+          if (lastCompleteQuestion > 0) {
+            const afterRetro = fixedContent.indexOf('"}', lastCompleteQuestion);
+            if (afterRetro > 0) {
+              fixedContent = fixedContent.substring(0, afterRetro + 2) + ']}';
+            }
+          }
+        }
+        
+        // Add missing closing brackets/braces
+        for (let i = 0; i < openBrackets - closeBrackets; i++) {
+          fixedContent += ']';
+        }
+        for (let i = 0; i < openBraces - closeBraces; i++) {
+          fixedContent += '}';
+        }
+        
+        try {
+          quizData = JSON.parse(fixedContent);
+          console.log('Fixed truncated JSON successfully');
+        } catch (secondParseError) {
+          // Last resort: try to extract what we can and build a minimal structure
+          console.error('Could not fix JSON, creating fallback structure');
+          throw new Error('JSON parsing failed');
+        }
+      }
     } catch (parseError) {
-      console.error('Failed to parse AI response as JSON:', content);
+      console.error('Failed to parse AI response as JSON, length:', content.length);
+      console.error('First 500 chars:', content.substring(0, 500));
       throw new Error('Failed to parse AI response as valid JSON');
     }
 
