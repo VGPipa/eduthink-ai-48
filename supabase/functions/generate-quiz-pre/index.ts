@@ -136,11 +136,12 @@ Genera el Pre-Quiz de Micro-Learning con el estímulo de aprendizaje y las 3 pre
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
+        model: "google/gemini-2.5-flash-lite",
         messages: [
           { role: "system", content: SYSTEM_PROMPT },
           { role: "user", content: userPrompt }
         ],
+        max_tokens: 8000,
       }),
     });
 

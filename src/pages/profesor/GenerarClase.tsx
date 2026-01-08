@@ -1845,29 +1845,55 @@ export default function GenerarClase() {
                             variant="outline" 
                             size="sm"
                             onClick={async () => {
-                              // Clear all generated content
-                              setGuiaGenerada(null);
-                              setQuizPreData(null);
-                              setQuizPostData(null);
+                              if (!claseData) return;
                               
-                              // Reset class state if needed
-                              if (claseData) {
-                                try {
-                                  await updateClase.mutateAsync({
-                                    id: claseData.id,
-                                    estado: 'generando_clase',
-                                    id_guia_version_actual: null
-                                  });
-                                } catch (e) { /* ignore */ }
+                              setIsGenerating(true);
+                              
+                              try {
+                                // 1. Clear all local states
+                                setGuiaGenerada(null);
+                                setQuizPreData(null);
+                                setQuizPostData(null);
+                                
+                                // 2. Delete existing quizzes from DB (cascade deletes preguntas)
+                                const { error: deleteError } = await supabase
+                                  .from('quizzes')
+                                  .delete()
+                                  .eq('id_clase', claseData.id);
+                                
+                                if (deleteError) {
+                                  console.error('Error deleting quizzes:', deleteError);
+                                }
+                                
+                                // 3. Reset class state
+                                await updateClase.mutateAsync({
+                                  id: claseData.id,
+                                  estado: 'generando_clase',
+                                  id_guia_version_actual: null
+                                });
+                                
+                                // 4. Regenerate guide
+                                await handleGenerarGuia();
+                                
+                                toast({
+                                  title: 'Regeneración iniciada',
+                                  description: 'Se está generando una nueva sesión de clase.'
+                                });
+                              } catch (error: any) {
+                                console.error('Error regenerating:', error);
+                                toast({
+                                  title: 'Error al regenerar',
+                                  description: error.message || 'Error desconocido',
+                                  variant: 'destructive'
+                                });
+                              } finally {
+                                setIsGenerating(false);
                               }
-                              
-                              // Regenerate
-                              handleGenerarGuia();
                             }}
                             disabled={isGenerating}
                           >
-                            <RefreshCw className="w-4 h-4 mr-1" />
-                            Regenerar
+                            <RefreshCw className={`w-4 h-4 mr-1 ${isGenerating ? 'animate-spin' : ''}`} />
+                            {isGenerating ? 'Regenerando...' : 'Regenerar'}
                           </Button>
                         </>
                       )}
