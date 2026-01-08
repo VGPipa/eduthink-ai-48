@@ -19,6 +19,8 @@ import { useQuizzes } from '@/hooks/useQuizzes';
 import { useTemasProfesor } from '@/hooks/useTemasProfesor';
 import { supabase } from '@/integrations/supabase/client';
 import { generateGuiaClase, generateQuizPre, generateQuizPost, type SesionClaseData, type GuiaClaseData, type QuizPreData, type QuizPostData } from '@/lib/ai/generate';
+import { exportarSesionWord } from '@/lib/exportWord';
+import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from '@/components/ui/table';
 import {
   Sparkles,
   ChevronLeft,
@@ -43,7 +45,11 @@ import {
   User,
   Rocket,
   ImageIcon,
-  Eye
+  Eye,
+  Download,
+  Edit3,
+  RefreshCw,
+  Accessibility
 } from 'lucide-react';
 
 const STEPS = [
@@ -1812,162 +1818,307 @@ export default function GenerarClase() {
 
               {guiaGenerada && (
                 <div className="space-y-6 animate-fade-in">
-                  {/* Success Banner */}
-                  <div className="p-4 rounded-lg bg-success/10 border border-success/20">
+                  {/* Header con botones de acción */}
+                  <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2 text-success">
                       <BookOpen className="w-5 h-5" />
                       <span className="font-medium">{claseData?.id_guia_version_actual ? 'Sesión de clase cargada' : 'Sesión generada exitosamente'}</span>
                     </div>
-                  </div>
-
-                  {/* Datos Generales Header */}
-                  <div className="p-4 rounded-lg bg-gradient-to-r from-primary/10 to-primary/5 border border-primary/20">
-                    <h3 className="text-lg font-bold text-primary mb-1">
-                      {guiaGenerada.datos_generales?.titulo_sesion || temaData?.nombre || 'Sesión de Clase'}
-                    </h3>
-                    <div className="flex flex-wrap gap-2 mt-2">
-                      {guiaGenerada.datos_generales?.area_academica && (
-                        <Badge variant="secondary" className="flex items-center gap-1">
-                          <BookOpen className="w-3 h-3" />
-                          {guiaGenerada.datos_generales.area_academica}
-                        </Badge>
+                    <div className="flex items-center gap-2">
+                      {!isClaseCompletada && (
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => {
+                            setGuiaGenerada(null);
+                            handleGenerarGuia();
+                          }}
+                          disabled={isGenerating}
+                        >
+                          <RefreshCw className="w-4 h-4 mr-1" />
+                          Regenerar
+                        </Button>
                       )}
-                      {guiaGenerada.datos_generales?.grado && (
-                        <Badge variant="outline" className="flex items-center gap-1">
-                          <GraduationCap className="w-3 h-3" />
-                          {guiaGenerada.datos_generales.nivel} - {guiaGenerada.datos_generales.grado}
-                        </Badge>
-                      )}
-                      <Badge variant="secondary" className="flex items-center gap-1">
-                        <Clock className="w-3 h-3" />
-                        {formData.duracion || 55} min
-                      </Badge>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => {
+                          if (guiaGenerada) {
+                            exportarSesionWord(guiaGenerada as SesionClaseData);
+                          }
+                        }}
+                      >
+                        <Download className="w-4 h-4 mr-1" />
+                        Descargar
+                      </Button>
                     </div>
                   </div>
 
-                  {/* Propósitos de Aprendizaje (CNEB) */}
+                  {/* I. DATOS GENERALES */}
+                  <Card className="border-2">
+                    <CardHeader className="pb-3 bg-muted/30">
+                      <CardTitle className="text-base flex items-center gap-2">
+                        <span className="bg-primary text-primary-foreground px-2 py-0.5 rounded text-sm font-bold">I</span>
+                        DATOS GENERALES
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="pt-4">
+                      <div className="grid grid-cols-2 gap-4 text-sm">
+                        <div className="flex gap-2">
+                          <span className="font-semibold text-muted-foreground min-w-24">Título:</span>
+                          <span>{guiaGenerada.datos_generales?.titulo_sesion || temaData?.nombre || 'Sesión de Clase'}</span>
+                        </div>
+                        <div className="flex gap-2">
+                          <span className="font-semibold text-muted-foreground min-w-24">Área:</span>
+                          <span>{guiaGenerada.datos_generales?.area_academica || cursoData?.nombre || '-'}</span>
+                        </div>
+                        <div className="flex gap-2">
+                          <span className="font-semibold text-muted-foreground min-w-24">Grado:</span>
+                          <span>{guiaGenerada.datos_generales?.nivel || ''} {guiaGenerada.datos_generales?.grado || grupoData?.grado || '-'}</span>
+                        </div>
+                        <div className="flex gap-2">
+                          <span className="font-semibold text-muted-foreground min-w-24">Duración:</span>
+                          <span>{formData.duracion || 55} minutos</span>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* II. PROPÓSITOS DE APRENDIZAJE */}
                   {guiaGenerada.propositos_aprendizaje && (
-                    <div className="p-4 rounded-lg border bg-card">
-                      <h4 className="font-semibold flex items-center gap-2 mb-3">
-                        <Target className="w-4 h-4 text-primary" />
-                        Propósitos de Aprendizaje (CNEB)
-                      </h4>
-                      {guiaGenerada.propositos_aprendizaje.filas?.map((fila: any, i: number) => (
-                        <div key={i} className="grid gap-2 text-sm mb-4 last:mb-0">
-                          <div className="flex gap-2">
-                            <span className="font-medium text-muted-foreground w-36">Competencia:</span>
-                            <span>{fila.competencia}</span>
-                          </div>
-                          <div className="flex gap-2">
-                            <span className="font-medium text-muted-foreground w-36">Criterios:</span>
-                            <span>{fila.criterios_evaluacion}</span>
-                          </div>
-                          <div className="flex gap-2">
-                            <span className="font-medium text-muted-foreground w-36">Evidencia:</span>
-                            <span>{fila.evidencia_aprendizaje}</span>
-                          </div>
-                          <div className="flex gap-2">
-                            <span className="font-medium text-muted-foreground w-36">Instrumento:</span>
-                            <Badge variant="secondary">{fila.instrumento_valorizacion}</Badge>
-                          </div>
+                    <Card className="border-2">
+                      <CardHeader className="pb-3 bg-muted/30">
+                        <CardTitle className="text-base flex items-center gap-2">
+                          <span className="bg-primary text-primary-foreground px-2 py-0.5 rounded text-sm font-bold">II</span>
+                          PROPÓSITOS DE APRENDIZAJE
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="pt-4 space-y-4">
+                        {/* Tabla 1: Competencias */}
+                        <div className="overflow-x-auto">
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead className="bg-amber-100 text-amber-900 font-bold border">Competencia</TableHead>
+                                <TableHead className="bg-amber-100 text-amber-900 font-bold border">Criterios de evaluación (Desempeños)</TableHead>
+                                <TableHead className="bg-blue-100 text-blue-900 font-bold border">Evidencia de aprendizaje</TableHead>
+                                <TableHead className="bg-blue-100 text-blue-900 font-bold border">Instrumentos de valorización</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {guiaGenerada.propositos_aprendizaje.filas?.map((fila: any, i: number) => (
+                                <TableRow key={i}>
+                                  <TableCell className="border align-top">{fila.competencia}</TableCell>
+                                  <TableCell className="border align-top">{fila.criterios_evaluacion}</TableCell>
+                                  <TableCell className="border align-top">{fila.evidencia_aprendizaje}</TableCell>
+                                  <TableCell className="border align-top">{fila.instrumento_valorizacion}</TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
                         </div>
-                      ))}
-                      {guiaGenerada.propositos_aprendizaje.enfoques_transversales?.length > 0 && (
-                        <div className="mt-3 pt-3 border-t">
-                          <span className="text-sm font-medium text-muted-foreground">Enfoques Transversales:</span>
-                          <div className="flex flex-wrap gap-2 mt-2">
-                            {guiaGenerada.propositos_aprendizaje.enfoques_transversales.map((enfoque: string, i: number) => (
-                              <Badge key={i} variant="outline">{enfoque}</Badge>
-                            ))}
+
+                        {/* Tabla 2: Enfoques Transversales */}
+                        {guiaGenerada.propositos_aprendizaje.enfoques_transversales?.length > 0 && (
+                          <div className="overflow-x-auto">
+                            <Table>
+                              <TableHeader>
+                                <TableRow>
+                                  <TableHead className="bg-green-100 text-green-900 font-bold border w-1/3">Enfoques transversales</TableHead>
+                                  <TableHead className="bg-amber-50 text-amber-900 font-bold border">Descripción</TableHead>
+                                </TableRow>
+                              </TableHeader>
+                              <TableBody>
+                                <TableRow>
+                                  <TableCell className="border align-top">
+                                    {guiaGenerada.propositos_aprendizaje.enfoques_transversales.join(', ')}
+                                  </TableCell>
+                                  <TableCell className="border align-top">
+                                    {guiaGenerada.propositos_aprendizaje.descripcion_enfoques || '-'}
+                                  </TableCell>
+                                </TableRow>
+                              </TableBody>
+                            </Table>
                           </div>
-                          {guiaGenerada.propositos_aprendizaje.descripcion_enfoques && (
-                            <p className="text-sm text-muted-foreground mt-2">{guiaGenerada.propositos_aprendizaje.descripcion_enfoques}</p>
-                          )}
-                        </div>
-                      )}
-                    </div>
+                        )}
+                      </CardContent>
+                    </Card>
                   )}
 
-                  {/* Preparación */}
+                  {/* III. PREPARACIÓN */}
                   {guiaGenerada.preparacion && (
-                    <div className="p-4 rounded-lg border bg-card">
-                      <h4 className="font-semibold flex items-center gap-2 mb-3">
-                        <ClipboardList className="w-4 h-4 text-primary" />
-                        Preparación de la Sesión
-                      </h4>
-                      {guiaGenerada.preparacion.que_hacer_antes && (
-                        <div className="mb-3">
-                          <span className="text-sm font-medium text-muted-foreground">Qué hacer antes:</span>
-                          <p className="text-sm mt-1">{guiaGenerada.preparacion.que_hacer_antes}</p>
+                    <Card className="border-2">
+                      <CardHeader className="pb-3 bg-muted/30">
+                        <CardTitle className="text-base flex items-center gap-2">
+                          <span className="bg-primary text-primary-foreground px-2 py-0.5 rounded text-sm font-bold">III</span>
+                          PREPARACIÓN DE LA SESIÓN
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="pt-4">
+                        <div className="overflow-x-auto">
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead className="bg-orange-100 text-orange-900 font-bold border w-1/2">¿Qué necesitamos hacer antes de la sesión?</TableHead>
+                                <TableHead className="bg-orange-100 text-orange-900 font-bold border w-1/2">¿Qué recursos o materiales se utilizarán?</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              <TableRow>
+                                <TableCell className="border align-top">
+                                  <p className="whitespace-pre-line">{guiaGenerada.preparacion.que_hacer_antes || '-'}</p>
+                                </TableCell>
+                                <TableCell className="border align-top">
+                                  {guiaGenerada.preparacion.recursos_materiales?.length > 0 ? (
+                                    <ul className="space-y-1">
+                                      {guiaGenerada.preparacion.recursos_materiales.map((mat: string, i: number) => (
+                                        <li key={i} className="flex items-start gap-2">
+                                          <span className="text-primary mt-1.5">•</span>
+                                          <span>{mat}</span>
+                                        </li>
+                                      ))}
+                                    </ul>
+                                  ) : '-'}
+                                </TableCell>
+                              </TableRow>
+                            </TableBody>
+                          </Table>
                         </div>
-                      )}
-                      {guiaGenerada.preparacion.recursos_materiales?.length > 0 && (
-                        <div>
-                          <span className="text-sm font-medium text-muted-foreground">Materiales:</span>
-                          <ul className="mt-1 space-y-1">
-                            {guiaGenerada.preparacion.recursos_materiales.map((mat: string, i: number) => (
-                              <li key={i} className="text-sm flex items-center gap-2">
-                                <span className="w-1.5 h-1.5 rounded-full bg-primary"></span>
-                                {mat}
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
-                    </div>
+                      </CardContent>
+                    </Card>
                   )}
 
-                  {/* Momentos de la Sesión */}
+                  {/* IV. MOMENTOS DE LA SESIÓN */}
                   {guiaGenerada.momentos_sesion && (
-                    <div>
-                      <h4 className="font-semibold mb-4 flex items-center gap-2">
-                        <Rocket className="w-4 h-4 text-primary" />
-                        Secuencia Didáctica
-                      </h4>
-                      <div className="space-y-4">
+                    <Card className="border-2">
+                      <CardHeader className="pb-3 bg-muted/30">
+                        <CardTitle className="text-base flex items-center gap-2">
+                          <span className="bg-primary text-primary-foreground px-2 py-0.5 rounded text-sm font-bold">IV</span>
+                          MOMENTOS DE LA SESIÓN
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="pt-4 space-y-4">
                         {/* INICIO */}
                         {guiaGenerada.momentos_sesion.inicio && (
-                          <div className="p-4 rounded-lg border-l-4 border-l-amber-500 bg-amber-50/50">
-                            <div className="flex items-center justify-between mb-2">
-                              <span className="font-bold text-amber-700">INICIO</span>
-                              <Badge variant="secondary" className="flex items-center gap-1">
-                                <Clock className="w-3 h-3" />
+                          <div className="rounded-lg border-2 border-amber-300 overflow-hidden">
+                            <div className="bg-amber-100 px-4 py-2 flex items-center justify-between">
+                              <span className="font-bold text-amber-800 text-lg">INICIO</span>
+                              <Badge className="bg-amber-200 text-amber-800 hover:bg-amber-200">
+                                <Clock className="w-3 h-3 mr-1" />
                                 {guiaGenerada.momentos_sesion.inicio.tiempo_minutos} min
                               </Badge>
                             </div>
-                            <p className="text-sm whitespace-pre-line">{guiaGenerada.momentos_sesion.inicio.contenido}</p>
+                            <div className="p-4 bg-amber-50/30">
+                              <div className="text-sm leading-relaxed whitespace-pre-line">
+                                {guiaGenerada.momentos_sesion.inicio.contenido?.split('\n').map((line: string, idx: number) => {
+                                  const trimmed = line.trim();
+                                  if (trimmed.startsWith('-') || trimmed.startsWith('•')) {
+                                    return (
+                                      <div key={idx} className="flex items-start gap-2 ml-2 my-1">
+                                        <span className="text-amber-600 mt-0.5">•</span>
+                                        <span>{trimmed.slice(1).trim()}</span>
+                                      </div>
+                                    );
+                                  }
+                                  return <p key={idx} className={trimmed ? 'my-1.5' : 'my-0.5'}>{line}</p>;
+                                })}
+                              </div>
+                            </div>
                           </div>
                         )}
                         
                         {/* DESARROLLO */}
                         {guiaGenerada.momentos_sesion.desarrollo && (
-                          <div className="p-4 rounded-lg border-l-4 border-l-blue-500 bg-blue-50/50">
-                            <div className="flex items-center justify-between mb-2">
-                              <span className="font-bold text-blue-700">DESARROLLO</span>
-                              <Badge variant="secondary" className="flex items-center gap-1">
-                                <Clock className="w-3 h-3" />
+                          <div className="rounded-lg border-2 border-blue-300 overflow-hidden">
+                            <div className="bg-blue-100 px-4 py-2 flex items-center justify-between">
+                              <span className="font-bold text-blue-800 text-lg">DESARROLLO</span>
+                              <Badge className="bg-blue-200 text-blue-800 hover:bg-blue-200">
+                                <Clock className="w-3 h-3 mr-1" />
                                 {guiaGenerada.momentos_sesion.desarrollo.tiempo_minutos} min
                               </Badge>
                             </div>
-                            <p className="text-sm whitespace-pre-line">{guiaGenerada.momentos_sesion.desarrollo.contenido}</p>
+                            <div className="p-4 bg-blue-50/30">
+                              <div className="text-sm leading-relaxed whitespace-pre-line">
+                                {guiaGenerada.momentos_sesion.desarrollo.contenido?.split('\n').map((line: string, idx: number) => {
+                                  const trimmed = line.trim();
+                                  if (trimmed.startsWith('-') || trimmed.startsWith('•')) {
+                                    return (
+                                      <div key={idx} className="flex items-start gap-2 ml-2 my-1">
+                                        <span className="text-blue-600 mt-0.5">•</span>
+                                        <span>{trimmed.slice(1).trim()}</span>
+                                      </div>
+                                    );
+                                  }
+                                  return <p key={idx} className={trimmed ? 'my-1.5' : 'my-0.5'}>{line}</p>;
+                                })}
+                              </div>
+                            </div>
                           </div>
                         )}
                         
                         {/* CIERRE */}
                         {guiaGenerada.momentos_sesion.cierre && (
-                          <div className="p-4 rounded-lg border-l-4 border-l-green-500 bg-green-50/50">
-                            <div className="flex items-center justify-between mb-2">
-                              <span className="font-bold text-green-700">CIERRE</span>
-                              <Badge variant="secondary" className="flex items-center gap-1">
-                                <Clock className="w-3 h-3" />
+                          <div className="rounded-lg border-2 border-green-300 overflow-hidden">
+                            <div className="bg-green-100 px-4 py-2 flex items-center justify-between">
+                              <span className="font-bold text-green-800 text-lg">CIERRE</span>
+                              <Badge className="bg-green-200 text-green-800 hover:bg-green-200">
+                                <Clock className="w-3 h-3 mr-1" />
                                 {guiaGenerada.momentos_sesion.cierre.tiempo_minutos} min
                               </Badge>
                             </div>
-                            <p className="text-sm whitespace-pre-line">{guiaGenerada.momentos_sesion.cierre.contenido}</p>
+                            <div className="p-4 bg-green-50/30">
+                              <div className="text-sm leading-relaxed whitespace-pre-line">
+                                {guiaGenerada.momentos_sesion.cierre.contenido?.split('\n').map((line: string, idx: number) => {
+                                  const trimmed = line.trim();
+                                  if (trimmed.startsWith('-') || trimmed.startsWith('•')) {
+                                    return (
+                                      <div key={idx} className="flex items-start gap-2 ml-2 my-1">
+                                        <span className="text-green-600 mt-0.5">•</span>
+                                        <span>{trimmed.slice(1).trim()}</span>
+                                      </div>
+                                    );
+                                  }
+                                  return <p key={idx} className={trimmed ? 'my-1.5' : 'my-0.5'}>{line}</p>;
+                                })}
+                              </div>
+                            </div>
                           </div>
                         )}
-                      </div>
-                    </div>
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {/* V. ADAPTACIONES NEE (solo si se seleccionaron) */}
+                  {formData.adaptaciones_nee?.length > 0 && (
+                    <Card className="border-2 border-l-4 border-l-purple-500">
+                      <CardHeader className="pb-3 bg-purple-50/50">
+                        <CardTitle className="text-base flex items-center gap-2">
+                          <Accessibility className="w-5 h-5 text-purple-600" />
+                          ADAPTACIONES PARA NEE
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="pt-4">
+                        <div className="space-y-3">
+                          {formData.adaptaciones_nee.map((codigo: string, idx: number) => {
+                            const nee = adaptacionesNee.find(n => n.codigo === codigo);
+                            return nee ? (
+                              <div key={idx} className="p-3 rounded-lg bg-purple-50/50 border border-purple-200">
+                                <div className="font-medium text-purple-800 mb-1">{nee.nombre}</div>
+                                {nee.recomendaciones_ia && (
+                                  <p className="text-sm text-muted-foreground">{nee.recomendaciones_ia}</p>
+                                )}
+                              </div>
+                            ) : null;
+                          })}
+                          {formData.contexto_adaptaciones && (
+                            <div className="mt-3 p-3 rounded-lg bg-muted/50 border">
+                              <span className="text-sm font-medium text-muted-foreground">Notas adicionales:</span>
+                              <p className="text-sm mt-1">{formData.contexto_adaptaciones}</p>
+                            </div>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
                   )}
                 </div>
               )}
