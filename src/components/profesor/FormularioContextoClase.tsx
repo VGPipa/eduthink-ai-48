@@ -7,7 +7,8 @@ import { DatePicker } from '@/components/ui/date-picker';
 import { useCatalogoCurricular, useCapacidadesMultiples } from '@/hooks/useCatalogoCurricular';
 import { Lock, Monitor, Trees, FileText, Smartphone, Square, Laptop, Settings, Heart, BookOpen, Target } from 'lucide-react';
 import { cn } from '@/lib/utils';
-
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 // Mapeo de iconos para materiales
 const MATERIAL_ICONS: Record<string, React.ReactNode> = {
   'monitor': <Monitor className="w-4 h-4" />,
@@ -80,6 +81,19 @@ export function FormularioContextoClase({
   temasParaCurso,
   grupos
 }: FormularioContextoClaseProps) {
+  // Obtener áreas curriculares que tienen competencias en el catálogo
+  const { data: areasCurriculares = [] } = useQuery({
+    queryKey: ['areas-curriculares-disponibles'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('catalogo_competencias')
+        .select('area_curricular')
+        .eq('activo', true);
+      if (error) throw error;
+      return [...new Set(data.map(c => c.area_curricular))];
+    }
+  });
+
   // Obtener catálogos según el área curricular del curso
   const areaCurricular = cursoData?.nombre || '';
   const { competencias, enfoques, materiales, adaptacionesNee } = useCatalogoCurricular(areaCurricular);
@@ -130,6 +144,7 @@ export function FormularioContextoClase({
                 <SelectContent>
                   {cursos
                     .filter(Boolean)
+                    .filter(c => areasCurriculares.includes(c?.nombre))
                     .filter((c, idx, arr) => arr.findIndex(x => x?.nombre === c?.nombre) === idx)
                     .map(c => (
                       <SelectItem key={c!.id} value={c!.id}>{c!.nombre}</SelectItem>
