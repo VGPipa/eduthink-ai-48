@@ -125,9 +125,12 @@ export function FormularioContextoClase({
                   <SelectValue placeholder="Selecciona un área" />
                 </SelectTrigger>
                 <SelectContent>
-                  {cursos.filter(Boolean).map(c => (
-                    <SelectItem key={c!.id} value={c!.id}>{c!.nombre}</SelectItem>
-                  ))}
+                  {cursos
+                    .filter(Boolean)
+                    .filter((c, idx, arr) => arr.findIndex(x => x?.nombre === c?.nombre) === idx)
+                    .map(c => (
+                      <SelectItem key={c!.id} value={c!.id}>{c!.nombre}</SelectItem>
+                    ))}
                 </SelectContent>
               </Select>
             ) : (
@@ -254,10 +257,10 @@ export function FormularioContextoClase({
         {/* Competencias - Badges clickeables */}
         <div className="space-y-2">
           <Label>Competencias</Label>
-          {competencias.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              {areaCurricular ? 'No hay competencias para esta área' : 'Selecciona un área académica'}
-            </p>
+          {!areaCurricular || areaCurricular.trim() === '' ? (
+            <p className="text-sm text-muted-foreground">Primero selecciona el área académica</p>
+          ) : competencias.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No hay competencias para esta área</p>
           ) : (
             <div className="flex flex-wrap gap-2">
               {competencias.map(c => {
