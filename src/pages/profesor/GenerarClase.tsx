@@ -107,10 +107,10 @@ export default function GenerarClase() {
     recursos: [] as string[],
     contexto: '',
     temaPersonalizado: '', // For extraordinaria mode
-    // Nuevos campos de contexto estructurado
-    id_competencia: '',
-    id_capacidad: '',
-    id_enfoque_transversal: '',
+    // Nuevos campos de contexto estructurado (ahora arrays para selección múltiple)
+    id_competencias: [] as string[],
+    id_capacidades: [] as string[],
+    id_enfoques_transversales: [] as string[],
     materiales_seleccionados: [] as string[],
     adaptaciones_nee: [] as string[],
     contexto_adaptaciones: '',
@@ -555,9 +555,9 @@ export default function GenerarClase() {
       recursos: [],
       contexto: '',
       temaPersonalizado: '',
-      id_competencia: '',
-      id_capacidad: '',
-      id_enfoque_transversal: '',
+      id_competencias: [],
+      id_capacidades: [],
+      id_enfoques_transversales: [],
       materiales_seleccionados: [],
       adaptaciones_nee: [],
       contexto_adaptaciones: '',
