@@ -18,7 +18,7 @@ import { useGuiasClase } from '@/hooks/useGuias';
 import { useQuizzes } from '@/hooks/useQuizzes';
 import { useTemasProfesor } from '@/hooks/useTemasProfesor';
 import { supabase } from '@/integrations/supabase/client';
-import { generateGuiaClase, generateQuizPre, generateQuizPost, type GuiaClaseData, type QuizPreData, type QuizPostData } from '@/lib/ai/generate';
+import { generateGuiaClase, generateQuizPre, generateQuizPost, type SesionClaseData, type GuiaClaseData, type QuizPreData, type QuizPostData } from '@/lib/ai/generate';
 import {
   Sparkles,
   ChevronLeft,
@@ -48,7 +48,7 @@ import {
 
 const STEPS = [
   { id: 1, title: 'Contexto', icon: BookOpen },
-  { id: 2, title: 'Guía de Clase', icon: Sparkles },
+  { id: 2, title: 'Sesión de Clase', icon: Sparkles },
   { id: 3, title: 'Quiz PRE', icon: ClipboardList },
   { id: 4, title: 'Quiz POST', icon: ClipboardList },
   { id: 5, title: 'Validar', icon: FileCheck }
@@ -118,7 +118,7 @@ export default function GenerarClase() {
   });
 
   // Generated content
-  const [guiaGenerada, setGuiaGenerada] = useState<GuiaClaseData | null>(null);
+  const [guiaGenerada, setGuiaGenerada] = useState<any | null>(null);
   const [quizPreData, setQuizPreData] = useState<QuizPreData | null>(null);
   const [quizPostData, setQuizPostData] = useState<QuizPostData | null>(null);
   
@@ -790,10 +790,10 @@ export default function GenerarClase() {
       // Save to DB with new schema content
       const guiaVersion = await createGuiaVersion.mutateAsync({
         id_clase: clase.id,
-        objetivos: `Cognitivo: ${guia.objetivos_aprendizaje.cognitivo}\nHumano: ${guia.objetivos_aprendizaje.humano}`,
-        estructura: guia.secuencia_didactica,
-        contenido: guia, // Save full new schema
-        preguntas_socraticas: [], // No longer generated in new prompt
+        objetivos: guia.propositos_aprendizaje?.filas?.[0]?.competencia || guia.datos_generales?.titulo_sesion || '',
+        estructura: guia.momentos_sesion,
+        contenido: guia,
+        preguntas_socraticas: [],
         generada_ia: true,
         estado: 'borrador'
       });
@@ -931,8 +931,8 @@ export default function GenerarClase() {
         // Save guía to DB
         const guiaVersion = await createGuiaVersion.mutateAsync({
           id_clase: clase.id,
-          objetivos: `Cognitivo: ${guia.objetivos_aprendizaje.cognitivo}\nHumano: ${guia.objetivos_aprendizaje.humano}`,
-          estructura: guia.secuencia_didactica,
+          objetivos: guia.propositos_aprendizaje?.filas?.[0]?.competencia || guia.datos_generales?.titulo_sesion || '',
+          estructura: guia.momentos_sesion,
           contenido: guia,
           preguntas_socraticas: [],
           generada_ia: true,

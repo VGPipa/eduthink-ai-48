@@ -11,7 +11,47 @@
 
 import { supabase } from '@/integrations/supabase/client';
 
-// New schema aligned with "Arquitecto Pedagógico" prompt
+// New schema for "Sesión de Clase" (previously "Guía de Clase")
+export interface SesionClaseData {
+  datos_generales: {
+    titulo_sesion: string;
+    docente: string;
+    fecha: string;
+    nivel: string;
+    grado: string;
+    area_academica: string;
+  };
+  propositos_aprendizaje: {
+    filas: Array<{
+      competencia: string;
+      criterios_evaluacion: string;  // Desempeños
+      evidencia_aprendizaje: string;
+      instrumento_valorizacion: string;
+    }>;
+    enfoques_transversales: string[];
+    descripcion_enfoques: string;
+  };
+  preparacion: {
+    que_hacer_antes: string;
+    recursos_materiales: string[];
+  };
+  momentos_sesion: {
+    inicio: {
+      tiempo_minutos: number;
+      contenido: string;
+    };
+    desarrollo: {
+      tiempo_minutos: number;
+      contenido: string;
+    };
+    cierre: {
+      tiempo_minutos: number;
+      contenido: string;
+    };
+  };
+}
+
+// Legacy interface for backward compatibility (deprecated - use SesionClaseData)
 export interface GuiaClaseData {
   metadata: {
     titulo: string;
@@ -219,15 +259,15 @@ export interface ProcessQuizResponseData {
 }
 
 /**
- * Generates a class guide using AI via Supabase Edge Function
+ * Generates a session class using AI via Supabase Edge Function
  * 
  * @param tema - Topic name
  * @param contexto - Context about the class/group
  * @param recursos - Available resources
  * @param opciones - Optional additional context (grado, seccion, etc.)
- * @returns Generated guide data aligned with CNEB
+ * @returns Generated session data aligned with CNEB
  */
-export async function generateGuiaClase(
+export async function generateSesionClase(
   tema: string,
   contexto: string,
   recursos: string[],
@@ -250,7 +290,7 @@ export async function generateGuiaClase(
     }[];
     contexto_adaptaciones?: string;
   }
-): Promise<GuiaClaseData> {
+): Promise<SesionClaseData> {
   try {
     const { data, error } = await supabase.functions.invoke('generate-guia-clase', {
       body: {
@@ -275,7 +315,7 @@ export async function generateGuiaClase(
 
     if (error) {
       console.error('Error calling generate-guia-clase:', error);
-      throw new Error(error.message || 'Error al generar la guía');
+      throw new Error(error.message || 'Error al generar la sesión');
     }
 
     // Check if the response contains an error
@@ -283,12 +323,15 @@ export async function generateGuiaClase(
       throw new Error(data.error);
     }
 
-    return data as GuiaClaseData;
+    return data as SesionClaseData;
   } catch (error) {
-    console.error('Error in generateGuiaClase:', error);
+    console.error('Error in generateSesionClase:', error);
     throw error; // Re-throw to let UI handle the error
   }
 }
+
+// Legacy alias for backward compatibility (deprecated - use generateSesionClase)
+export const generateGuiaClase = generateSesionClase;
 
 
 /**
