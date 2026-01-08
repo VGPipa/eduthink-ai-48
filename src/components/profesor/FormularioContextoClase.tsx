@@ -5,7 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { DatePicker } from '@/components/ui/date-picker';
 import { useCatalogoCurricular, useCapacidadesMultiples } from '@/hooks/useCatalogoCurricular';
-import { Lock, Monitor, Trees, FileText, Smartphone, Square, Laptop, Settings, Heart } from 'lucide-react';
+import { Lock, Monitor, Trees, FileText, Smartphone, Square, Laptop, Settings, Heart, BookOpen, Target } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 // Mapeo de iconos para materiales
@@ -99,7 +99,10 @@ export function FormularioContextoClase({
     <div className="space-y-6">
       {/* ========== SECCIÓN DATOS ========== */}
       <fieldset className="border rounded-lg p-4 space-y-4">
-        <legend className="px-2 font-semibold text-sm text-foreground">Datos</legend>
+        <legend className="px-2 font-semibold text-sm text-foreground flex items-center gap-2">
+          <BookOpen className="w-4 h-4 text-primary" />
+          Datos
+        </legend>
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
           {/* Curso */}
           <div className="space-y-2">
@@ -252,7 +255,10 @@ export function FormularioContextoClase({
 
       {/* ========== SECCIÓN PROPÓSITOS DE APRENDIZAJE ========== */}
       <fieldset className="border rounded-lg p-4 space-y-4">
-        <legend className="px-2 font-semibold text-sm text-foreground">Propósitos de aprendizaje</legend>
+        <legend className="px-2 font-semibold text-sm text-foreground flex items-center gap-2">
+          <Target className="w-4 h-4 text-primary" />
+          Propósitos de Aprendizaje
+        </legend>
         
         {/* Competencias - Badges clickeables */}
         <div className="space-y-2">
