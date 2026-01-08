@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -61,6 +61,7 @@ const STEPS = [
 ];
 
 import { FormularioContextoClase } from '@/components/profesor/FormularioContextoClase';
+import { EditarSesionModal } from '@/components/profesor/EditarSesionModal';
 import { useCatalogoCurricular, useCapacidades } from '@/hooks/useCatalogoCurricular';
 
 export default function GenerarClase() {
@@ -127,6 +128,9 @@ export default function GenerarClase() {
   const [guiaGenerada, setGuiaGenerada] = useState<any | null>(null);
   const [quizPreData, setQuizPreData] = useState<QuizPreData | null>(null);
   const [quizPostData, setQuizPostData] = useState<QuizPostData | null>(null);
+  
+  // Modal state
+  const [showEditModal, setShowEditModal] = useState(false);
   
   // Hooks for DB operations
   const { createClase, updateClase } = useClases();
@@ -1108,15 +1112,16 @@ export default function GenerarClase() {
       const clase = claseData || await ensureClase();
 
       // Extract enriched info from guia for better quiz generation with concept alignment
+      // Updated to use new SesionClaseData format
       const guiaInfo = guiaGenerada ? {
-        objetivo_cognitivo: guiaGenerada.objetivos_aprendizaje.cognitivo,
-        objetivo_humano: guiaGenerada.objetivos_aprendizaje.humano,
-        desempeno_cneb: guiaGenerada.curriculo_peru.desempeno_precisado,
-        actividad_inicio: guiaGenerada.secuencia_didactica.find(s => s.fase === 'INICIO')?.actividad_detallada,
-        actividad_desarrollo: guiaGenerada.secuencia_didactica.find(s => s.fase === 'DESARROLLO')?.actividad_detallada,
-        criterios_evaluacion: guiaGenerada.recursos_y_evaluacion.criterios_evaluacion,
-        capacidad_cneb: guiaGenerada.curriculo_peru.capacidad,
-        habilidad_foco: guiaGenerada.secuencia_didactica.find(s => s.fase === 'DESARROLLO')?.habilidad_foco
+        objetivo_cognitivo: guiaGenerada.propositos_aprendizaje?.filas?.[0]?.competencia || '',
+        objetivo_humano: guiaGenerada.propositos_aprendizaje?.descripcion_enfoques || '',
+        desempeno_cneb: guiaGenerada.propositos_aprendizaje?.filas?.[0]?.criterios_evaluacion || '',
+        actividad_inicio: guiaGenerada.momentos_sesion?.inicio?.contenido || '',
+        actividad_desarrollo: guiaGenerada.momentos_sesion?.desarrollo?.contenido || '',
+        criterios_evaluacion: guiaGenerada.propositos_aprendizaje?.filas?.map((f: any) => f.criterios_evaluacion) || [],
+        capacidad_cneb: guiaGenerada.propositos_aprendizaje?.filas?.[0]?.evidencia_aprendizaje || '',
+        habilidad_foco: guiaGenerada.datos_generales?.titulo_sesion || ''
       } : undefined;
 
       // Generate quiz with AI using new edge function
@@ -1203,16 +1208,17 @@ export default function GenerarClase() {
       const clase = claseData || await ensureClase();
 
       // Extract enriched info from guia for better quiz generation
+      // Updated to use new SesionClaseData format
       const guiaInfo = guiaGenerada ? {
-        objetivo_humano: guiaGenerada.objetivos_aprendizaje.humano,
-        objetivo_aprendizaje: guiaGenerada.objetivos_aprendizaje.cognitivo,
-        competencia: guiaGenerada.curriculo_peru.competencia,
-        capacidad: guiaGenerada.curriculo_peru.capacidad,
-        desempeno_cneb: guiaGenerada.curriculo_peru.desempeno_precisado,
-        enfoque_transversal: guiaGenerada.curriculo_peru.enfoque_transversal,
-        actividad_desarrollo: guiaGenerada.secuencia_didactica.find(s => s.fase === 'DESARROLLO')?.actividad_detallada,
-        actividad_cierre: guiaGenerada.secuencia_didactica.find(s => s.fase === 'CIERRE')?.actividad_detallada,
-        criterios_evaluacion: guiaGenerada.recursos_y_evaluacion.criterios_evaluacion
+        objetivo_humano: guiaGenerada.propositos_aprendizaje?.descripcion_enfoques || '',
+        objetivo_aprendizaje: guiaGenerada.propositos_aprendizaje?.filas?.[0]?.competencia || '',
+        competencia: guiaGenerada.propositos_aprendizaje?.filas?.[0]?.competencia || '',
+        capacidad: guiaGenerada.propositos_aprendizaje?.filas?.[0]?.evidencia_aprendizaje || '',
+        desempeno_cneb: guiaGenerada.propositos_aprendizaje?.filas?.[0]?.criterios_evaluacion || '',
+        enfoque_transversal: guiaGenerada.propositos_aprendizaje?.enfoques_transversales?.join(', ') || '',
+        actividad_desarrollo: guiaGenerada.momentos_sesion?.desarrollo?.contenido || '',
+        actividad_cierre: guiaGenerada.momentos_sesion?.cierre?.contenido || '',
+        criterios_evaluacion: guiaGenerada.propositos_aprendizaje?.filas?.map((f: any) => f.criterios_evaluacion) || []
       } : undefined;
 
       // Generate quiz with AI using new edge function
@@ -1826,18 +1832,44 @@ export default function GenerarClase() {
                     </div>
                     <div className="flex items-center gap-2">
                       {!isClaseCompletada && (
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => {
-                            setGuiaGenerada(null);
-                            handleGenerarGuia();
-                          }}
-                          disabled={isGenerating}
-                        >
-                          <RefreshCw className="w-4 h-4 mr-1" />
-                          Regenerar
-                        </Button>
+                        <>
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => setShowEditModal(true)}
+                          >
+                            <Edit3 className="w-4 h-4 mr-1" />
+                            Editar
+                          </Button>
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={async () => {
+                              // Clear all generated content
+                              setGuiaGenerada(null);
+                              setQuizPreData(null);
+                              setQuizPostData(null);
+                              
+                              // Reset class state if needed
+                              if (claseData) {
+                                try {
+                                  await updateClase.mutateAsync({
+                                    id: claseData.id,
+                                    estado: 'generando_clase',
+                                    id_guia_version_actual: null
+                                  });
+                                } catch (e) { /* ignore */ }
+                              }
+                              
+                              // Regenerate
+                              handleGenerarGuia();
+                            }}
+                            disabled={isGenerating}
+                          >
+                            <RefreshCw className="w-4 h-4 mr-1" />
+                            Regenerar
+                          </Button>
+                        </>
                       )}
                       <Button 
                         variant="outline" 
@@ -2094,29 +2126,82 @@ export default function GenerarClase() {
                       <CardHeader className="pb-3 bg-purple-50/50">
                         <CardTitle className="text-base flex items-center gap-2">
                           <Accessibility className="w-5 h-5 text-purple-600" />
-                          ADAPTACIONES PARA NEE
+                          <span className="bg-purple-600 text-white px-2 py-0.5 rounded text-sm font-bold">V</span>
+                          ADAPTACIONES PARA NECESIDADES EDUCATIVAS ESPECIALES
                         </CardTitle>
+                        <CardDescription className="text-purple-700/70">
+                          Estrategias diferenciadas para atender la diversidad del aula
+                        </CardDescription>
                       </CardHeader>
                       <CardContent className="pt-4">
-                        <div className="space-y-3">
+                        <div className="grid gap-4 md:grid-cols-2">
                           {formData.adaptaciones_nee.map((codigo: string, idx: number) => {
                             const nee = adaptacionesNee.find(n => n.codigo === codigo);
-                            return nee ? (
-                              <div key={idx} className="p-3 rounded-lg bg-purple-50/50 border border-purple-200">
-                                <div className="font-medium text-purple-800 mb-1">{nee.nombre}</div>
+                            if (!nee) return null;
+                            
+                            // Get icon based on code
+                            const getIcon = (code: string) => {
+                              switch(code) {
+                                case 'TDA': return <Brain className="w-5 h-5" />;
+                                case 'TEA': return <Users className="w-5 h-5" />;
+                                case 'DIS_VIS': return <Eye className="w-5 h-5" />;
+                                case 'DIS_AUD': return <Info className="w-5 h-5" />;
+                                case 'DISLEXIA': return <BookOpen className="w-5 h-5" />;
+                                case 'DISCALCULIA': return <Target className="w-5 h-5" />;
+                                case 'ALTAS_CAP': return <Rocket className="w-5 h-5" />;
+                                case 'DIS_MOT': return <User className="w-5 h-5" />;
+                                default: return <Heart className="w-5 h-5" />;
+                              }
+                            };
+                            
+                            return (
+                              <div key={idx} className="p-4 rounded-xl bg-gradient-to-br from-purple-50 to-violet-50 border-2 border-purple-200 hover:border-purple-300 transition-colors">
+                                <div className="flex items-center gap-3 mb-3">
+                                  <div className="p-2 rounded-lg bg-purple-100 text-purple-600">
+                                    {getIcon(codigo)}
+                                  </div>
+                                  <div>
+                                    <div className="font-bold text-purple-800">{nee.nombre}</div>
+                                    <Badge variant="outline" className="text-xs text-purple-600 border-purple-300">{codigo}</Badge>
+                                  </div>
+                                </div>
+                                
+                                {nee.descripcion && (
+                                  <p className="text-sm text-purple-700/80 mb-3 italic">
+                                    {nee.descripcion}
+                                  </p>
+                                )}
+                                
                                 {nee.recomendaciones_ia && (
-                                  <p className="text-sm text-muted-foreground">{nee.recomendaciones_ia}</p>
+                                  <div className="mt-2 p-3 rounded-lg bg-white/60 border border-purple-200">
+                                    <span className="text-xs font-semibold text-purple-600 uppercase tracking-wide flex items-center gap-1 mb-2">
+                                      <Lightbulb className="w-3 h-3" />
+                                      Recomendaciones pedagógicas
+                                    </span>
+                                    <ul className="space-y-1.5">
+                                      {nee.recomendaciones_ia.split('.').filter((s: string) => s.trim()).slice(0, 4).map((rec: string, i: number) => (
+                                        <li key={i} className="text-sm text-purple-900/80 flex items-start gap-2">
+                                          <span className="text-purple-500 mt-1">•</span>
+                                          <span>{rec.trim()}</span>
+                                        </li>
+                                      ))}
+                                    </ul>
+                                  </div>
                                 )}
                               </div>
-                            ) : null;
+                            );
                           })}
-                          {formData.contexto_adaptaciones && (
-                            <div className="mt-3 p-3 rounded-lg bg-muted/50 border">
-                              <span className="text-sm font-medium text-muted-foreground">Notas adicionales:</span>
-                              <p className="text-sm mt-1">{formData.contexto_adaptaciones}</p>
-                            </div>
-                          )}
                         </div>
+                        
+                        {formData.contexto_adaptaciones && (
+                          <div className="mt-4 p-4 rounded-xl bg-gradient-to-br from-slate-50 to-gray-50 border-2 border-slate-200">
+                            <div className="flex items-center gap-2 mb-2">
+                              <Info className="w-4 h-4 text-slate-600" />
+                              <span className="text-sm font-semibold text-slate-700">Notas adicionales del docente</span>
+                            </div>
+                            <p className="text-sm text-slate-600 leading-relaxed">{formData.contexto_adaptaciones}</p>
+                          </div>
+                        )}
                       </CardContent>
                     </Card>
                   )}
@@ -2536,6 +2621,51 @@ export default function GenerarClase() {
   );
   };
 
+  // Handler for saving edited session
+  const handleSaveEditedSession = async (sesionEditada: SesionClaseData) => {
+    setGuiaGenerada(sesionEditada);
+    // Save to DB
+    if (claseData) {
+      try {
+        const guiaCreated = await createGuiaVersion.mutateAsync({
+          id_clase: claseData.id,
+          objetivos: sesionEditada.propositos_aprendizaje?.filas?.[0]?.competencia || '',
+          estructura: sesionEditada.momentos_sesion,
+          contenido: sesionEditada,
+          generada_ia: false,
+          estado: 'editado'
+        });
+        
+        // Update clase with new version
+        await updateClase.mutateAsync({
+          id: claseData.id,
+          id_guia_version_actual: guiaCreated.id,
+          estado: 'editando_guia'
+        });
+        
+        toast({ title: 'Sesión actualizada', description: 'Los cambios han sido guardados' });
+      } catch (error: any) {
+        toast({ 
+          title: 'Error al guardar', 
+          description: error.message, 
+          variant: 'destructive' 
+        });
+      }
+    }
+  };
+
   // Main render
-  return viewMode === 'selection' ? renderSelectionMode() : renderWizardMode();
+  return (
+    <>
+      {viewMode === 'selection' ? renderSelectionMode() : renderWizardMode()}
+      
+      {/* Modal de edición */}
+      <EditarSesionModal
+        open={showEditModal}
+        onOpenChange={setShowEditModal}
+        sesion={guiaGenerada as SesionClaseData}
+        onSave={handleSaveEditedSession}
+      />
+    </>
+  );
 }
