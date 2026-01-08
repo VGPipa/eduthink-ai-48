@@ -58,11 +58,11 @@ export interface GenerateGuiaClaseInput {
   numeroEstudiantes?: number;
   duracion?: number;
   area?: string;
-  // Nuevos campos de contexto estructurado
+  // Nuevos campos de contexto estructurado (ahora arrays para selección múltiple)
   nivel?: string;
-  competencia?: string;
-  capacidad?: string;
-  enfoque_transversal?: string;
+  competencias?: string[];
+  capacidades?: string[];
+  enfoques_transversales?: string[];
   materiales?: string[];
   adaptaciones_nee?: {
     codigo: string;
@@ -237,11 +237,11 @@ export async function generateGuiaClase(
     numeroEstudiantes?: number;
     duracion?: number;
     area?: string;
-    // Nuevos campos de contexto estructurado
+    // Nuevos campos de contexto estructurado (arrays)
     nivel?: string;
-    competencia?: string;
-    capacidad?: string;
-    enfoque_transversal?: string;
+    competencias?: string[];
+    capacidades?: string[];
+    enfoques_transversales?: string[];
     materiales?: string[];
     adaptaciones_nee?: {
       codigo: string;
@@ -262,11 +262,11 @@ export async function generateGuiaClase(
         numeroEstudiantes: opciones?.numeroEstudiantes,
         duracion: opciones?.duracion,
         area: opciones?.area,
-        // Nuevos campos
+        // Nuevos campos (arrays)
         nivel: opciones?.nivel,
-        competencia: opciones?.competencia,
-        capacidad: opciones?.capacidad,
-        enfoque_transversal: opciones?.enfoque_transversal,
+        competencias: opciones?.competencias,
+        capacidades: opciones?.capacidades,
+        enfoques_transversales: opciones?.enfoques_transversales,
         materiales: opciones?.materiales,
         adaptaciones_nee: opciones?.adaptaciones_nee,
         contexto_adaptaciones: opciones?.contexto_adaptaciones

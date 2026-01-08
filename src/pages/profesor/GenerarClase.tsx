@@ -127,6 +127,10 @@ export default function GenerarClase() {
   const { createGuiaVersion } = useGuiasClase(claseData?.id);
   const { createQuiz } = useQuizzes(claseData?.id);
 
+  // Catálogos para resolver nombres a partir de IDs
+  const { competencias, enfoques, adaptacionesNee } = useCatalogoCurricular(cursoData?.nombre);
+  const { data: capacidadesData = [] } = useCapacidades(formData.id_competencias?.[0] || null);
+
   // Computed data for selection mode
   const clasesEnProceso = useMemo(() => {
     return clases.filter(c => 
@@ -704,10 +708,25 @@ export default function GenerarClase() {
           numeroEstudiantes: grupoData?.cantidad_alumnos,
           duracion: formData.duracion,
           area: cursoData?.nombre,
-          // Nuevos campos estructurados
+          // Nuevos campos estructurados (arrays)
           nivel: grupoData?.grado?.includes('Primaria') ? 'Primaria' : 'Secundaria',
+          competencias: formData.id_competencias?.map(id => 
+            competencias.find(c => c.id === id)?.nombre
+          ).filter(Boolean) as string[] | undefined,
+          capacidades: formData.id_capacidades?.map(id => 
+            capacidadesData.find((c: any) => c.id === id)?.nombre
+          ).filter(Boolean) as string[] | undefined,
+          enfoques_transversales: formData.id_enfoques_transversales?.map(id => 
+            enfoques.find(e => e.id === id)?.nombre
+          ).filter(Boolean) as string[] | undefined,
           materiales: formData.materiales_seleccionados.length > 0 
             ? [...formData.materiales_seleccionados, formData.otro_material].filter(Boolean) 
+            : undefined,
+          adaptaciones_nee: formData.adaptaciones_nee?.length > 0
+            ? formData.adaptaciones_nee.map(codigo => {
+                const nee = adaptacionesNee.find(n => n.codigo === codigo);
+                return nee ? { codigo: nee.codigo, nombre: nee.nombre, recomendaciones: nee.recomendaciones_ia || '' } : null;
+              }).filter(Boolean) as any[]
             : undefined,
           contexto_adaptaciones: formData.contexto_adaptaciones || undefined
         }
@@ -810,10 +829,25 @@ export default function GenerarClase() {
             numeroEstudiantes: grupoData?.cantidad_alumnos,
             duracion: formData.duracion,
             area: cursoData?.nombre,
-            // Nuevos campos estructurados
+            // Nuevos campos estructurados (arrays)
             nivel: grupoData?.grado?.includes('Primaria') ? 'Primaria' : 'Secundaria',
+            competencias: formData.id_competencias?.map(id => 
+              competencias.find(c => c.id === id)?.nombre
+            ).filter(Boolean) as string[] | undefined,
+            capacidades: formData.id_capacidades?.map(id => 
+              capacidadesData.find((c: any) => c.id === id)?.nombre
+            ).filter(Boolean) as string[] | undefined,
+            enfoques_transversales: formData.id_enfoques_transversales?.map(id => 
+              enfoques.find(e => e.id === id)?.nombre
+            ).filter(Boolean) as string[] | undefined,
             materiales: formData.materiales_seleccionados.length > 0 
               ? [...formData.materiales_seleccionados, formData.otro_material].filter(Boolean) 
+              : undefined,
+            adaptaciones_nee: formData.adaptaciones_nee?.length > 0
+              ? formData.adaptaciones_nee.map(codigo => {
+                  const nee = adaptacionesNee.find(n => n.codigo === codigo);
+                  return nee ? { codigo: nee.codigo, nombre: nee.nombre, recomendaciones: nee.recomendaciones_ia || '' } : null;
+                }).filter(Boolean) as any[]
               : undefined,
             contexto_adaptaciones: formData.contexto_adaptaciones || undefined
           }
