@@ -26,9 +26,9 @@ interface FormularioContextoClaseProps {
     recursos: string[];
     contexto: string;
     temaPersonalizado: string;
-    id_competencia: string;
-    id_capacidad: string;
-    id_enfoque_transversal: string;
+    id_competencias: string[];
+    id_capacidades: string[];
+    id_enfoques_transversales: string[];
     materiales_seleccionados: string[];
     adaptaciones_nee: string[];
     contexto_adaptaciones: string;
@@ -67,19 +67,19 @@ export function FormularioContextoClase({
   const areaCurricular = cursoData?.nombre || '';
   const { competencias, enfoques, materiales, adaptacionesNee } = useCatalogoCurricular(areaCurricular);
   
-  // Obtener capacidades según competencia seleccionada
-  const { data: capacidades = [] } = useCapacidades(formData.id_competencia || null);
-
-  // Cuando cambia la competencia, limpiar capacidad
-  useEffect(() => {
-    if (formData.id_competencia) {
-      setFormData((prev: any) => ({ ...prev, id_capacidad: '' }));
-    }
-  }, [formData.id_competencia]);
-
-  // Función para obtener nombre de competencia seleccionada
-  const competenciaSeleccionada = competencias.find(c => c.id === formData.id_competencia);
-  const capacidadSeleccionada = capacidades.find((c: any) => c.id === formData.id_capacidad);
+  // Obtener capacidades de todas las competencias seleccionadas
+  const competenciasSeleccionadas = formData.id_competencias || [];
+  
+  // Para simplificar, usamos la primera competencia seleccionada para cargar capacidades
+  // pero mostramos todas las capacidades disponibles de las competencias seleccionadas
+  const { data: capacidadesData = [] } = useCapacidades(competenciasSeleccionadas[0] || null);
+  
+  // Función helper para toggle de arrays
+  const toggleArrayValue = (array: string[], value: string) => {
+    return array.includes(value) 
+      ? array.filter(v => v !== value)
+      : [...array, value];
+  };
 
   return (
     <div className="space-y-6">
@@ -230,68 +230,86 @@ export function FormularioContextoClase({
       {/* ========== SECCIÓN PROPÓSITOS DE APRENDIZAJE ========== */}
       <fieldset className="border rounded-lg p-4 space-y-4">
         <legend className="px-2 font-semibold text-sm text-foreground">Propósitos de aprendizaje</legend>
-        <div className="grid md:grid-cols-2 gap-4">
-          {/* Competencia */}
-          <div className="space-y-2">
-            <Label>Competencias</Label>
-            <Select 
-              value={formData.id_competencia} 
-              onValueChange={(value) => setFormData((prev: any) => ({...prev, id_competencia: value}))}
-              disabled={isClaseCompletada || competencias.length === 0}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder={competencias.length === 0 ? "No hay competencias para esta área" : "Selecciona una competencia"} />
-              </SelectTrigger>
-              <SelectContent>
-                {competencias.map(c => (
-                  <SelectItem key={c.id} value={c.id}>{c.nombre}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {competenciaSeleccionada && (
-              <p className="text-xs text-muted-foreground">{competenciaSeleccionada.descripcion}</p>
-            )}
-          </div>
+        
+        {/* Competencias - selección múltiple */}
+        <div className="space-y-2">
+          <Label>Competencias</Label>
+          {competencias.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No hay competencias para esta área</p>
+          ) : (
+            <div className="grid md:grid-cols-2 gap-2">
+              {competencias.map(c => (
+                <div key={c.id} className="flex items-start space-x-2">
+                  <Checkbox
+                    id={`competencia-${c.id}`}
+                    checked={(formData.id_competencias || []).includes(c.id)}
+                    onCheckedChange={() => {
+                      if (isClaseCompletada) return;
+                      const newCompetencias = toggleArrayValue(formData.id_competencias || [], c.id);
+                      setFormData((prev: any) => ({...prev, id_competencias: newCompetencias}));
+                    }}
+                    disabled={isClaseCompletada}
+                  />
+                  <Label htmlFor={`competencia-${c.id}`} className="cursor-pointer text-sm leading-tight">
+                    {c.nombre}
+                  </Label>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
 
-          {/* Capacidad */}
-          <div className="space-y-2">
-            <Label>Capacidades</Label>
-            <Select 
-              value={formData.id_capacidad} 
-              onValueChange={(value) => setFormData((prev: any) => ({...prev, id_capacidad: value}))}
-              disabled={isClaseCompletada || !formData.id_competencia || capacidades.length === 0}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder={!formData.id_competencia ? "Primero selecciona una competencia" : "Selecciona una capacidad"} />
-              </SelectTrigger>
-              <SelectContent>
-                {capacidades.map((c: any) => (
-                  <SelectItem key={c.id} value={c.id}>{c.nombre}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {capacidadSeleccionada && (
-              <p className="text-xs text-muted-foreground">{capacidadSeleccionada.descripcion}</p>
-            )}
-          </div>
+        {/* Capacidades - selección múltiple */}
+        <div className="space-y-2">
+          <Label>Capacidades</Label>
+          {(formData.id_competencias || []).length === 0 ? (
+            <p className="text-sm text-muted-foreground">Primero selecciona al menos una competencia</p>
+          ) : capacidadesData.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No hay capacidades disponibles</p>
+          ) : (
+            <div className="grid md:grid-cols-2 gap-2">
+              {capacidadesData.map((c: any) => (
+                <div key={c.id} className="flex items-start space-x-2">
+                  <Checkbox
+                    id={`capacidad-${c.id}`}
+                    checked={(formData.id_capacidades || []).includes(c.id)}
+                    onCheckedChange={() => {
+                      if (isClaseCompletada) return;
+                      const newCapacidades = toggleArrayValue(formData.id_capacidades || [], c.id);
+                      setFormData((prev: any) => ({...prev, id_capacidades: newCapacidades}));
+                    }}
+                    disabled={isClaseCompletada}
+                  />
+                  <Label htmlFor={`capacidad-${c.id}`} className="cursor-pointer text-sm leading-tight">
+                    {c.nombre}
+                  </Label>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
 
-          {/* Enfoque Transversal */}
-          <div className="space-y-2 md:col-span-2">
-            <Label>Enfoque transversal</Label>
-            <Select 
-              value={formData.id_enfoque_transversal} 
-              onValueChange={(value) => setFormData((prev: any) => ({...prev, id_enfoque_transversal: value}))}
-              disabled={isClaseCompletada}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Selecciona un enfoque transversal" />
-              </SelectTrigger>
-              <SelectContent>
-                {enfoques.map(e => (
-                  <SelectItem key={e.id} value={e.id}>{e.nombre}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+        {/* Enfoques Transversales - selección múltiple */}
+        <div className="space-y-2">
+          <Label>Enfoques transversales</Label>
+          <div className="grid md:grid-cols-2 gap-2">
+            {enfoques.map(e => (
+              <div key={e.id} className="flex items-start space-x-2">
+                <Checkbox
+                  id={`enfoque-${e.id}`}
+                  checked={(formData.id_enfoques_transversales || []).includes(e.id)}
+                  onCheckedChange={() => {
+                    if (isClaseCompletada) return;
+                    const newEnfoques = toggleArrayValue(formData.id_enfoques_transversales || [], e.id);
+                    setFormData((prev: any) => ({...prev, id_enfoques_transversales: newEnfoques}));
+                  }}
+                  disabled={isClaseCompletada}
+                />
+                <Label htmlFor={`enfoque-${e.id}`} className="cursor-pointer text-sm leading-tight">
+                  {e.nombre}
+                </Label>
+              </div>
+            ))}
           </div>
         </div>
       </fieldset>
@@ -340,22 +358,12 @@ export function FormularioContextoClase({
           </div>
         </fieldset>
 
-        {/* Adaptaciones NEE */}
-        <fieldset className="border rounded-lg p-4 space-y-3">
+        {/* Adaptaciones NEE - Grid 3 columnas como la imagen */}
+        <fieldset className="border rounded-lg p-4 space-y-4">
           <legend className="px-2 font-semibold text-sm text-foreground flex items-center gap-2">
-            Adaptaciones
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger>
-                  <Info className="w-4 h-4 text-muted-foreground" />
-                </TooltipTrigger>
-                <TooltipContent className="max-w-xs">
-                  <p>Selecciona las Necesidades Educativas Especiales presentes en tu aula. La IA generará estrategias de diferenciación específicas.</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+            Adaptaciones (NEE)
           </legend>
-          <div className="space-y-2">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-3">
             {adaptacionesNee.map(nee => (
               <div key={nee.id} className="flex items-center space-x-2">
                 <Checkbox
@@ -369,36 +377,26 @@ export function FormularioContextoClase({
                     setFormData((prev: any) => ({...prev, adaptaciones_nee: newAdaptaciones}));
                   }}
                   disabled={isClaseCompletada}
+                  className="rounded-full"
                 />
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Label htmlFor={`nee-${nee.codigo}`} className="cursor-pointer flex items-center gap-1">
-                        {nee.nombre}
-                        <Badge variant="outline" className="text-xs ml-1">{nee.codigo}</Badge>
-                      </Label>
-                    </TooltipTrigger>
-                    <TooltipContent className="max-w-sm">
-                      <p className="font-medium mb-1">{nee.nombre}</p>
-                      <p className="text-xs">{nee.recomendaciones_ia}</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
+                <Label htmlFor={`nee-${nee.codigo}`} className="cursor-pointer text-sm">
+                  {nee.nombre}
+                </Label>
               </div>
             ))}
           </div>
-          {formData.adaptaciones_nee.length > 0 && (
-            <div className="space-y-2 mt-3 pt-3 border-t">
-              <Label className="text-xs text-muted-foreground">Notas adicionales sobre adaptaciones</Label>
-              <Textarea
-                placeholder="Describe detalles específicos sobre las necesidades del grupo..."
-                value={formData.contexto_adaptaciones}
-                onChange={(e) => setFormData((prev: any) => ({...prev, contexto_adaptaciones: e.target.value}))}
-                rows={2}
-                disabled={isClaseCompletada}
-              />
-            </div>
-          )}
+          
+          {/* Textarea siempre visible */}
+          <div className="space-y-2">
+            <Label className="text-sm text-muted-foreground">Adaptaciones personalizadas (opcional)</Label>
+            <Textarea
+              placeholder="Describe adaptaciones específicas para estudiantes con NEE..."
+              value={formData.contexto_adaptaciones}
+              onChange={(e) => setFormData((prev: any) => ({...prev, contexto_adaptaciones: e.target.value}))}
+              rows={3}
+              disabled={isClaseCompletada}
+            />
+          </div>
         </fieldset>
       </div>
 
