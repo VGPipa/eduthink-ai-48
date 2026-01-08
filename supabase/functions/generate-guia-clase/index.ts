@@ -6,7 +6,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const SYSTEM_PROMPT = `Eres el "Arquitecto Pedagógico" de Cognitia, una IA experta en diseñar experiencias de aprendizaje transformadoras para escuelas peruanas. Tu misión es generar una guía de clase en formato JSON estricto, alineada al Currículo Nacional de la Educación Básica (CNEB) y enfocada en dos pilares: Habilidades Cognitivas (Mente) y Habilidades Humanas (Corazón).
+const SYSTEM_PROMPT = `Eres el "Arquitecto Pedagógico" de Cognitia, una IA experta en diseñar sesiones de aprendizaje transformadoras para escuelas peruanas. Tu misión es generar una SESIÓN DE CLASE en formato JSON estricto, alineada al Currículo Nacional de la Educación Básica (CNEB).
 
 ### 1. FILOSOFÍA PEDAGÓGICA (MANDATORIO)
 No diseñas clases tradicionales. Diseñas experiencias basadas en la indagación y el aprendizaje socioemocional.
@@ -16,70 +16,55 @@ B. DESARROLLO (Provocación + Construcción): Presentar un desafío complejo (Co
 C. CIERRE (Metacognición): Reflexión sobre el proceso de aprendizaje y transferencia a la vida real.
 
 ### 2. MARCO DE HABILIDADES (CNEB + SIGLO XXI)
-Debes seleccionar explícitamente una habilidad de cada categoría para la sesión:
+Debes integrar:
 - COGNITIVAS (Future Skills): Pensamiento Crítico, Resolución de Problemas Complejos, Alfabetización de Datos, Pensamiento Sistémico.
 - HUMANAS (Soft Skills): Empatía, Colaboración Radical, Ética, Resiliencia, Comunicación Asertiva.
 - CNEB: Debes citar Competencia, Capacidad y Desempeño precisos del área curricular.
 
 ### 3. REGLAS DE GENERACIÓN
-- Si falta información (ej. grado), infiere lo más adecuado para Secundaria (Ciclo VI/VII) y márcalo como [INFERIDO].
-- La "Situación Significativa" debe ser un problema del mundo real, relevante para un adolescente peruano.
+- Si falta información (ej. grado), infiere lo más adecuado y márcalo como [INFERIDO].
 - El formato de salida debe ser ÚNICAMENTE un objeto JSON válido. No incluyas texto antes ni después del JSON.
 
-### 4. ESTRUCTURA DEL JSON (SCHEMA)
+### 4. ESTRUCTURA DEL JSON (SCHEMA SESIÓN DE CLASE)
 Debes responder siguiendo exactamente esta estructura:
 {
-  "metadata": {
-    "titulo": "String creativo y atractivo",
-    "resumen": "Breve descripción de la clase en 1 frase",
-    "duracion": "Integer (minutos)",
-    "grado_sugerido": "String"
+  "datos_generales": {
+    "titulo_sesion": "String descriptivo de la sesión",
+    "docente": "String (puede ser vacío si no se proporciona)",
+    "fecha": "String (fecha en formato legible)",
+    "nivel": "String (Inicial/Primaria/Secundaria)",
+    "grado": "String (ej: Tercero)",
+    "area_academica": "String (ej: Comunicación, Matemática)"
   },
-  "curriculo_peru": {
-    "area": "String",
-    "competencia": "String (CNEB)",
-    "capacidad": "String (CNEB)",
-    "desempeno_precisado": "String (Adaptado del CNEB)",
-    "enfoque_transversal": "String (Valores y actitudes)"
+  "propositos_aprendizaje": {
+    "filas": [
+      {
+        "competencia": "String (Competencia CNEB)",
+        "criterios_evaluacion": "String (Desempeños precisados)",
+        "evidencia_aprendizaje": "String (Qué producirá el estudiante)",
+        "instrumento_valorizacion": "String (Rúbrica, Lista de cotejo, etc.)"
+      }
+    ],
+    "enfoques_transversales": ["String", "String"],
+    "descripcion_enfoques": "String (Cómo se manifiestan los enfoques en la sesión)"
   },
-  "objetivos_aprendizaje": {
-    "cognitivo": "String (Lo que resolverán mentalmente)",
-    "humano": "String (Cómo interactuarán social/emocionalmente)"
+  "preparacion": {
+    "que_hacer_antes": "String (Acciones previas del docente)",
+    "recursos_materiales": ["String", "String"]
   },
-  "secuencia_didactica": [
-    {
-      "fase": "INICIO",
-      "subtitulo": "Conexión y Propósito",
-      "tiempo": "String (ej. 15 min)",
-      "actividad_detallada": "String (Instrucciones paso a paso para el docente)",
-      "habilidad_foco": "String",
-      "rol_docente": "String (ej. Motivador, Observador)"
+  "momentos_sesion": {
+    "inicio": {
+      "tiempo_minutos": Integer,
+      "contenido": "String (Descripción detallada de las actividades de inicio, incluyendo:\\n- Activación de saberes previos\\n- Presentación del propósito\\n- Acuerdos de convivencia)"
     },
-    {
-      "fase": "DESARROLLO",
-      "subtitulo": "Provocación y Construcción",
-      "tiempo": "String (ej. 50 min)",
-      "actividad_detallada": "String (El reto central y la dinámica de trabajo)",
-      "habilidad_foco": "String",
-      "rol_docente": "String (ej. Mentor Socrático)"
+    "desarrollo": {
+      "tiempo_minutos": Integer,
+      "contenido": "String (Descripción detallada del desarrollo, incluyendo:\\n- Actividades principales\\n- Trabajo individual/grupal\\n- Rol del docente)"
     },
-    {
-      "fase": "CIERRE",
-      "subtitulo": "Metacognición",
-      "tiempo": "String (ej. 15 min)",
-      "actividad_detallada": "String (Dinámica de reflexión final)",
-      "habilidad_foco": "String",
-      "rol_docente": "String (ej. Facilitador)"
+    "cierre": {
+      "tiempo_minutos": Integer,
+      "contenido": "String (Descripción detallada del cierre, incluyendo:\\n- Reflexión metacognitiva\\n- Evaluación del aprendizaje\\n- Extensión o tarea)"
     }
-  ],
-  "recursos_y_evaluacion": {
-    "materiales_necesarios": ["String", "String"],
-    "criterios_evaluacion": ["String", "String"],
-    "instrumento_sugerido": "String (ej. Rúbrica Holística, Lista de Cotejo)"
-  },
-  "tips_profesor": {
-    "diferenciacion": "Consejo para alumnos con dificultades",
-    "reto_extra": "Consejo para alumnos avanzados"
   }
 }`;
 
@@ -92,7 +77,6 @@ interface GenerateGuiaRequest {
   numeroEstudiantes?: number;
   duracion?: number;
   area?: string;
-  // Nuevos campos de contexto estructurado (arrays para selección múltiple)
   nivel?: string;
   competencias?: string[];
   capacidades?: string[];
@@ -104,10 +88,11 @@ interface GenerateGuiaRequest {
     recomendaciones: string;
   }[];
   contexto_adaptaciones?: string;
+  fecha?: string;
+  docente?: string;
 }
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -122,35 +107,28 @@ serve(async (req) => {
       numeroEstudiantes,
       duracion,
       area,
-      // Nuevos campos (arrays)
       nivel,
       competencias,
       capacidades,
       enfoques_transversales,
       materiales,
       adaptaciones_nee,
-      contexto_adaptaciones
+      contexto_adaptaciones,
+      fecha,
+      docente
     }: GenerateGuiaRequest = await req.json();
 
-    console.log("=== Generate Guía Request ===");
+    console.log("=== Generate Sesión Request ===");
     console.log("Tema:", tema);
     console.log("Área:", area);
     console.log("Grado:", grado);
     console.log("Duración:", duracion);
-    console.log("Competencias:", competencias?.length || 0);
-    console.log("Capacidades:", capacidades?.length || 0);
-    console.log("Enfoques:", enfoques_transversales?.length || 0);
-    console.log("Adaptaciones NEE:", adaptaciones_nee?.length || 0);
 
-    // Build the user prompt with all available data including new structured context
     const adaptacionesSection = adaptaciones_nee?.length ? `
 ADAPTACIONES PARA NECESIDADES EDUCATIVAS ESPECIALES:
 El aula incluye estudiantes con las siguientes condiciones. DEBES incluir estrategias de diferenciación específicas:
 ${adaptaciones_nee.map(a => `- ${a.nombre}: ${a.recomendaciones}`).join('\n')}
 ${contexto_adaptaciones ? `\nNotas adicionales del profesor: ${contexto_adaptaciones}` : ''}
-
-INSTRUCCIÓN ESPECIAL PARA DIFERENCIACIÓN:
-En el campo "tips_profesor.diferenciacion", INCLUYE estrategias específicas para cada tipo de NEE mencionado arriba.
 ` : '';
 
     const userPrompt = `
@@ -163,6 +141,8 @@ DATOS DE LA SESIÓN:
 - Número de estudiantes: ${numeroEstudiantes || '[NO PROPORCIONADO]'}
 - Duración de la clase: ${duracion || 55} minutos
 - Materiales disponibles: ${materiales?.length ? materiales.join(', ') : (recursos?.length ? recursos.join(', ') : '[INFERIDO: recursos básicos de aula]')}
+- Fecha: ${fecha || '[NO PROPORCIONADA]'}
+- Docente: ${docente || '[NO PROPORCIONADO]'}
 
 PROPÓSITOS DE APRENDIZAJE (CNEB):
 - Competencia(s): ${competencias?.length ? competencias.join('; ') : '[INFERIR del tema y área curricular]'}
@@ -172,7 +152,15 @@ PROPÓSITOS DE APRENDIZAJE (CNEB):
 CONTEXTO DEL GRUPO:
 ${contexto || '[NO PROPORCIONADO - usar contexto general para adolescentes peruanos]'}
 ${adaptacionesSection}
-Genera la guía de clase completa en formato JSON según el schema especificado.`;
+
+INSTRUCCIONES IMPORTANTES:
+1. Distribuye el tiempo proporcionalmente: INICIO ~15%, DESARROLLO ~70%, CIERRE ~15%
+2. Para cada competencia, genera criterios de evaluación (desempeños) realistas
+3. Genera evidencias de aprendizaje concretas y medibles
+4. Sugiere instrumentos de valorización apropiados (rúbrica, lista de cotejo, etc.)
+5. En "que_hacer_antes", describe acciones específicas de preparación
+
+Genera la SESIÓN DE CLASE completa en formato JSON según el schema especificado.`;
 
     console.log("User prompt built, calling Lovable AI...");
 
@@ -194,6 +182,7 @@ Genera la guía de clase completa en formato JSON según el schema especificado.
           { role: "system", content: SYSTEM_PROMPT },
           { role: "user", content: userPrompt }
         ],
+        max_completion_tokens: 8000,
       }),
     });
 
@@ -221,9 +210,8 @@ Genera la guía de clase completa en formato JSON según el schema especificado.
     }
 
     // Parse the JSON response - handle markdown code blocks
-    let guiaData;
+    let sesionData;
     try {
-      // Remove markdown code blocks if present
       let jsonContent = content.trim();
       if (jsonContent.startsWith("```json")) {
         jsonContent = jsonContent.slice(7);
@@ -235,7 +223,7 @@ Genera la guía de clase completa en formato JSON según el schema especificado.
       }
       jsonContent = jsonContent.trim();
       
-      guiaData = JSON.parse(jsonContent);
+      sesionData = JSON.parse(jsonContent);
       console.log("JSON parsed successfully");
     } catch (parseError) {
       console.error("Failed to parse AI response as JSON:", parseError);
@@ -243,65 +231,55 @@ Genera la guía de clase completa en formato JSON según el schema especificado.
       throw new Error("La respuesta de la IA no es un JSON válido");
     }
 
-    // Ensure required fields exist with defaults based on new schema
-    const guiaClase = {
-      metadata: guiaData.metadata || {
-        titulo: `Clase: ${tema}`,
-        resumen: `Sesión sobre ${tema}`,
-        duracion: duracion || 55,
-        grado_sugerido: grado || "[INFERIDO]"
+    // Calculate default times based on duration
+    const totalDuration = duracion || 55;
+    const inicioTime = Math.round(totalDuration * 0.15);
+    const desarrolloTime = Math.round(totalDuration * 0.70);
+    const cierreTime = totalDuration - inicioTime - desarrolloTime;
+
+    // Ensure required fields exist with defaults
+    const sesionClase = {
+      datos_generales: sesionData.datos_generales || {
+        titulo_sesion: `Sesión: ${tema}`,
+        docente: docente || "",
+        fecha: fecha || new Date().toLocaleDateString('es-PE'),
+        nivel: nivel || "Secundaria",
+        grado: grado || "[INFERIDO]",
+        area_academica: area || "[NO ESPECIFICADA]"
       },
-      curriculo_peru: guiaData.curriculo_peru || {
-        area: area || "[NO ESPECIFICADA]",
-        competencia: "[POR DEFINIR]",
-        capacidad: "[POR DEFINIR]",
-        desempeno_precisado: "[POR DEFINIR]",
-        enfoque_transversal: "[POR DEFINIR]"
+      propositos_aprendizaje: sesionData.propositos_aprendizaje || {
+        filas: [{
+          competencia: competencias?.[0] || "[POR DEFINIR]",
+          criterios_evaluacion: "[POR DEFINIR]",
+          evidencia_aprendizaje: "[POR DEFINIR]",
+          instrumento_valorizacion: "Lista de cotejo"
+        }],
+        enfoques_transversales: enfoques_transversales || ["[POR DEFINIR]"],
+        descripcion_enfoques: "[POR DEFINIR]"
       },
-      objetivos_aprendizaje: guiaData.objetivos_aprendizaje || {
-        cognitivo: `Comprender los conceptos fundamentales de ${tema}`,
-        humano: "Desarrollar habilidades de colaboración durante la sesión"
+      preparacion: sesionData.preparacion || {
+        que_hacer_antes: "Preparar los materiales necesarios para la sesión.",
+        recursos_materiales: materiales || recursos || []
       },
-      secuencia_didactica: guiaData.secuencia_didactica || [
-        {
-          fase: "INICIO",
-          subtitulo: "Conexión y Propósito",
-          tiempo: "10 min",
-          actividad_detallada: "Activación de conocimientos previos",
-          habilidad_foco: "Pensamiento Crítico",
-          rol_docente: "Motivador"
+      momentos_sesion: sesionData.momentos_sesion || {
+        inicio: {
+          tiempo_minutos: inicioTime,
+          contenido: "Activación de conocimientos previos y presentación del propósito de la sesión."
         },
-        {
-          fase: "DESARROLLO",
-          subtitulo: "Provocación y Construcción",
-          tiempo: "35 min",
-          actividad_detallada: "Exploración y práctica del tema",
-          habilidad_foco: "Resolución de Problemas",
-          rol_docente: "Mentor Socrático"
+        desarrollo: {
+          tiempo_minutos: desarrolloTime,
+          contenido: "Desarrollo de las actividades principales de aprendizaje."
         },
-        {
-          fase: "CIERRE",
-          subtitulo: "Metacognición",
-          tiempo: "10 min",
-          actividad_detallada: "Reflexión y síntesis del aprendizaje",
-          habilidad_foco: "Comunicación Asertiva",
-          rol_docente: "Facilitador"
+        cierre: {
+          tiempo_minutos: cierreTime,
+          contenido: "Reflexión metacognitiva y síntesis del aprendizaje."
         }
-      ],
-      recursos_y_evaluacion: guiaData.recursos_y_evaluacion || {
-        materiales_necesarios: recursos || [],
-        criterios_evaluacion: ["Participación activa", "Comprensión de conceptos"],
-        instrumento_sugerido: "Lista de Cotejo"
-      },
-      tips_profesor: guiaData.tips_profesor || {
-        diferenciacion: "Proporcionar apoyo adicional con ejemplos concretos",
-        reto_extra: "Plantear problemas más complejos para estudiantes avanzados"
       }
     };
 
-    console.log("=== Guía generated successfully ===");
+    console.log("=== Sesión de Clase generated successfully ===");
 
-    return new Response(JSON.stringify(guiaClase), {
+    return new Response(JSON.stringify(sesionClase), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
 
