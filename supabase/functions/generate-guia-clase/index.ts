@@ -170,6 +170,91 @@ Genera la SESIÓN DE CLASE completa en formato JSON según el schema especificad
       throw new Error("LOVABLE_API_KEY no está configurada");
     }
 
+    const sesionTool = {
+      type: "function",
+      function: {
+        name: "generate_sesion_clase",
+        description: "Genera una sesión de clase completa con estructura pedagógica CNEB",
+        parameters: {
+          type: "object",
+          properties: {
+            datos_generales: {
+              type: "object",
+              properties: {
+                titulo_sesion: { type: "string" },
+                docente: { type: "string" },
+                fecha: { type: "string" },
+                nivel: { type: "string" },
+                grado: { type: "string" },
+                area_academica: { type: "string" }
+              },
+              required: ["titulo_sesion", "nivel", "grado", "area_academica"]
+            },
+            propositos_aprendizaje: {
+              type: "object",
+              properties: {
+                filas: {
+                  type: "array",
+                  items: {
+                    type: "object",
+                    properties: {
+                      competencia: { type: "string" },
+                      criterios_evaluacion: { type: "string" },
+                      evidencia_aprendizaje: { type: "string" },
+                      instrumento_valorizacion: { type: "string" }
+                    },
+                    required: ["competencia", "criterios_evaluacion", "evidencia_aprendizaje", "instrumento_valorizacion"]
+                  }
+                },
+                enfoques_transversales: { type: "array", items: { type: "string" } },
+                descripcion_enfoques: { type: "string" }
+              },
+              required: ["filas", "enfoques_transversales", "descripcion_enfoques"]
+            },
+            preparacion: {
+              type: "object",
+              properties: {
+                que_hacer_antes: { type: "string" },
+                recursos_materiales: { type: "array", items: { type: "string" } }
+              },
+              required: ["que_hacer_antes", "recursos_materiales"]
+            },
+            momentos_sesion: {
+              type: "object",
+              properties: {
+                inicio: {
+                  type: "object",
+                  properties: {
+                    tiempo_minutos: { type: "integer" },
+                    contenido: { type: "string" }
+                  },
+                  required: ["tiempo_minutos", "contenido"]
+                },
+                desarrollo: {
+                  type: "object",
+                  properties: {
+                    tiempo_minutos: { type: "integer" },
+                    contenido: { type: "string" }
+                  },
+                  required: ["tiempo_minutos", "contenido"]
+                },
+                cierre: {
+                  type: "object",
+                  properties: {
+                    tiempo_minutos: { type: "integer" },
+                    contenido: { type: "string" }
+                  },
+                  required: ["tiempo_minutos", "contenido"]
+                }
+              },
+              required: ["inicio", "desarrollo", "cierre"]
+            }
+          },
+          required: ["datos_generales", "propositos_aprendizaje", "preparacion", "momentos_sesion"]
+        }
+      }
+    };
+
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -182,7 +267,8 @@ Genera la SESIÓN DE CLASE completa en formato JSON según el schema especificad
           { role: "system", content: SYSTEM_PROMPT },
           { role: "user", content: userPrompt }
         ],
-        max_completion_tokens: 8000,
+        tools: [sesionTool],
+        tool_choice: { type: "function", function: { name: "generate_sesion_clase" } }
       }),
     });
 
@@ -201,34 +287,23 @@ Genera la SESIÓN DE CLASE completa en formato JSON según el schema especificad
     }
 
     const data = await response.json();
-    const content = data.choices?.[0]?.message?.content;
-    
-    console.log("AI Response received, parsing...");
+    console.log("AI Response received, parsing tool call...");
 
-    if (!content) {
-      throw new Error("La IA no generó contenido");
+    // Extract from tool call
+    const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
+    if (!toolCall || toolCall.function?.name !== "generate_sesion_clase") {
+      console.error("No tool call found in response:", JSON.stringify(data, null, 2));
+      throw new Error("La IA no generó la sesión correctamente");
     }
 
-    // Parse the JSON response - handle markdown code blocks
     let sesionData;
     try {
-      let jsonContent = content.trim();
-      if (jsonContent.startsWith("```json")) {
-        jsonContent = jsonContent.slice(7);
-      } else if (jsonContent.startsWith("```")) {
-        jsonContent = jsonContent.slice(3);
-      }
-      if (jsonContent.endsWith("```")) {
-        jsonContent = jsonContent.slice(0, -3);
-      }
-      jsonContent = jsonContent.trim();
-      
-      sesionData = JSON.parse(jsonContent);
-      console.log("JSON parsed successfully");
+      sesionData = JSON.parse(toolCall.function.arguments);
+      console.log("Tool call arguments parsed successfully");
     } catch (parseError) {
-      console.error("Failed to parse AI response as JSON:", parseError);
-      console.error("Raw content:", content);
-      throw new Error("La respuesta de la IA no es un JSON válido");
+      console.error("Failed to parse tool call arguments:", parseError);
+      console.error("Raw arguments:", toolCall.function.arguments);
+      throw new Error("Error al procesar la respuesta de la IA");
     }
 
     // Calculate default times based on duration
