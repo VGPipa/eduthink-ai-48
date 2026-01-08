@@ -628,6 +628,61 @@ export default function GenerarClase() {
     setCurrentStep(1);
   };
 
+  // Helper to ensure we have a valid tema ID (from DB selection or by creating one)
+  const ensureTemaId = async (): Promise<string> => {
+    // If we already have a temaData.id from DB selection, use it
+    if (temaData?.id) return temaData.id;
+    
+    // If we have temaId from URL params, use it
+    if (temaId) return temaId;
+    
+    // Otherwise, we need to create/find a tema via backend function
+    const temaNombre = formData.temaPersonalizado?.trim();
+    if (!temaNombre || temaNombre.length < 2) {
+      throw new Error('Ingresa un tema válido (mínimo 2 caracteres)');
+    }
+    
+    if (!cursoData?.id) {
+      throw new Error('Selecciona un área académica antes de continuar');
+    }
+    
+    // Call backend function to ensure tema exists
+    const { data: sessionData } = await supabase.auth.getSession();
+    const token = sessionData?.session?.access_token;
+    
+    if (!token) {
+      throw new Error('Sesión expirada. Por favor, vuelve a iniciar sesión');
+    }
+    
+    const response = await fetch(
+      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ensure-tema-plan`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+          'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+        },
+        body: JSON.stringify({
+          curso_plan_id: cursoData.id,
+          nombre: temaNombre
+        })
+      }
+    );
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || 'Error al crear el tema');
+    }
+    
+    const temaResult = await response.json();
+    
+    // Update local state with the tema
+    setTemaData({ id: temaResult.id, nombre: temaResult.nombre, curso_plan_id: temaResult.curso_plan_id });
+    
+    return temaResult.id;
+  };
+
   // Ensure clase exists before generating
   const ensureClase = async () => {
     if (claseData) return claseData;
@@ -636,11 +691,8 @@ export default function GenerarClase() {
       throw new Error('Faltan datos necesarios para crear la clase (grupo o profesor)');
     }
 
-    // Get tema ID - must be available in both normal and extraordinaria mode
-    const temaIdToUse = temaData?.id || temaId;
-    if (!temaIdToUse) {
-      throw new Error('Debes seleccionar un tema antes de continuar');
-    }
+    // Get tema ID - now using the helper that can create temas on-the-fly
+    const temaIdToUse = await ensureTemaId();
 
     const nuevaClase = await createClase.mutateAsync({
       id_tema: temaIdToUse,
@@ -656,21 +708,12 @@ export default function GenerarClase() {
 
   const handleGenerarGuia = async () => {
     // Use custom name if provided, otherwise use tema name from DB
-    const temaNombre = formData.temaPersonalizado || temaData?.nombre;
+    const temaNombre = (formData.temaPersonalizado || temaData?.nombre || '').trim();
     
-    if (!temaNombre || !formData.contexto) {
+    if (!temaNombre || temaNombre.length < 2) {
       toast({
         title: 'Error',
-        description: 'Completa el tema y contexto antes de generar la guía',
-        variant: 'destructive'
-      });
-      return;
-    }
-
-    if (!temaData?.id) {
-      toast({
-        title: 'Error',
-        description: 'Debes seleccionar un tema antes de continuar',
+        description: 'Ingresa un tema válido antes de generar la guía',
         variant: 'destructive'
       });
       return;
@@ -680,6 +723,16 @@ export default function GenerarClase() {
       toast({
         title: 'Error',
         description: 'Selecciona un salón antes de continuar',
+        variant: 'destructive'
+      });
+      return;
+    }
+    
+    // For extraordinaria mode, we need cursoData to create the tema
+    if (isExtraordinaria && !cursoData?.id) {
+      toast({
+        title: 'Error',
+        description: 'Selecciona un área académica antes de continuar',
         variant: 'destructive'
       });
       return;
@@ -769,21 +822,12 @@ export default function GenerarClase() {
 
   const handleGenerarTodoEnParalelo = async () => {
     // Use custom name if provided, otherwise use tema name from DB
-    const temaNombre = formData.temaPersonalizado || temaData?.nombre;
+    const temaNombre = (formData.temaPersonalizado || temaData?.nombre || '').trim();
     
-    if (!temaNombre || !formData.contexto) {
+    if (!temaNombre || temaNombre.length < 2) {
       toast({
         title: 'Error',
-        description: 'Completa el tema y contexto antes de generar',
-        variant: 'destructive'
-      });
-      return;
-    }
-
-    if (!temaData?.id) {
-      toast({
-        title: 'Error',
-        description: 'Debes seleccionar un tema antes de continuar',
+        description: 'Ingresa un tema válido antes de generar',
         variant: 'destructive'
       });
       return;
@@ -793,6 +837,16 @@ export default function GenerarClase() {
       toast({
         title: 'Error',
         description: 'Selecciona un salón antes de continuar',
+        variant: 'destructive'
+      });
+      return;
+    }
+    
+    // For extraordinaria mode, we need cursoData to create the tema
+    if (isExtraordinaria && !cursoData?.id) {
+      toast({
+        title: 'Error',
+        description: 'Selecciona un área académica antes de continuar',
         variant: 'destructive'
       });
       return;
@@ -1241,11 +1295,16 @@ export default function GenerarClase() {
   const canProceed = () => {
     switch (currentStep) {
       case 1:
-        // In extraordinaria mode, we need a selected tema (from DB) plus optional custom name
-        // In normal mode, we need temaData from URL params
-        const hasTema = temaData?.id ? true : false;
-        const temaNombre = isExtraordinaria ? (formData.temaPersonalizado || temaData?.nombre) : temaData?.nombre;
-        return hasTema && temaNombre && formData.contexto && formData.fecha && grupoData;
+        // El tema puede venir de:
+        // 1. temaData.id (seleccionado de BD o desde URL)
+        // 2. formData.temaPersonalizado (escrito manualmente en extraordinaria)
+        const temaNombre = (formData.temaPersonalizado || temaData?.nombre || '').trim();
+        const hasTema = temaNombre.length >= 2;
+        
+        // En modo extraordinaria, necesitamos cursoData para poder crear el tema
+        const hasRequiredCurso = isExtraordinaria ? !!cursoData?.id : true;
+        
+        return hasTema && hasRequiredCurso && formData.fecha && grupoData;
       case 2:
         return guiaGenerada !== null;
       case 3:
