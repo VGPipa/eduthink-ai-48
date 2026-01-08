@@ -54,14 +54,8 @@ const STEPS = [
   { id: 5, title: 'Validar', icon: FileCheck }
 ];
 
-const RECURSOS = [
-  { id: 'proyector', nombre: 'Proyector/Pantalla' },
-  { id: 'pizarra', nombre: 'Pizarra' },
-  { id: 'libros', nombre: 'Libros de texto' },
-  { id: 'dispositivos', nombre: 'Dispositivos electrónicos' },
-  { id: 'material', nombre: 'Material manipulativo' },
-  { id: 'otro', nombre: 'Otro' }
-];
+import { FormularioContextoClase } from '@/components/profesor/FormularioContextoClase';
+import { useCatalogoCurricular, useCapacidades } from '@/hooks/useCatalogoCurricular';
 
 export default function GenerarClase() {
   const navigate = useNavigate();
@@ -112,7 +106,15 @@ export default function GenerarClase() {
     duracion: 55,
     recursos: [] as string[],
     contexto: '',
-    temaPersonalizado: '' // For extraordinaria mode
+    temaPersonalizado: '', // For extraordinaria mode
+    // Nuevos campos de contexto estructurado
+    id_competencia: '',
+    id_capacidad: '',
+    id_enfoque_transversal: '',
+    materiales_seleccionados: [] as string[],
+    adaptaciones_nee: [] as string[],
+    contexto_adaptaciones: '',
+    otro_material: ''
   });
 
   // Generated content
@@ -552,7 +554,14 @@ export default function GenerarClase() {
       duracion: 55,
       recursos: [],
       contexto: '',
-      temaPersonalizado: ''
+      temaPersonalizado: '',
+      id_competencia: '',
+      id_capacidad: '',
+      id_enfoque_transversal: '',
+      materiales_seleccionados: [],
+      adaptaciones_nee: [],
+      contexto_adaptaciones: '',
+      otro_material: ''
     });
     setGuiaGenerada(null);
     setQuizPreData(null);
@@ -684,7 +693,7 @@ export default function GenerarClase() {
         contexto: formData.contexto,
       });
 
-      // Generate guide with AI, passing additional context data
+      // Generate guide with AI, passing additional context data including structured curriculum data
       const guia = await generateGuiaClase(
         temaNombre,
         formData.contexto,
@@ -694,7 +703,13 @@ export default function GenerarClase() {
           seccion: grupoData?.seccion,
           numeroEstudiantes: grupoData?.cantidad_alumnos,
           duracion: formData.duracion,
-          area: cursoData?.nombre
+          area: cursoData?.nombre,
+          // Nuevos campos estructurados
+          nivel: grupoData?.grado?.includes('Primaria') ? 'Primaria' : 'Secundaria',
+          materiales: formData.materiales_seleccionados.length > 0 
+            ? [...formData.materiales_seleccionados, formData.otro_material].filter(Boolean) 
+            : undefined,
+          contexto_adaptaciones: formData.contexto_adaptaciones || undefined
         }
       );
 
@@ -794,7 +809,13 @@ export default function GenerarClase() {
             seccion: grupoData?.seccion,
             numeroEstudiantes: grupoData?.cantidad_alumnos,
             duracion: formData.duracion,
-            area: cursoData?.nombre
+            area: cursoData?.nombre,
+            // Nuevos campos estructurados
+            nivel: grupoData?.grado?.includes('Primaria') ? 'Primaria' : 'Secundaria',
+            materiales: formData.materiales_seleccionados.length > 0 
+              ? [...formData.materiales_seleccionados, formData.otro_material].filter(Boolean) 
+              : undefined,
+            contexto_adaptaciones: formData.contexto_adaptaciones || undefined
           }
         ),
         // Generate quiz PRE (without guia info initially)
@@ -1504,7 +1525,7 @@ export default function GenerarClase() {
       {/* Step content */}
       <Card>
         <CardContent className="p-6">
-          {/* Step 1: Context */}
+          {/* Step 1: Context - usando nuevo componente */}
           {currentStep === 1 && (
             <div className="space-y-6">
               {/* Read-only mode banner for completed classes */}
@@ -1517,168 +1538,21 @@ export default function GenerarClase() {
                 </div>
               )}
               
-              <div>
-                <h2 className="text-lg font-semibold mb-4">Información de la Clase</h2>
-                <div className="grid md:grid-cols-2 gap-4">
-                    {/* Curso */}
-                  <div className="space-y-2">
-                    <Label className="flex items-center gap-1">
-                        Curso {!isExtraordinaria && <Lock className="w-3 h-3 text-muted-foreground" />}
-                    </Label>
-                      {isExtraordinaria ? (
-                        <Select 
-                          value={cursoData?.id || ''} 
-                          onValueChange={(value) => {
-                            const curso = cursos.find(c => c?.id === value);
-                            setCursoData(curso);
-                          }}
-                          disabled={isClaseCompletada}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecciona un curso" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {cursos.filter(Boolean).map(c => (
-                              <SelectItem key={c!.id} value={c!.id}>{c!.nombre}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      ) : (
-                        <Input value={cursoData?.nombre || ''} disabled />
-                      )}
-                  </div>
-
-                    {/* Tema */}
-                  <div className="space-y-2">
-                    <Label className="flex items-center gap-1">
-                        Tema {!isExtraordinaria && <Lock className="w-3 h-3 text-muted-foreground" />}
-                        {isExtraordinaria && '*'}
-                    </Label>
-                      {isExtraordinaria ? (
-                        <Select 
-                          value={temaData?.id || ''} 
-                          onValueChange={(value) => {
-                            const tema = temasParaCurso.find(t => t.id === value);
-                            setTemaData(tema || null);
-                            // Pre-fill custom name with tema name
-                            if (tema && !formData.temaPersonalizado) {
-                              setFormData(prev => ({...prev, temaPersonalizado: tema.nombre}));
-                            }
-                          }}
-                          disabled={!cursoData || isClaseCompletada}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder={cursoData ? "Selecciona un tema" : "Primero selecciona un curso"} />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {temasParaCurso.map(t => (
-                              <SelectItem key={t.id} value={t.id}>{t.nombre}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      ) : (
-                        <Input value={temaData?.nombre || ''} disabled />
-                      )}
-                  </div>
-
-                    {/* Nombre personalizado del tema (solo extraordinaria) */}
-                    {isExtraordinaria && temaData && (
-                  <div className="space-y-2">
-                        <Label>Nombre personalizado (opcional)</Label>
-                        <Input 
-                          value={formData.temaPersonalizado} 
-                          onChange={(e) => setFormData({...formData, temaPersonalizado: e.target.value})}
-                          placeholder="Personaliza el nombre del tema si lo deseas"
-                          disabled={isClaseCompletada}
-                        />
-                  </div>
-                    )}
-
-                    {/* Grupo */}
-                    <div className="space-y-2">
-                      <Label>Grupo {isExtraordinaria && '*'}</Label>
-                      {isExtraordinaria ? (
-                        <Select 
-                          value={grupoData?.id || ''} 
-                          onValueChange={(value) => {
-                            const grupo = grupos.find(g => g?.id === value);
-                            setGrupoData(grupo);
-                          }}
-                          disabled={isClaseCompletada}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecciona un grupo" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {grupos.filter(Boolean).map(g => (
-                              <SelectItem key={g!.id} value={g!.id}>
-                                {g!.nombre || `${g!.grado}° ${g!.seccion || ''}`}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      ) : (
-                        <Input value={grupoData?.nombre || `${grupoData?.grado} ${grupoData?.seccion || ''}`.trim()} disabled />
-                      )}
-                    </div>
-
-                    {/* Fecha */}
-                  <div className="space-y-2">
-                    <Label>Fecha programada</Label>
-                    <DatePicker
-                      value={formData.fecha}
-                      onChange={(value) => setFormData({...formData, fecha: value})}
-                      placeholder="Selecciona una fecha"
-                      disabled={isClaseCompletada}
-                    />
-                  </div>
-
-                    {/* Duración */}
-                  <div className="space-y-2">
-                    <Label>Duración (minutos)</Label>
-                    <Input 
-                      type="number" 
-                      value={formData.duracion} 
-                      onChange={(e) => setFormData({...formData, duracion: parseInt(e.target.value)})}
-                      disabled={isClaseCompletada}
-                    />
-                  </div>
-                </div>
-              </div>
-
-                <div className="space-y-2">
-                  <Label>Recursos disponibles</Label>
-                  <div className="flex flex-wrap gap-2">
-                    {RECURSOS.map((rec) => (
-                      <Badge
-                        key={rec.id}
-                        variant={formData.recursos.includes(rec.id) ? 'default' : 'outline'}
-                        className={isClaseCompletada ? "cursor-not-allowed opacity-60" : "cursor-pointer"}
-                        onClick={() => {
-                          if (!isClaseCompletada) {
-                            const newRec = formData.recursos.includes(rec.id)
-                              ? formData.recursos.filter(r => r !== rec.id)
-                              : [...formData.recursos, rec.id];
-                            setFormData({...formData, recursos: newRec});
-                          }
-                        }}
-                      >
-                        {rec.nombre}
-                      </Badge>
-                    ))}
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Contexto específico del salón *</Label>
-                <Textarea 
-                  placeholder="Describe el contexto del salón: conocimientos previos, necesidades especiales, dinámica del aula..."
-                  value={formData.contexto}
-                  onChange={(e) => setFormData({...formData, contexto: e.target.value})}
-                  rows={3}
-                  disabled={isClaseCompletada}
-                />
-              </div>
+              <FormularioContextoClase
+                formData={formData}
+                setFormData={setFormData}
+                cursoData={cursoData}
+                setCursoData={setCursoData}
+                temaData={temaData}
+                setTemaData={setTemaData}
+                grupoData={grupoData}
+                setGrupoData={setGrupoData}
+                isExtraordinaria={isExtraordinaria}
+                isClaseCompletada={isClaseCompletada}
+                cursos={cursos}
+                temasParaCurso={temasParaCurso}
+                grupos={grupos}
+              />
 
               {/* Opción de generación en paralelo (para demo) */}
               {!isClaseCompletada && (

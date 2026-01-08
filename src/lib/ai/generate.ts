@@ -58,6 +58,18 @@ export interface GenerateGuiaClaseInput {
   numeroEstudiantes?: number;
   duracion?: number;
   area?: string;
+  // Nuevos campos de contexto estructurado
+  nivel?: string;
+  competencia?: string;
+  capacidad?: string;
+  enfoque_transversal?: string;
+  materiales?: string[];
+  adaptaciones_nee?: {
+    codigo: string;
+    nombre: string;
+    recomendaciones: string;
+  }[];
+  contexto_adaptaciones?: string;
 }
 
 export interface QuizQuestion {
@@ -225,6 +237,18 @@ export async function generateGuiaClase(
     numeroEstudiantes?: number;
     duracion?: number;
     area?: string;
+    // Nuevos campos de contexto estructurado
+    nivel?: string;
+    competencia?: string;
+    capacidad?: string;
+    enfoque_transversal?: string;
+    materiales?: string[];
+    adaptaciones_nee?: {
+      codigo: string;
+      nombre: string;
+      recomendaciones: string;
+    }[];
+    contexto_adaptaciones?: string;
   }
 ): Promise<GuiaClaseData> {
   try {
@@ -237,7 +261,15 @@ export async function generateGuiaClase(
         seccion: opciones?.seccion,
         numeroEstudiantes: opciones?.numeroEstudiantes,
         duracion: opciones?.duracion,
-        area: opciones?.area
+        area: opciones?.area,
+        // Nuevos campos
+        nivel: opciones?.nivel,
+        competencia: opciones?.competencia,
+        capacidad: opciones?.capacidad,
+        enfoque_transversal: opciones?.enfoque_transversal,
+        materiales: opciones?.materiales,
+        adaptaciones_nee: opciones?.adaptaciones_nee,
+        contexto_adaptaciones: opciones?.contexto_adaptaciones
       }
     });
 
