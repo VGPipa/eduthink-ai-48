@@ -5,7 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { DatePicker } from '@/components/ui/date-picker';
 import { useCatalogoCurricular, useCapacidadesMultiples } from '@/hooks/useCatalogoCurricular';
-import { Lock, Monitor, Trees, FileText, Smartphone, Square, Laptop } from 'lucide-react';
+import { Lock, Monitor, Trees, FileText, Smartphone, Square, Laptop, Settings, Heart } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 // Mapeo de iconos para materiales
@@ -366,11 +366,14 @@ export function FormularioContextoClase({
         </div>
       </fieldset>
 
-      {/* ========== SECCIÓN MATERIALES Y ADAPTACIONES (2 columnas) ========== */}
-      <div className="grid md:grid-cols-2 gap-4">
+      {/* ========== SECCIÓN MATERIALES Y ADAPTACIONES (apiladas verticalmente) ========== */}
+      <div className="space-y-4">
         {/* Materiales disponibles - Grid 3 columnas con checkboxes circulares */}
         <fieldset className="border rounded-lg p-4 space-y-3">
-          <legend className="px-2 font-semibold text-sm text-foreground">Materiales disponibles</legend>
+          <legend className="px-2 font-semibold text-sm text-foreground flex items-center gap-2">
+            <Settings className="w-4 h-4 text-primary" />
+            Materiales Disponibles *
+          </legend>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-3">
             {materiales.map(m => {
               const isSelected = formData.materiales_seleccionados.includes(m.nombre);
@@ -406,7 +409,10 @@ export function FormularioContextoClase({
 
         {/* Adaptaciones NEE - Grid 3 columnas con checkboxes circulares */}
         <fieldset className="border rounded-lg p-4 space-y-4">
-          <legend className="px-2 font-semibold text-sm text-foreground">Adaptaciones (NEE)</legend>
+          <legend className="px-2 font-semibold text-sm text-foreground flex items-center gap-2">
+            <Heart className="w-4 h-4 text-primary" />
+            Adaptaciones (NEE)
+          </legend>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-3">
             {adaptacionesNee.map(nee => {
               const isSelected = formData.adaptaciones_nee.includes(nee.codigo);
