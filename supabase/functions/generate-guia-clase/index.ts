@@ -92,11 +92,11 @@ interface GenerateGuiaRequest {
   numeroEstudiantes?: number;
   duracion?: number;
   area?: string;
-  // Nuevos campos de contexto estructurado
+  // Nuevos campos de contexto estructurado (arrays para selección múltiple)
   nivel?: string;
-  competencia?: string;
-  capacidad?: string;
-  enfoque_transversal?: string;
+  competencias?: string[];
+  capacidades?: string[];
+  enfoques_transversales?: string[];
   materiales?: string[];
   adaptaciones_nee?: {
     codigo: string;
@@ -122,11 +122,11 @@ serve(async (req) => {
       numeroEstudiantes,
       duracion,
       area,
-      // Nuevos campos
+      // Nuevos campos (arrays)
       nivel,
-      competencia,
-      capacidad,
-      enfoque_transversal,
+      competencias,
+      capacidades,
+      enfoques_transversales,
       materiales,
       adaptaciones_nee,
       contexto_adaptaciones
@@ -137,8 +137,9 @@ serve(async (req) => {
     console.log("Área:", area);
     console.log("Grado:", grado);
     console.log("Duración:", duracion);
-    console.log("Competencia:", competencia);
-    console.log("Capacidad:", capacidad);
+    console.log("Competencias:", competencias?.length || 0);
+    console.log("Capacidades:", capacidades?.length || 0);
+    console.log("Enfoques:", enfoques_transversales?.length || 0);
     console.log("Adaptaciones NEE:", adaptaciones_nee?.length || 0);
 
     // Build the user prompt with all available data including new structured context
@@ -164,9 +165,9 @@ DATOS DE LA SESIÓN:
 - Materiales disponibles: ${materiales?.length ? materiales.join(', ') : (recursos?.length ? recursos.join(', ') : '[INFERIDO: recursos básicos de aula]')}
 
 PROPÓSITOS DE APRENDIZAJE (CNEB):
-- Competencia: ${competencia || '[INFERIR del tema y área curricular]'}
-- Capacidad: ${capacidad || '[INFERIR de la competencia]'}
-- Enfoque transversal: ${enfoque_transversal || '[Seleccionar el más apropiado]'}
+- Competencia(s): ${competencias?.length ? competencias.join('; ') : '[INFERIR del tema y área curricular]'}
+- Capacidad(es): ${capacidades?.length ? capacidades.join('; ') : '[INFERIR de la competencia]'}
+- Enfoque(s) transversal(es): ${enfoques_transversales?.length ? enfoques_transversales.join('; ') : '[Seleccionar el más apropiado]'}
 
 CONTEXTO DEL GRUPO:
 ${contexto || '[NO PROPORCIONADO - usar contexto general para adolescentes peruanos]'}
