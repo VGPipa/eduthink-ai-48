@@ -92,6 +92,18 @@ interface GenerateGuiaRequest {
   numeroEstudiantes?: number;
   duracion?: number;
   area?: string;
+  // Nuevos campos de contexto estructurado
+  nivel?: string;
+  competencia?: string;
+  capacidad?: string;
+  enfoque_transversal?: string;
+  materiales?: string[];
+  adaptaciones_nee?: {
+    codigo: string;
+    nombre: string;
+    recomendaciones: string;
+  }[];
+  contexto_adaptaciones?: string;
 }
 
 serve(async (req) => {
@@ -109,7 +121,15 @@ serve(async (req) => {
       seccion,
       numeroEstudiantes,
       duracion,
-      area
+      area,
+      // Nuevos campos
+      nivel,
+      competencia,
+      capacidad,
+      enfoque_transversal,
+      materiales,
+      adaptaciones_nee,
+      contexto_adaptaciones
     }: GenerateGuiaRequest = await req.json();
 
     console.log("=== Generate Guía Request ===");
@@ -117,22 +137,40 @@ serve(async (req) => {
     console.log("Área:", area);
     console.log("Grado:", grado);
     console.log("Duración:", duracion);
-    console.log("Recursos:", recursos);
+    console.log("Competencia:", competencia);
+    console.log("Capacidad:", capacidad);
+    console.log("Adaptaciones NEE:", adaptaciones_nee?.length || 0);
 
-    // Build the user prompt with all available data
+    // Build the user prompt with all available data including new structured context
+    const adaptacionesSection = adaptaciones_nee?.length ? `
+ADAPTACIONES PARA NECESIDADES EDUCATIVAS ESPECIALES:
+El aula incluye estudiantes con las siguientes condiciones. DEBES incluir estrategias de diferenciación específicas:
+${adaptaciones_nee.map(a => `- ${a.nombre}: ${a.recomendaciones}`).join('\n')}
+${contexto_adaptaciones ? `\nNotas adicionales del profesor: ${contexto_adaptaciones}` : ''}
+
+INSTRUCCIÓN ESPECIAL PARA DIFERENCIACIÓN:
+En el campo "tips_profesor.diferenciacion", INCLUYE estrategias específicas para cada tipo de NEE mencionado arriba.
+` : '';
+
     const userPrompt = `
 DATOS DE LA SESIÓN:
 - Tema: ${tema}
 - Área Curricular: ${area || '[INFERIDO: según el tema]'}
-- Grado: ${grado || '[INFERIDO: Secundaria]'}
+- Nivel: ${nivel || 'Secundaria'}
+- Grado: ${grado || '[INFERIDO]'}
 - Sección: ${seccion || '[NO PROPORCIONADO]'}
 - Número de estudiantes: ${numeroEstudiantes || '[NO PROPORCIONADO]'}
 - Duración de la clase: ${duracion || 55} minutos
-- Recursos disponibles: ${recursos?.length > 0 ? recursos.join(', ') : '[INFERIDO: recursos básicos de aula]'}
+- Materiales disponibles: ${materiales?.length ? materiales.join(', ') : (recursos?.length ? recursos.join(', ') : '[INFERIDO: recursos básicos de aula]')}
+
+PROPÓSITOS DE APRENDIZAJE (CNEB):
+- Competencia: ${competencia || '[INFERIR del tema y área curricular]'}
+- Capacidad: ${capacidad || '[INFERIR de la competencia]'}
+- Enfoque transversal: ${enfoque_transversal || '[Seleccionar el más apropiado]'}
 
 CONTEXTO DEL GRUPO:
 ${contexto || '[NO PROPORCIONADO - usar contexto general para adolescentes peruanos]'}
-
+${adaptacionesSection}
 Genera la guía de clase completa en formato JSON según el schema especificado.`;
 
     console.log("User prompt built, calling Lovable AI...");

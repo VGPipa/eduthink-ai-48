@@ -208,62 +208,295 @@ export type Database = {
           },
         ]
       }
+      catalogo_adaptaciones_nee: {
+        Row: {
+          activo: boolean | null
+          codigo: string
+          descripcion: string | null
+          id: string
+          nombre: string
+          orden: number | null
+          recomendaciones_ia: string | null
+        }
+        Insert: {
+          activo?: boolean | null
+          codigo: string
+          descripcion?: string | null
+          id?: string
+          nombre: string
+          orden?: number | null
+          recomendaciones_ia?: string | null
+        }
+        Update: {
+          activo?: boolean | null
+          codigo?: string
+          descripcion?: string | null
+          id?: string
+          nombre?: string
+          orden?: number | null
+          recomendaciones_ia?: string | null
+        }
+        Relationships: []
+      }
+      catalogo_capacidades: {
+        Row: {
+          activo: boolean | null
+          created_at: string | null
+          descripcion: string | null
+          id: string
+          id_competencia: string | null
+          nombre: string
+        }
+        Insert: {
+          activo?: boolean | null
+          created_at?: string | null
+          descripcion?: string | null
+          id?: string
+          id_competencia?: string | null
+          nombre: string
+        }
+        Update: {
+          activo?: boolean | null
+          created_at?: string | null
+          descripcion?: string | null
+          id?: string
+          id_competencia?: string | null
+          nombre?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "catalogo_capacidades_id_competencia_fkey"
+            columns: ["id_competencia"]
+            isOneToOne: false
+            referencedRelation: "catalogo_competencias"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      catalogo_competencias: {
+        Row: {
+          activo: boolean | null
+          area_curricular: string
+          ciclo: string[] | null
+          created_at: string | null
+          descripcion: string | null
+          id: string
+          nombre: string
+        }
+        Insert: {
+          activo?: boolean | null
+          area_curricular: string
+          ciclo?: string[] | null
+          created_at?: string | null
+          descripcion?: string | null
+          id?: string
+          nombre: string
+        }
+        Update: {
+          activo?: boolean | null
+          area_curricular?: string
+          ciclo?: string[] | null
+          created_at?: string | null
+          descripcion?: string | null
+          id?: string
+          nombre?: string
+        }
+        Relationships: []
+      }
+      catalogo_desempenos: {
+        Row: {
+          activo: boolean | null
+          created_at: string | null
+          descripcion: string | null
+          grado: string
+          id: string
+          id_capacidad: string | null
+          nombre: string
+        }
+        Insert: {
+          activo?: boolean | null
+          created_at?: string | null
+          descripcion?: string | null
+          grado: string
+          id?: string
+          id_capacidad?: string | null
+          nombre: string
+        }
+        Update: {
+          activo?: boolean | null
+          created_at?: string | null
+          descripcion?: string | null
+          grado?: string
+          id?: string
+          id_capacidad?: string | null
+          nombre?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "catalogo_desempenos_id_capacidad_fkey"
+            columns: ["id_capacidad"]
+            isOneToOne: false
+            referencedRelation: "catalogo_capacidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      catalogo_enfoques_transversales: {
+        Row: {
+          activo: boolean | null
+          created_at: string | null
+          descripcion: string | null
+          id: string
+          nombre: string
+          valores: string[] | null
+        }
+        Insert: {
+          activo?: boolean | null
+          created_at?: string | null
+          descripcion?: string | null
+          id?: string
+          nombre: string
+          valores?: string[] | null
+        }
+        Update: {
+          activo?: boolean | null
+          created_at?: string | null
+          descripcion?: string | null
+          id?: string
+          nombre?: string
+          valores?: string[] | null
+        }
+        Relationships: []
+      }
+      catalogo_materiales: {
+        Row: {
+          activo: boolean | null
+          icono: string | null
+          id: string
+          nombre: string
+          orden: number | null
+        }
+        Insert: {
+          activo?: boolean | null
+          icono?: string | null
+          id?: string
+          nombre: string
+          orden?: number | null
+        }
+        Update: {
+          activo?: boolean | null
+          icono?: string | null
+          id?: string
+          nombre?: string
+          orden?: number | null
+        }
+        Relationships: []
+      }
       clases: {
         Row: {
+          adaptaciones_nee: string[] | null
           contexto: string | null
+          contexto_adaptaciones: string | null
           created_at: string
           duracion_minutos: number | null
           estado: Database["public"]["Enums"]["estado_clase"] | null
           fecha_ejecutada: string | null
           fecha_programada: string | null
           id: string
+          id_capacidad: string | null
+          id_competencia: string | null
+          id_desempeno: string | null
+          id_enfoque_transversal: string | null
           id_grupo: string
           id_guia_tema: string | null
           id_guia_version_actual: string | null
           id_profesor: string
           id_tema: string
+          materiales_seleccionados: string[] | null
           metodologia: string | null
           numero_sesion: number | null
           observaciones: string | null
           updated_at: string
         }
         Insert: {
+          adaptaciones_nee?: string[] | null
           contexto?: string | null
+          contexto_adaptaciones?: string | null
           created_at?: string
           duracion_minutos?: number | null
           estado?: Database["public"]["Enums"]["estado_clase"] | null
           fecha_ejecutada?: string | null
           fecha_programada?: string | null
           id?: string
+          id_capacidad?: string | null
+          id_competencia?: string | null
+          id_desempeno?: string | null
+          id_enfoque_transversal?: string | null
           id_grupo: string
           id_guia_tema?: string | null
           id_guia_version_actual?: string | null
           id_profesor: string
           id_tema: string
+          materiales_seleccionados?: string[] | null
           metodologia?: string | null
           numero_sesion?: number | null
           observaciones?: string | null
           updated_at?: string
         }
         Update: {
+          adaptaciones_nee?: string[] | null
           contexto?: string | null
+          contexto_adaptaciones?: string | null
           created_at?: string
           duracion_minutos?: number | null
           estado?: Database["public"]["Enums"]["estado_clase"] | null
           fecha_ejecutada?: string | null
           fecha_programada?: string | null
           id?: string
+          id_capacidad?: string | null
+          id_competencia?: string | null
+          id_desempeno?: string | null
+          id_enfoque_transversal?: string | null
           id_grupo?: string
           id_guia_tema?: string | null
           id_guia_version_actual?: string | null
           id_profesor?: string
           id_tema?: string
+          materiales_seleccionados?: string[] | null
           metodologia?: string | null
           numero_sesion?: number | null
           observaciones?: string | null
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "clases_id_capacidad_fkey"
+            columns: ["id_capacidad"]
+            isOneToOne: false
+            referencedRelation: "catalogo_capacidades"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clases_id_competencia_fkey"
+            columns: ["id_competencia"]
+            isOneToOne: false
+            referencedRelation: "catalogo_competencias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clases_id_desempeno_fkey"
+            columns: ["id_desempeno"]
+            isOneToOne: false
+            referencedRelation: "catalogo_desempenos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clases_id_enfoque_transversal_fkey"
+            columns: ["id_enfoque_transversal"]
+            isOneToOne: false
+            referencedRelation: "catalogo_enfoques_transversales"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "clases_id_grupo_fkey"
             columns: ["id_grupo"]
@@ -385,7 +618,9 @@ export type Database = {
       }
       grupos: {
         Row: {
+          adaptaciones_nee_predeterminadas: string[] | null
           cantidad_alumnos: number | null
+          contexto_nee: string | null
           created_at: string
           grado: string
           id: string
@@ -394,7 +629,9 @@ export type Database = {
           seccion: string | null
         }
         Insert: {
+          adaptaciones_nee_predeterminadas?: string[] | null
           cantidad_alumnos?: number | null
+          contexto_nee?: string | null
           created_at?: string
           grado: string
           id?: string
@@ -403,7 +640,9 @@ export type Database = {
           seccion?: string | null
         }
         Update: {
+          adaptaciones_nee_predeterminadas?: string[] | null
           cantidad_alumnos?: number | null
+          contexto_nee?: string | null
           created_at?: string
           grado?: string
           id?: string
