@@ -144,33 +144,14 @@ export function FormularioContextoClase({
           {/* Tema */}
           <div className="space-y-2">
             <Label className="flex items-center gap-1">
-              Tema {!isExtraordinaria && <Lock className="w-3 h-3 text-muted-foreground" />}
-              {isExtraordinaria && '*'}
+              Tema *
             </Label>
-            {isExtraordinaria ? (
-              <Select 
-                value={temaData?.id || ''} 
-                onValueChange={(value) => {
-                  const tema = temasParaCurso.find(t => t.id === value);
-                  setTemaData(tema || null);
-                  if (tema && !formData.temaPersonalizado) {
-                    setFormData((prev: any) => ({...prev, temaPersonalizado: tema.nombre}));
-                  }
-                }}
-                disabled={!cursoData || isClaseCompletada}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder={cursoData ? "Selecciona un tema" : "Primero selecciona un área"} />
-                </SelectTrigger>
-                <SelectContent>
-                  {temasParaCurso.map(t => (
-                    <SelectItem key={t.id} value={t.id}>{t.nombre}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            ) : (
-              <Input value={temaData?.nombre || ''} disabled className="bg-muted/50" />
-            )}
+            <Input
+              placeholder="Escribe el tema de la clase..."
+              value={formData.temaPersonalizado || temaData?.nombre || ''}
+              onChange={(e) => setFormData((prev: any) => ({...prev, temaPersonalizado: e.target.value}))}
+              disabled={isClaseCompletada}
+            />
           </div>
 
           {/* Duración */}
@@ -194,17 +175,6 @@ export function FormularioContextoClase({
             </Select>
           </div>
 
-          {/* Nivel (inferido del grado) */}
-          <div className="space-y-2">
-            <Label className="flex items-center gap-1">
-              Nivel <Lock className="w-3 h-3 text-muted-foreground" />
-            </Label>
-            <Input 
-              value={grupoData?.grado?.includes('Primaria') ? 'Primaria' : 'Secundaria'} 
-              disabled 
-              className="bg-muted/50"
-            />
-          </div>
 
           {/* Grado */}
           <div className="space-y-2">
