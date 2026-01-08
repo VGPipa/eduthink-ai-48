@@ -144,6 +144,25 @@ export function useCapacidades(idCompetencia: string | null) {
   });
 }
 
+// Hook para capacidades de MÚLTIPLES competencias seleccionadas
+export function useCapacidadesMultiples(idsCompetencias: string[]) {
+  return useQuery({
+    queryKey: ['catalogo-capacidades-multiple', idsCompetencias],
+    queryFn: async () => {
+      if (!idsCompetencias.length) return [];
+      const { data, error } = await supabase
+        .from('catalogo_capacidades')
+        .select('*')
+        .in('id_competencia', idsCompetencias)
+        .eq('activo', true)
+        .order('nombre');
+      if (error) throw error;
+      return data as Capacidad[];
+    },
+    enabled: idsCompetencias.length > 0
+  });
+}
+
 // Hook separado para desempeños que depende de la capacidad seleccionada
 export function useDesempenos(idCapacidad: string | null, grado?: string) {
   return useQuery({
