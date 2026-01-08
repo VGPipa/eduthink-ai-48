@@ -1816,181 +1816,159 @@ export default function GenerarClase() {
                   <div className="p-4 rounded-lg bg-success/10 border border-success/20">
                     <div className="flex items-center gap-2 text-success">
                       <BookOpen className="w-5 h-5" />
-                      <span className="font-medium">{claseData?.id_guia_version_actual ? 'Guía de clase cargada' : 'Guía generada exitosamente'}</span>
+                      <span className="font-medium">{claseData?.id_guia_version_actual ? 'Sesión de clase cargada' : 'Sesión generada exitosamente'}</span>
                     </div>
                   </div>
 
-                  {/* Metadata Header */}
+                  {/* Datos Generales Header */}
                   <div className="p-4 rounded-lg bg-gradient-to-r from-primary/10 to-primary/5 border border-primary/20">
-                    <h3 className="text-lg font-bold text-primary mb-1">{guiaGenerada.metadata.titulo}</h3>
-                    <p className="text-sm text-muted-foreground mb-3">{guiaGenerada.metadata.resumen}</p>
-                    <div className="flex flex-wrap gap-2">
+                    <h3 className="text-lg font-bold text-primary mb-1">
+                      {guiaGenerada.datos_generales?.titulo_sesion || temaData?.nombre || 'Sesión de Clase'}
+                    </h3>
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {guiaGenerada.datos_generales?.area_academica && (
+                        <Badge variant="secondary" className="flex items-center gap-1">
+                          <BookOpen className="w-3 h-3" />
+                          {guiaGenerada.datos_generales.area_academica}
+                        </Badge>
+                      )}
+                      {guiaGenerada.datos_generales?.grado && (
+                        <Badge variant="outline" className="flex items-center gap-1">
+                          <GraduationCap className="w-3 h-3" />
+                          {guiaGenerada.datos_generales.nivel} - {guiaGenerada.datos_generales.grado}
+                        </Badge>
+                      )}
                       <Badge variant="secondary" className="flex items-center gap-1">
                         <Clock className="w-3 h-3" />
-                        {guiaGenerada.metadata.duracion} min
-                      </Badge>
-                      <Badge variant="outline" className="flex items-center gap-1">
-                        <GraduationCap className="w-3 h-3" />
-                        {guiaGenerada.metadata.grado_sugerido}
+                        {formData.duracion || 55} min
                       </Badge>
                     </div>
                   </div>
 
-                  {/* Currículo CNEB */}
-                  <div className="p-4 rounded-lg border bg-card">
-                    <h4 className="font-semibold flex items-center gap-2 mb-3">
-                      <BookOpen className="w-4 h-4 text-primary" />
-                      Alineación Curricular (CNEB)
-                    </h4>
-                    <div className="grid gap-2 text-sm">
-                      <div className="flex gap-2">
-                        <span className="font-medium text-muted-foreground w-32">Área:</span>
-                        <span>{guiaGenerada.curriculo_peru.area}</span>
-                      </div>
-                      <div className="flex gap-2">
-                        <span className="font-medium text-muted-foreground w-32">Competencia:</span>
-                        <span>{guiaGenerada.curriculo_peru.competencia}</span>
-                      </div>
-                      <div className="flex gap-2">
-                        <span className="font-medium text-muted-foreground w-32">Capacidad:</span>
-                        <span>{guiaGenerada.curriculo_peru.capacidad}</span>
-                      </div>
-                      <div className="flex gap-2">
-                        <span className="font-medium text-muted-foreground w-32">Desempeño:</span>
-                        <span>{guiaGenerada.curriculo_peru.desempeno_precisado}</span>
-                      </div>
-                      <div className="flex gap-2">
-                        <span className="font-medium text-muted-foreground w-32">Enfoque:</span>
-                        <Badge variant="outline">{guiaGenerada.curriculo_peru.enfoque_transversal}</Badge>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Objetivos de Aprendizaje - Dual Pillars */}
-                  <div className="grid md:grid-cols-2 gap-4">
-                    <div className="p-4 rounded-lg border-2 border-blue-200 bg-blue-50/50">
-                      <h4 className="font-semibold flex items-center gap-2 mb-2 text-blue-700">
-                        <Brain className="w-5 h-5" />
-                        Objetivo Cognitivo (Mente)
+                  {/* Propósitos de Aprendizaje (CNEB) */}
+                  {guiaGenerada.propositos_aprendizaje && (
+                    <div className="p-4 rounded-lg border bg-card">
+                      <h4 className="font-semibold flex items-center gap-2 mb-3">
+                        <Target className="w-4 h-4 text-primary" />
+                        Propósitos de Aprendizaje (CNEB)
                       </h4>
-                      <p className="text-sm">{guiaGenerada.objetivos_aprendizaje.cognitivo}</p>
-                    </div>
-                    <div className="p-4 rounded-lg border-2 border-rose-200 bg-rose-50/50">
-                      <h4 className="font-semibold flex items-center gap-2 mb-2 text-rose-700">
-                        <Heart className="w-5 h-5" />
-                        Objetivo Humano (Corazón)
-                      </h4>
-                      <p className="text-sm">{guiaGenerada.objetivos_aprendizaje.humano}</p>
-                    </div>
-                  </div>
-
-                  {/* Secuencia Didáctica */}
-                  <div>
-                    <h4 className="font-semibold mb-4">Secuencia Didáctica</h4>
-                    <div className="space-y-4">
-                      {guiaGenerada.secuencia_didactica.map((fase, i) => {
-                        const faseColors = {
-                          INICIO: 'border-l-amber-500 bg-amber-50/50',
-                          DESARROLLO: 'border-l-blue-500 bg-blue-50/50',
-                          CIERRE: 'border-l-green-500 bg-green-50/50'
-                        };
-                        const faseTextColors = {
-                          INICIO: 'text-amber-700',
-                          DESARROLLO: 'text-blue-700',
-                          CIERRE: 'text-green-700'
-                        };
-                        return (
-                          <div 
-                            key={i} 
-                            className={`p-4 rounded-lg border-l-4 ${faseColors[fase.fase] || 'border-l-gray-500 bg-gray-50/50'}`}
-                          >
-                            <div className="flex items-center justify-between mb-2">
-                              <div className="flex items-center gap-2">
-                                <span className={`font-bold ${faseTextColors[fase.fase] || 'text-gray-700'}`}>
-                                  {fase.fase}
-                                </span>
-                                <span className="text-sm text-muted-foreground">- {fase.subtitulo}</span>
-                              </div>
-                              <Badge variant="secondary" className="flex items-center gap-1">
-                                <Clock className="w-3 h-3" />
-                                {fase.tiempo}
-                              </Badge>
-                            </div>
-                            <p className="text-sm mb-3">{fase.actividad_detallada}</p>
-                            <div className="flex flex-wrap gap-2">
-                              <Badge variant="outline" className="flex items-center gap-1 text-xs">
-                                <Lightbulb className="w-3 h-3" />
-                                {fase.habilidad_foco}
-                              </Badge>
-                              <Badge variant="outline" className="flex items-center gap-1 text-xs">
-                                <User className="w-3 h-3" />
-                                {fase.rol_docente}
-                              </Badge>
-                            </div>
+                      {guiaGenerada.propositos_aprendizaje.filas?.map((fila: any, i: number) => (
+                        <div key={i} className="grid gap-2 text-sm mb-4 last:mb-0">
+                          <div className="flex gap-2">
+                            <span className="font-medium text-muted-foreground w-36">Competencia:</span>
+                            <span>{fila.competencia}</span>
                           </div>
-                        );
-                      })}
+                          <div className="flex gap-2">
+                            <span className="font-medium text-muted-foreground w-36">Criterios:</span>
+                            <span>{fila.criterios_evaluacion}</span>
+                          </div>
+                          <div className="flex gap-2">
+                            <span className="font-medium text-muted-foreground w-36">Evidencia:</span>
+                            <span>{fila.evidencia_aprendizaje}</span>
+                          </div>
+                          <div className="flex gap-2">
+                            <span className="font-medium text-muted-foreground w-36">Instrumento:</span>
+                            <Badge variant="secondary">{fila.instrumento_valorizacion}</Badge>
+                          </div>
+                        </div>
+                      ))}
+                      {guiaGenerada.propositos_aprendizaje.enfoques_transversales?.length > 0 && (
+                        <div className="mt-3 pt-3 border-t">
+                          <span className="text-sm font-medium text-muted-foreground">Enfoques Transversales:</span>
+                          <div className="flex flex-wrap gap-2 mt-2">
+                            {guiaGenerada.propositos_aprendizaje.enfoques_transversales.map((enfoque: string, i: number) => (
+                              <Badge key={i} variant="outline">{enfoque}</Badge>
+                            ))}
+                          </div>
+                          {guiaGenerada.propositos_aprendizaje.descripcion_enfoques && (
+                            <p className="text-sm text-muted-foreground mt-2">{guiaGenerada.propositos_aprendizaje.descripcion_enfoques}</p>
+                          )}
+                        </div>
+                      )}
                     </div>
-                  </div>
+                  )}
 
-                  {/* Recursos y Evaluación */}
-                  <div className="grid md:grid-cols-2 gap-4">
+                  {/* Preparación */}
+                  {guiaGenerada.preparacion && (
                     <div className="p-4 rounded-lg border bg-card">
-                      <h4 className="font-semibold mb-3">Materiales Necesarios</h4>
-                      <ul className="space-y-1">
-                        {guiaGenerada.recursos_y_evaluacion.materiales_necesarios.map((mat, i) => (
-                          <li key={i} className="text-sm flex items-center gap-2">
-                            <span className="w-1.5 h-1.5 rounded-full bg-primary"></span>
-                            {mat}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                    <div className="p-4 rounded-lg border bg-card">
-                      <h4 className="font-semibold mb-3">Evaluación</h4>
-                      <div className="space-y-2">
+                      <h4 className="font-semibold flex items-center gap-2 mb-3">
+                        <ClipboardList className="w-4 h-4 text-primary" />
+                        Preparación de la Sesión
+                      </h4>
+                      {guiaGenerada.preparacion.que_hacer_antes && (
+                        <div className="mb-3">
+                          <span className="text-sm font-medium text-muted-foreground">Qué hacer antes:</span>
+                          <p className="text-sm mt-1">{guiaGenerada.preparacion.que_hacer_antes}</p>
+                        </div>
+                      )}
+                      {guiaGenerada.preparacion.recursos_materiales?.length > 0 && (
                         <div>
-                          <span className="text-xs font-medium text-muted-foreground">Criterios:</span>
+                          <span className="text-sm font-medium text-muted-foreground">Materiales:</span>
                           <ul className="mt-1 space-y-1">
-                            {guiaGenerada.recursos_y_evaluacion.criterios_evaluacion.map((crit, i) => (
+                            {guiaGenerada.preparacion.recursos_materiales.map((mat: string, i: number) => (
                               <li key={i} className="text-sm flex items-center gap-2">
-                                <CheckCircle2 className="w-3 h-3 text-success" />
-                                {crit}
+                                <span className="w-1.5 h-1.5 rounded-full bg-primary"></span>
+                                {mat}
                               </li>
                             ))}
                           </ul>
                         </div>
-                        <div>
-                          <span className="text-xs font-medium text-muted-foreground">Instrumento:</span>
-                          <Badge variant="secondary" className="ml-2">{guiaGenerada.recursos_y_evaluacion.instrumento_sugerido}</Badge>
-                        </div>
-                      </div>
+                      )}
                     </div>
-                  </div>
+                  )}
 
-                  {/* Tips para el Profesor */}
-                  <div className="p-4 rounded-lg border bg-gradient-to-r from-purple-50 to-pink-50 border-purple-200">
-                    <h4 className="font-semibold mb-3 flex items-center gap-2">
-                      <Lightbulb className="w-4 h-4 text-purple-600" />
-                      Tips para el Profesor
-                    </h4>
-                    <div className="grid md:grid-cols-2 gap-4">
-                      <div>
-                        <span className="text-xs font-medium text-purple-600 flex items-center gap-1 mb-1">
-                          <Target className="w-3 h-3" />
-                          Diferenciación
-                        </span>
-                        <p className="text-sm">{guiaGenerada.tips_profesor.diferenciacion}</p>
-                      </div>
-                      <div>
-                        <span className="text-xs font-medium text-pink-600 flex items-center gap-1 mb-1">
-                          <Rocket className="w-3 h-3" />
-                          Reto Extra
-                        </span>
-                        <p className="text-sm">{guiaGenerada.tips_profesor.reto_extra}</p>
+                  {/* Momentos de la Sesión */}
+                  {guiaGenerada.momentos_sesion && (
+                    <div>
+                      <h4 className="font-semibold mb-4 flex items-center gap-2">
+                        <Rocket className="w-4 h-4 text-primary" />
+                        Secuencia Didáctica
+                      </h4>
+                      <div className="space-y-4">
+                        {/* INICIO */}
+                        {guiaGenerada.momentos_sesion.inicio && (
+                          <div className="p-4 rounded-lg border-l-4 border-l-amber-500 bg-amber-50/50">
+                            <div className="flex items-center justify-between mb-2">
+                              <span className="font-bold text-amber-700">INICIO</span>
+                              <Badge variant="secondary" className="flex items-center gap-1">
+                                <Clock className="w-3 h-3" />
+                                {guiaGenerada.momentos_sesion.inicio.tiempo_minutos} min
+                              </Badge>
+                            </div>
+                            <p className="text-sm whitespace-pre-line">{guiaGenerada.momentos_sesion.inicio.contenido}</p>
+                          </div>
+                        )}
+                        
+                        {/* DESARROLLO */}
+                        {guiaGenerada.momentos_sesion.desarrollo && (
+                          <div className="p-4 rounded-lg border-l-4 border-l-blue-500 bg-blue-50/50">
+                            <div className="flex items-center justify-between mb-2">
+                              <span className="font-bold text-blue-700">DESARROLLO</span>
+                              <Badge variant="secondary" className="flex items-center gap-1">
+                                <Clock className="w-3 h-3" />
+                                {guiaGenerada.momentos_sesion.desarrollo.tiempo_minutos} min
+                              </Badge>
+                            </div>
+                            <p className="text-sm whitespace-pre-line">{guiaGenerada.momentos_sesion.desarrollo.contenido}</p>
+                          </div>
+                        )}
+                        
+                        {/* CIERRE */}
+                        {guiaGenerada.momentos_sesion.cierre && (
+                          <div className="p-4 rounded-lg border-l-4 border-l-green-500 bg-green-50/50">
+                            <div className="flex items-center justify-between mb-2">
+                              <span className="font-bold text-green-700">CIERRE</span>
+                              <Badge variant="secondary" className="flex items-center gap-1">
+                                <Clock className="w-3 h-3" />
+                                {guiaGenerada.momentos_sesion.cierre.tiempo_minutos} min
+                              </Badge>
+                            </div>
+                            <p className="text-sm whitespace-pre-line">{guiaGenerada.momentos_sesion.cierre.contenido}</p>
+                          </div>
+                        )}
                       </div>
                     </div>
-                  </div>
+                  )}
                 </div>
               )}
             </div>
