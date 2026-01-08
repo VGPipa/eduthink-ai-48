@@ -159,6 +159,8 @@ INSTRUCCIONES IMPORTANTES:
 3. Genera evidencias de aprendizaje concretas y medibles
 4. Sugiere instrumentos de valorización apropiados (rúbrica, lista de cotejo, etc.)
 5. En "que_hacer_antes", describe acciones específicas de preparación
+6. En los momentos de la sesión, UTILIZA ESPECÍFICAMENTE los materiales proporcionados en las actividades descritas
+7. En "recursos_materiales", incluye los materiales que el docente seleccionó más cualquier adicional necesario
 
 Genera la SESIÓN DE CLASE completa en formato JSON según el schema especificado.`;
 
