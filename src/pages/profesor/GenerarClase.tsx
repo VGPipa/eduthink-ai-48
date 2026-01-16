@@ -1287,29 +1287,13 @@ export default function GenerarClase() {
     }
 
     try {
-      // 1. Obtener los quizzes de esta clase
-      const { data: quizzesDeClase, error: quizzesError } = await supabase
-        .from('quizzes')
-        .select('id, tipo')
-        .eq('id_clase', claseData.id);
-      
-      if (quizzesError) throw quizzesError;
-
-      // 2. Publicar todos los quizzes de la clase (PRE y POST)
-      for (const quiz of quizzesDeClase || []) {
-        await supabase
-          .from('quizzes')
-          .update({ estado: 'publicado' })
-          .eq('id', quiz.id);
-      }
-
-      // 3. Transición directa a clase_programada (validación completa)
+      // Transición directa a clase_programada (validación completa)
       await updateClase.mutateAsync({
         id: claseData.id,
         estado: 'clase_programada'
       });
 
-      toast({ title: '¡Clase validada!', description: 'Tu clase y quizzes están listos para los alumnos' });
+      toast({ title: '¡Clase validada!', description: 'Tu clase está lista para ser impartida' });
       navigate('/profesor/dashboard');
     } catch (error: any) {
       toast({
